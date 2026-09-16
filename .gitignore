@@ -1,0 +1,14 @@
+# Build artifacts
+bin/
+obj/
+
+# IDE / editor
+.vs/
+.vscode/
+*.user
+
+# Claude Code session data
+.claude/
+
+# Report export scratch output (not part of the application)
+data (*).csv

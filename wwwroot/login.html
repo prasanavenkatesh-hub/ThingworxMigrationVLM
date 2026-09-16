@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Login | Factory Connect Reports</title>
+    <link rel="stylesheet" href="css/fonts.css">
+    <link rel="icon" type="image/png" href="assets/logo-small.png">
+    <link rel="stylesheet" href="css/style.v2.css">
+    <style>
+        /* Inline logic is separated, but styles should use the main sheet + specific overrides */
+    </style>
+</head>
+
+<body class="login-page">
+
+    <div class="login-container">
+        <!-- Logo Area -->
+        <div class="login-logo fade-in-down">
+            <!-- Ensure this path is correct relative to wwwroot -->
+            <img src="assets/royal_enfield_text.png" alt="Royal Enfield" class="re-logo">
+        </div>
+
+        <!-- Login Card -->
+        <div class="login-card fade-in-up">
+            <div class="card-header">
+                <h2>FactRE Connect</h2>
+                <span class="subtitle">Reports</span>
+            </div>
+
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label>Username</label>
+                    <div class="input-wrapper">
+                        <span class="material-symbols-outlined input-icon">person</span>
+                        <input type="text" id="username" placeholder="Enter Username" required autofocus>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Password</label>
+                    <div class="input-wrapper">
+                        <span class="material-symbols-outlined input-icon">lock</span>
+                        <input type="password" id="password" placeholder="Enter Password" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Employee ID</label>
+                    <div class="input-wrapper">
+                        <span class="material-symbols-outlined input-icon">badge</span>
+                        <input type="text" id="empId" placeholder="Enter Employee ID" required>
+                    </div>
+                </div>
+
+                <div id="loginError" class="login-error"></div>
+
+                <button type="submit" class="btn-login">
+                    LOGIN <span class="material-symbols-outlined">arrow_forward</span>
+                </button>
+            </form>
+        </div>
+
+        <div class="login-footer fade-in">
+            <p>&copy; 2026 Royal Enfield. All rights reserved.</p>
+        </div>
+    </div>
+
+    <!-- Google Material Icons for Inputs -->
+    <!-- Google Material Icons for Inputs (Local via fonts.css) -->
+    <!-- <link rel="stylesheet" href="https://fonts.googleapis.com/css2..." /> -->
+
+    <script>
+        // Check if already logged in
+        if (sessionStorage.getItem('isLoggedIn') === 'true') {
+            window.location.href = 'index.html';
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+
+            const user = document.getElementById('username').value.trim();
+            const pass = document.getElementById('password').value.trim();
+            const empId = document.getElementById('empId').value.trim();
+            const errorEl = document.getElementById('loginError');
+
+            // Reset Error
+            errorEl.textContent = '';
+            errorEl.classList.remove('show');
+
+            // Hardcoded Validation
+            // Username: vino
+            // Password: 1234
+            // EmpID: Anything (Just required)
+
+            if (user.toLowerCase() === 'vino' && pass === '1234' && empId.length > 0) {
+                // Success
+                const btn = document.querySelector('.btn-login');
+                btn.innerHTML = '<span class="loader"></span> Authenticating...';
+                btn.classList.add('loading');
+
+                // Simulate Network Delay for Effect
+                setTimeout(() => {
+                    sessionStorage.setItem('isLoggedIn', 'true');
+                    sessionStorage.setItem('empId', empId);
+                    sessionStorage.setItem('username', 'Vino'); // Store display name
+
+                    window.location.href = 'index.html';
+                }, 800);
+
+            } else {
+                // Fail
+                errorEl.textContent = 'Invalid Username or Password';
+                errorEl.classList.add('show');
+
+                // Shake Animation styling handled in CSS via 'show' or re-trigger
+                const card = document.querySelector('.login-card');
+                card.classList.add('shake');
+                setTimeout(() => card.classList.remove('shake'), 500);
+            }
+        }
+    </script>
+</body>
+
+</html>
