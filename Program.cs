@@ -18,6 +18,16 @@ builder.Services.AddSingleton<FireHydrantPumpDurationRepository>();
 builder.Services.AddSingleton<FireHydrantPumpDurationLogger>();
 builder.Services.AddHostedService<FireHydrantMqttBackgroundService>();
 
+// LPG Gas Leak Yard - ported from the standalone GasSentry project. Registered as both a
+// singleton (GasLeakController injects it directly to publish valve commands) and a hosted
+// service (so its background MQTT loop runs), same dual-registration pattern the original
+// project used for its MqttClientService.
+builder.Services.AddSingleton<GasLeakStateStore>();
+builder.Services.AddSingleton<GasLeakAlertRepository>();
+builder.Services.AddSingleton<GasLeakAlertMonitor>();
+builder.Services.AddSingleton<GasLeakMqttBackgroundService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<GasLeakMqttBackgroundService>());
+
 // Enable CORS
 builder.Services.AddCors(options =>
 {
