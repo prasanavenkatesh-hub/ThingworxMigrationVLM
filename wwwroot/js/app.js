@@ -55,8 +55,9 @@ function switchTab(tabId) {
     // Clear Search UX on Tab Switch
     // Search context is now separate per tab (preserved), no need to clear.
 
-    // Fire Hydrant live polling only runs while its tab is active.
+    // Fire Hydrant / Gas Leak live polling only runs while their own tab is active.
     stopFireHydrantPolling();
+    stopGasLeakPolling();
 
     // Fetch data if switching to Rework or Completed or Reports
     if (tabId === 'rework' || tabId === 'completed') {
@@ -66,6 +67,8 @@ function switchTab(tabId) {
         fetchModels();
     } else if (tabId === 'fire-hydrant') {
         startFireHydrantPolling();
+    } else if (tabId === 'gas-leak') {
+        startGasLeakPolling();
     } else if (tabId === 'ems-renewable') {
         renderEmsRenewable();
     } else if (tabId === 'eb-rtm') {
@@ -890,6 +893,194 @@ function renderScadaPressureGrid() {
         valEl.textContent = hasValue ? p.value.toFixed(2) : '';
         valEl.style.color = hasValue ? scadaPressureColor(p.value) : '';
     });
+}
+
+// ---------------------------------------------
+// LPG Gas Leak Monitoring - live via GET /api/gasleak/status (backend bridges the plant MQTT
+// broker, see GasLeakMqttBackgroundService). Ported from the standalone GasSentry project
+// (originally React/JSX) into vanilla JS/DOM updates matching this app's house style; exact
+// coordinates/thresholds carried over unchanged from that project's app.js.
+// ---------------------------------------------
+let gasLeakPollTimer = null;
+let gasLeakAlertsPollTimer = null;
+let gasLeakOpenAlerts = [];
+
+function startGasLeakPolling() {
+    fetchGasLeakStatus();
+    stopGasLeakPolling();
+    gasLeakPollTimer = setInterval(fetchGasLeakStatus, 1000);
+    fetchGasLeakAlerts();
+    gasLeakAlertsPollTimer = setInterval(fetchGasLeakAlerts, 20000);
+    fitGasLeakCanvasScale();
+    window.addEventListener('resize', fitGasLeakCanvasScale);
+}
+
+function stopGasLeakPolling() {
+    if (gasLeakPollTimer) { clearInterval(gasLeakPollTimer); gasLeakPollTimer = null; }
+    if (gasLeakAlertsPollTimer) { clearInterval(gasLeakAlertsPollTimer); gasLeakAlertsPollTimer = null; }
+    window.removeEventListener('resize', fitGasLeakCanvasScale);
+}
+
+async function fetchGasLeakStatus() {
+    try {
+        const res = await fetch('/api/gasleak/status');
+        if (!res.ok) return;
+        applyGasLeakStatus(await res.json());
+    } catch (e) {
+        // Broker/API unreachable - keep showing the last known values.
+    }
+}
+
+function gasleakSirenImg(band) {
+    switch (band) {
+        case 'red': return 'assets/gasleak/RE_Safety_GasLeak_SirenRed_MD.png';
+        case 'yellow': return 'assets/gasleak/RE_Safety_GasLeak_SirenYellow_MD.png';
+        case 'grey': return 'assets/gasleak/RE_Safety_GasLeak_SirenGrey_MD.png';
+        default: return 'assets/gasleak/RE_Safety_GasLeak_SirenGreen_MD.png';
+    }
+}
+
+// Matches the sprinkler pressure gauge's ValueFormat.StateFormats bands from the source
+// mashup XML: red <4.5, yellow 4.5-6, green 6-8, yellow 8-9.5, red >9.5.
+function gasleakPressureBand(p) {
+    if (p < 4.5) return 'red';
+    if (p < 6) return 'yellow';
+    if (p < 8) return 'green';
+    if (p < 9.5) return 'yellow';
+    return 'red';
+}
+
+function gasleakWorstStatus(points) {
+    if (points.some(p => p.status === 'red')) return 'red';
+    if (points.some(p => p.status === 'yellow')) return 'yellow';
+    if (points.every(p => p.status === 'grey')) return 'grey'; // shop not live-wired
+    return 'green';
+}
+
+function applyGasLeakStatus(data) {
+    const gauge = document.getElementById('gasleakSprinklerGauge');
+    const valueEl = document.getElementById('gasleakSprinklerValue');
+    if (gauge && valueEl) {
+        valueEl.textContent = data.sprinklerPressure.toFixed(2);
+        gauge.className = 'gasleak-ov gasleak-gauge-circle state-' + gasleakPressureBand(data.sprinklerPressure);
+    }
+
+    applyGasLeakZone(data.lot1, 'gasleakLot1Status', 'gasleakLot1Valve', 'gasleakLot1Siren');
+    applyGasLeakZone(data.lot2, 'gasleakLot2Status', 'gasleakLot2Valve', 'gasleakLot2Siren');
+
+    const ps2Points = data.paintShop2.points || [];
+    applyGasLeakPointColor('gasleakPS2_hwg3', (ps2Points.find(p => p.name === 'HWG - 3') || {}).status);
+    applyGasLeakPointColor('gasleakPS2_hwg4', (ps2Points.find(p => p.name === 'HWG - 4') || {}).status);
+    applyGasLeakPointColor('gasleakPS2_heatup', (ps2Points.find(p => p.name === 'PTCED - 2 Heat up') || {}).status);
+    applyGasLeakPointColor('gasleakPS2_holdup', (ps2Points.find(p => p.name === 'PTCED - 2 Hold up') || {}).status);
+
+    const ps1Siren = document.getElementById('gasleakPS1Siren');
+    if (ps1Siren) ps1Siren.src = gasleakSirenImg(gasleakWorstStatus(data.paintShop1.points || []));
+    const ps2Siren = document.getElementById('gasleakPS2Siren');
+    if (ps2Siren) ps2Siren.src = gasleakSirenImg(gasleakWorstStatus(ps2Points));
+
+    const danger = data.lot1.alert || data.lot2.alert || data.tagQualityAlert;
+    const dangerGif = document.getElementById('gasleakDangerGif');
+    if (dangerGif) dangerGif.hidden = !danger;
+
+    const alertCount = (data.lot1.alert ? 1 : 0) + (data.lot2.alert ? 1 : 0) + (data.tagQualityAlert ? 1 : 0);
+    gasleakUpdateBellBadge(alertCount);
+}
+
+function applyGasLeakZone(zone, statusElId, valveElId, sirenElId) {
+    const statusEl = document.getElementById(statusElId);
+    if (statusEl) {
+        statusEl.textContent = zone.alert ? 'Danger' : 'Normal';
+        statusEl.classList.toggle('danger', !!zone.alert);
+    }
+    const valveEl = document.getElementById(valveElId);
+    if (valveEl) valveEl.classList.toggle('closed', !zone.valveOpen);
+    const sirenEl = document.getElementById(sirenElId);
+    if (sirenEl) sirenEl.src = gasleakSirenImg(zone.band);
+}
+
+function applyGasLeakPointColor(elId, status) {
+    const el = document.getElementById(elId);
+    if (el && status) el.src = gasleakSirenImg(status);
+}
+
+// Scales the fixed 2030x1030 design canvas (matching the Mashup XML's own coordinate space)
+// to "contain"-fit the available viewport space - unlike fitScadaCanvasScale (height-only),
+// this scales on both width and height since the source layout is wider than it is tall.
+function fitGasLeakCanvasScale() {
+    const wrap = document.getElementById('gasleakCanvasWrap');
+    const scaler = document.getElementById('gasleakCanvasScaler');
+    const canvas = document.getElementById('gasleakCanvas');
+    if (!wrap || !scaler || !canvas) return;
+    const scale = Math.min(wrap.clientWidth / 2030, wrap.clientHeight / 1030);
+    if (!isFinite(scale) || scale <= 0) return;
+    canvas.style.transform = `scale(${scale})`;
+    scaler.style.width = (2030 * scale) + 'px';
+    scaler.style.height = (1030 * scale) + 'px';
+}
+
+async function gasleakToggleValve(target) {
+    try {
+        const res = await fetch(`/api/gasleak/valve/${target}`, { method: 'POST' });
+        if (!res.ok) { console.error(`Failed to toggle valve '${target}': HTTP ${res.status}`); return; }
+        fetchGasLeakStatus();
+    } catch (e) {
+        console.error(`Failed to toggle valve '${target}':`, e);
+    }
+}
+
+function gasleakOpenAssetInfo(name) {
+    alert(`${name}\n\nLive property detail for this asset will be wired up once its tag is mapped in the Kepware/MQTT configuration.`);
+}
+
+function gasleakUpdateBellBadge(count) {
+    const btn = document.getElementById('gasleakAlertBellBtn');
+    const badge = document.getElementById('gasleakAlertBellBadge');
+    if (!btn || !badge) return;
+    btn.classList.toggle('has-alerts', count > 0);
+    badge.style.display = count > 0 ? '' : 'none';
+    badge.textContent = String(count);
+}
+
+async function fetchGasLeakAlerts() {
+    try {
+        const res = await fetch('/api/gasleak/alerts');
+        if (!res.ok) return;
+        gasLeakOpenAlerts = await res.json();
+        gasleakUpdateBellBadge(gasLeakOpenAlerts.length);
+        renderGasLeakAlertsTable();
+    } catch (e) {
+        // Broker/API unreachable - keep showing the last known list.
+    }
+}
+
+function renderGasLeakAlertsTable() {
+    const tbody = document.getElementById('gasleakAlertsTbody');
+    const empty = document.getElementById('gasleakAlertsEmpty');
+    if (!tbody || !empty) return;
+    tbody.innerHTML = '';
+    if (gasLeakOpenAlerts.length === 0) {
+        empty.style.display = '';
+        return;
+    }
+    empty.style.display = 'none';
+    gasLeakOpenAlerts.forEach(a => {
+        const tr = document.createElement('tr');
+        const time = new Date(a.eventTime).toLocaleString();
+        tr.innerHTML = `<td>${time}</td><td>${a.type}</td><td>${a.description}</td>`;
+        tbody.appendChild(tr);
+    });
+}
+
+function openGasLeakAlerts() {
+    fetchGasLeakAlerts();
+    const overlay = document.getElementById('gasleakAlertsOverlay');
+    if (overlay) overlay.hidden = false;
+}
+
+function gasleakCloseAlerts() {
+    const overlay = document.getElementById('gasleakAlertsOverlay');
+    if (overlay) overlay.hidden = true;
 }
 
 // ---------------------------------------------

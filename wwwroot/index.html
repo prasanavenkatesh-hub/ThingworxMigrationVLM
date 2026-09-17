@@ -9,6 +9,7 @@
     <link rel="icon" type="image/png" href="assets/logo-small.png">
     <link rel="stylesheet" href="css/style.v2.css">
     <link rel="stylesheet" href="css/extra_styles.css?v=1.1">
+    <link rel="stylesheet" href="css/gasleak.css">
     <script src="lib/html2pdf.bundle.min.js"></script>
     <script src="lib/exceljs.min.js"></script>
     <script src="lib/FileSaver.min.js"></script>
@@ -109,6 +110,11 @@
                             data-tooltip="Fire Hydrant Monitoring" style="font-size: 0.9em; padding: 5px 10px;">
                             <span class="material-symbols-outlined icon" style="font-size: 18px;">local_fire_department</span>
                             <span class="text">Fire Hydrant Monitoring</span>
+                        </button>
+                        <button class="nav-item sub-item" onclick="switchTab('gas-leak')"
+                            data-tooltip="LPG Gas Leak Monitoring" style="font-size: 0.9em; padding: 5px 10px;">
+                            <span class="material-symbols-outlined icon" style="font-size: 18px;">propane_tank</span>
+                            <span class="text">LPG Gas Leak Monitoring</span>
                         </button>
                         <button class="nav-item sub-item" onclick="switchTab('ems-renewable')"
                             data-tooltip="EMS Renewable" style="font-size: 0.9em; padding: 5px 10px;">
@@ -1203,6 +1209,159 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- LPG Gas Leak Monitoring - ported from the standalone GasSentry project.
+                 Coordinates below are taken directly from the Mashup XML export
+                 (RE_LPGYard_GasLeak_MU), same coordinate space as the background diagram
+                 image (2020x1015 at left:5,top:11 within the 2030x1030 canvas). -->
+            <div id="tab-gas-leak" class="tab-pane">
+                <div class="gasleak-header-row">
+                    <div class="gasleak-title">LPG Leakage Detection System</div>
+                    <div class="gasleak-header-right">
+                        <button class="gasleak-alert-bell-btn" id="gasleakAlertBellBtn" onclick="openGasLeakAlerts()" title="Alerts">
+                            <span class="material-symbols-outlined">notifications</span>
+                            <span class="gasleak-alert-bell-badge" id="gasleakAlertBellBadge" style="display:none;">0</span>
+                        </button>
+                        <button class="gasleak-topbar-btn" onclick="alert('Reporting will be available once its Kepware tags are mapped.')">Reports</button>
+                    </div>
+                </div>
+                <div class="gasleak-canvas-wrap" id="gasleakCanvasWrap">
+                    <div class="gasleak-canvas-scaler" id="gasleakCanvasScaler">
+                        <div class="gasleak-canvas" id="gasleakCanvas">
+                            <img class="gasleak-bg-diagram" style="left:5px;top:11px;width:2020px;height:1015px;" src="assets/gasleak/RE_LPGYard_GasLeakBG_MD.png" alt="Pipe routing diagram">
+
+                            <!-- Sprinkler pressure -->
+                            <div class="gasleak-ov gasleak-gauge-label" style="left:23px;top:216px;width:85px;">Sprinkler<br>Pressure</div>
+                            <div class="gasleak-ov gasleak-gauge-circle state-green" id="gasleakSprinklerGauge" style="left:27px;top:279px;">
+                                <span id="gasleakSprinklerValue">8.00</span><small>bar</small>
+                            </div>
+
+                            <!-- LOT 1 -->
+                            <div class="gasleak-ov gasleak-lot-label" style="left:580px;top:57px;">Lot 1</div>
+                            <div class="gasleak-ov gasleak-lot-status" id="gasleakLot1Status" style="left:670px;top:65px;">Normal</div>
+
+                            <img class="gasleak-ov gasleak-cylinder" style="left:242px;top:205px;" src="assets/gasleak/RE_LPGYard_GasTanker_MediaV3.png">
+                            <img class="gasleak-ov gasleak-cylinder" style="left:338px;top:205px;" src="assets/gasleak/RE_LPGYard_GasTanker_MediaV3.png">
+                            <img class="gasleak-ov gasleak-cylinder" style="left:240px;top:368px;" src="assets/gasleak/RE_LPGYard_GasTanker_MediaV3.png">
+                            <img class="gasleak-ov gasleak-cylinder" style="left:336px;top:368px;" src="assets/gasleak/RE_LPGYard_GasTanker_MediaV3.png">
+
+                            <img class="gasleak-ov gasleak-bell-icon" style="left:571px;top:149px;" src="assets/gasleak/RE_LPGYard_GasLeak_Notification.png" alt="Notification">
+                            <img class="gasleak-ov gasleak-bell-icon buzzer" style="left:658px;top:146px;" src="assets/gasleak/RE_LPGYard_GasLeak_Buzzer.png" alt="Buzzer">
+                            <img class="gasleak-ov gasleak-bell-icon sensor" style="left:613px;top:191px;" src="assets/gasleak/RE_LPGYard_GasLeak_Sensor.png" alt="Sensor">
+                            <button class="gasleak-ov gasleak-valve-switch" id="gasleakLot1Valve" style="left:590px;top:297px;" onclick="gasleakToggleValve('lot1')">
+                                <span class="gasleak-valve-track"><span class="gasleak-valve-knob"></span></span>
+                            </button>
+                            <div class="gasleak-ov gasleak-valve-label gasleak-valve-open" style="left:563px;top:304px;">OPEN</div>
+                            <div class="gasleak-ov gasleak-valve-label gasleak-valve-close" style="left:641px;top:305px;">CLOSE</div>
+                            <img class="gasleak-ov gasleak-siren-dot gasleak-blink" id="gasleakLot1Siren" style="left:608px;top:341px;" src="assets/gasleak/RE_Safety_GasLeak_SirenGreen_MD.png" alt="status">
+                            <div class="gasleak-ov gasleak-leak-label" style="left:565px;top:387px;width:114px;">Leak Alert Signal</div>
+
+                            <img class="gasleak-ov gasleak-vaporizer-icon" style="left:830px;top:86px;" src="assets/gasleak/RE_LPGYard_LiquidOffTank_Media.png" onclick="gasleakOpenAssetInfo('Vaporizer 1')">
+                            <div class="gasleak-ov gasleak-vaporizer-label" style="left:722px;top:138px;width:104px;" onclick="gasleakOpenAssetInfo('Vaporizer 1')">Vaporizer 1</div>
+                            <img class="gasleak-ov gasleak-vaporizer-icon" style="left:830px;top:224px;" src="assets/gasleak/RE_LPGYard_LiquidOffTank_Media.png" onclick="gasleakOpenAssetInfo('Vaporizer 2')">
+                            <div class="gasleak-ov gasleak-vaporizer-label" style="left:720px;top:283px;width:104px;" onclick="gasleakOpenAssetInfo('Vaporizer 2')">Vaporizer 2</div>
+                            <img class="gasleak-ov gasleak-vaporizer-icon" style="left:830px;top:363px;" src="assets/gasleak/RE_LPGYard_LiquidOffTank_Media.png" onclick="gasleakOpenAssetInfo('Vaporizer 3')">
+                            <div class="gasleak-ov gasleak-vaporizer-label" style="left:721px;top:420px;width:104px;" onclick="gasleakOpenAssetInfo('Vaporizer 3')">Vaporizer 3</div>
+
+                            <!-- LOT 2 -->
+                            <div class="gasleak-ov gasleak-lot-label" style="left:583px;top:588px;">Lot 2</div>
+                            <div class="gasleak-ov gasleak-lot-status" id="gasleakLot2Status" style="left:673px;top:596px;">Normal</div>
+
+                            <img class="gasleak-ov gasleak-cylinder" style="left:240px;top:717px;" src="assets/gasleak/RE_LPGYard_GasTanker_MediaV3.png">
+                            <img class="gasleak-ov gasleak-cylinder" style="left:336px;top:717px;" src="assets/gasleak/RE_LPGYard_GasTanker_MediaV3.png">
+                            <img class="gasleak-ov gasleak-cylinder" style="left:238px;top:879px;" src="assets/gasleak/RE_LPGYard_GasTanker_MediaV3.png">
+                            <img class="gasleak-ov gasleak-cylinder" style="left:334px;top:879px;" src="assets/gasleak/RE_LPGYard_GasTanker_MediaV3.png">
+
+                            <img class="gasleak-ov gasleak-bell-icon" style="left:579px;top:659px;" src="assets/gasleak/RE_LPGYard_GasLeak_Notification.png" alt="Notification">
+                            <img class="gasleak-ov gasleak-bell-icon buzzer" style="left:653px;top:657px;" src="assets/gasleak/RE_LPGYard_GasLeak_Buzzer.png" alt="Buzzer">
+                            <img class="gasleak-ov gasleak-bell-icon sensor" style="left:613px;top:696px;" src="assets/gasleak/RE_LPGYard_GasLeak_Sensor.png" alt="Sensor">
+                            <button class="gasleak-ov gasleak-valve-switch" id="gasleakLot2Valve" style="left:596px;top:808px;" onclick="gasleakToggleValve('lot2')">
+                                <span class="gasleak-valve-track"><span class="gasleak-valve-knob"></span></span>
+                            </button>
+                            <div class="gasleak-ov gasleak-valve-label gasleak-valve-open" style="left:565px;top:814px;">OPEN</div>
+                            <div class="gasleak-ov gasleak-valve-label gasleak-valve-close" style="left:650px;top:812px;">CLOSE</div>
+                            <img class="gasleak-ov gasleak-siren-dot gasleak-blink" id="gasleakLot2Siren" style="left:612px;top:847px;" src="assets/gasleak/RE_Safety_GasLeak_SirenGreen_MD.png" alt="status">
+                            <div class="gasleak-ov gasleak-leak-label" style="left:570px;top:897px;width:124px;">Leak Alert Signal</div>
+
+                            <img class="gasleak-ov gasleak-vaporizer-icon" style="left:830px;top:629px;" src="assets/gasleak/RE_LPGYard_LiquidOffTank_Media.png" onclick="gasleakOpenAssetInfo('Vaporizer 4')">
+                            <div class="gasleak-ov gasleak-vaporizer-label" style="left:724px;top:687px;width:104px;" onclick="gasleakOpenAssetInfo('Vaporizer 4')">Vaporizer 4</div>
+                            <img class="gasleak-ov gasleak-vaporizer-icon" style="left:830px;top:799px;" src="assets/gasleak/RE_LPGYard_LiquidOffTank_Media.png" onclick="gasleakOpenAssetInfo('Vaporizer 5')">
+                            <div class="gasleak-ov gasleak-vaporizer-label" style="left:728px;top:856px;width:104px;" onclick="gasleakOpenAssetInfo('Vaporizer 5')">Vaporizer 5</div>
+
+                            <!-- Paint Shop 1 (valve read-only, matching Disabled=true in the source mashup) -->
+                            <img class="gasleak-ov gasleak-siren-dot" id="gasleakPS1Siren" style="left:1461px;top:95px;" src="assets/gasleak/RE_Safety_GasLeak_SirenGrey_MD.png" alt="status">
+                            <img class="gasleak-ov gasleak-bell-icon" style="left:1424px;top:133px;" src="assets/gasleak/RE_LPGYard_GasLeak_Notification.png" alt="Notification">
+                            <img class="gasleak-ov gasleak-bell-icon buzzer" style="left:1501px;top:132px;" src="assets/gasleak/RE_LPGYard_GasLeak_Buzzer.png" alt="Buzzer">
+                            <img class="gasleak-ov gasleak-bell-icon sensor" style="left:1468px;top:166px;" src="assets/gasleak/RE_LPGYard_GasLeak_Sensor.png" alt="Sensor">
+                            <button class="gasleak-ov gasleak-valve-switch" disabled style="left:1451px;top:283px;">
+                                <span class="gasleak-valve-track"><span class="gasleak-valve-knob"></span></span>
+                            </button>
+                            <div class="gasleak-ov gasleak-valve-label gasleak-valve-open" style="left:1421px;top:291px;">OPEN</div>
+                            <div class="gasleak-ov gasleak-valve-label gasleak-valve-close" style="left:1505px;top:291px;">CLOSE</div>
+                            <img class="gasleak-ov gasleak-heater-icon" style="left:1550px;top:246px;" src="assets/gasleak/RE_LPGYard_PaintShop.png">
+                            <div class="gasleak-ov gasleak-paintshop-label" style="left:1537px;top:172px;width:199px;">Paint Shop 1</div>
+
+                            <!-- Danger overlay: shown while any zone/tag alert is active -->
+                            <img class="gasleak-ov gasleak-danger-gif" id="gasleakDangerGif" style="left:1418px;top:308px;width:150px;height:132px;" src="assets/gasleak/RE_Safety_DangerGif_MD.png" alt="Danger" hidden>
+
+                            <!-- Paint Shop 2 (valve read-only, matching Disabled=true in the source mashup) -->
+                            <img class="gasleak-ov gasleak-siren-dot" id="gasleakPS2Siren" style="left:1479px;top:548px;" src="assets/gasleak/RE_Safety_GasLeak_SirenGreen_MD.png" alt="status">
+                            <img class="gasleak-ov gasleak-bell-icon" style="left:1433px;top:631px;" src="assets/gasleak/RE_LPGYard_GasLeak_Notification.png" alt="Notification">
+                            <img class="gasleak-ov gasleak-bell-icon buzzer" style="left:1505px;top:628px;" src="assets/gasleak/RE_LPGYard_GasLeak_Buzzer.png" alt="Buzzer">
+                            <img class="gasleak-ov gasleak-bell-icon sensor" style="left:1468px;top:661px;" src="assets/gasleak/RE_LPGYard_GasLeak_Sensor.png" alt="Sensor">
+                            <button class="gasleak-ov gasleak-valve-switch" disabled style="left:1450px;top:782px;">
+                                <span class="gasleak-valve-track"><span class="gasleak-valve-knob"></span></span>
+                            </button>
+                            <div class="gasleak-ov gasleak-valve-label gasleak-valve-open" style="left:1419px;top:789px;">OPEN</div>
+                            <div class="gasleak-ov gasleak-valve-label gasleak-valve-close" style="left:1504px;top:789px;">CLOSE</div>
+                            <img class="gasleak-ov gasleak-heater-icon" style="left:1580px;top:746px;" src="assets/gasleak/RE_LPGYard_PaintShop.png">
+                            <div class="gasleak-ov gasleak-paintshop-label" style="left:1565px;top:674px;width:199px;">Paint Shop 2</div>
+
+                            <!-- STATUS LIST: Paint Shop 1 (all 7 rows unbound/grey - no corresponding tag) -->
+                            <div class="gasleak-ov gasleak-status-group">
+                                <div class="gasleak-point-row" style="top:31px;"><img class="gasleak-point-siren" src="assets/gasleak/RE_Safety_GasLeak_SirenGrey_MD.png" alt="status"><span class="gasleak-point-name">VPC - 1</span></div>
+                                <div class="gasleak-point-row" style="top:93px;"><img class="gasleak-point-siren" src="assets/gasleak/RE_Safety_GasLeak_SirenGrey_MD.png" alt="status"><span class="gasleak-point-name">HWG - 1</span></div>
+                                <div class="gasleak-point-row" style="top:153px;"><img class="gasleak-point-siren" src="assets/gasleak/RE_Safety_GasLeak_SirenGrey_MD.png" alt="status"><span class="gasleak-point-name">HWG - 2</span></div>
+                                <div class="gasleak-point-row" style="top:215px;"><img class="gasleak-point-siren" src="assets/gasleak/RE_Safety_GasLeak_SirenGrey_MD.png" alt="status"><span class="gasleak-point-name">PTCED - 1 Heat up</span></div>
+                                <div class="gasleak-point-row" style="top:279px;"><img class="gasleak-point-siren" src="assets/gasleak/RE_Safety_GasLeak_SirenGrey_MD.png" alt="status"><span class="gasleak-point-name">PTCED - 1 Hold up</span></div>
+                                <div class="gasleak-point-row" style="top:343px;"><img class="gasleak-point-siren" src="assets/gasleak/RE_Safety_GasLeak_SirenGrey_MD.png" alt="status"><span class="gasleak-point-name">Liquid Line - 1</span></div>
+                                <div class="gasleak-point-row" style="top:403px;"><img class="gasleak-point-siren" src="assets/gasleak/RE_Safety_GasLeak_SirenGrey_MD.png" alt="status"><span class="gasleak-point-name">Liquid Line - 2</span></div>
+                            </div>
+
+                            <!-- STATUS LIST: Paint Shop 2 (4 of 7 rows are live-wired) -->
+                            <div class="gasleak-ov gasleak-status-group">
+                                <div class="gasleak-point-row" style="top:583px;"><img class="gasleak-point-siren" src="assets/gasleak/RE_Safety_GasLeak_SirenGreen_MD.png" alt="status"><span class="gasleak-point-name">VPC - 2</span></div>
+                                <div class="gasleak-point-row" style="top:645px;"><img class="gasleak-point-siren" id="gasleakPS2_hwg3" src="assets/gasleak/RE_Safety_GasLeak_SirenGreen_MD.png" alt="status"><span class="gasleak-point-name">HWG - 3</span></div>
+                                <div class="gasleak-point-row" style="top:705px;"><img class="gasleak-point-siren" id="gasleakPS2_hwg4" src="assets/gasleak/RE_Safety_GasLeak_SirenGreen_MD.png" alt="status"><span class="gasleak-point-name">HWG - 4</span></div>
+                                <div class="gasleak-point-row" style="top:768px;"><img class="gasleak-point-siren" id="gasleakPS2_heatup" src="assets/gasleak/RE_Safety_GasLeak_SirenGreen_MD.png" alt="status"><span class="gasleak-point-name">PTCED - 2 Heat up</span></div>
+                                <div class="gasleak-point-row" style="top:831px;"><img class="gasleak-point-siren" id="gasleakPS2_holdup" src="assets/gasleak/RE_Safety_GasLeak_SirenGreen_MD.png" alt="status"><span class="gasleak-point-name">PTCED - 2 Hold up</span></div>
+                                <div class="gasleak-point-row" style="top:895px;"><img class="gasleak-point-siren" src="assets/gasleak/RE_Safety_GasLeak_SirenGreen_MD.png" alt="status"><span class="gasleak-point-name">Liquid Line - 3</span></div>
+                                <div class="gasleak-point-row" style="top:955px;"><img class="gasleak-point-siren" src="assets/gasleak/RE_Safety_GasLeak_SirenGreen_MD.png" alt="status"><span class="gasleak-point-name">Liquid Line - 4</span></div>
+                            </div>
+
+                            <!-- LEGEND -->
+                            <div class="gasleak-ov gasleak-legend-line" style="left:1433px;top:910px;"><span class="gasleak-pipe-sample gasleak-pipe-yellow"></span>Vapour Gas Line Pipes</div>
+                            <div class="gasleak-ov gasleak-legend-line" style="left:1432px;top:939px;"><span class="gasleak-pipe-sample gasleak-pipe-brown"></span>Liquid Line Pipes</div>
+                            <div class="gasleak-ov gasleak-legend-line" style="left:1434px;top:972px;"><img class="gasleak-legend-icon" src="assets/gasleak/RE_LPGYard_GasLeak_Sensor.png" alt="">Sensor</div>
+                            <div class="gasleak-ov gasleak-legend-line gasleak-legend-danger" style="left:1691px;top:887px;"><img class="gasleak-legend-icon" src="assets/gasleak/RE_Safety_GasLeak_SirenRed_MD.png" alt="">Danger</div>
+                            <div class="gasleak-ov gasleak-legend-line gasleak-legend-warning" style="left:1690px;top:932px;"><img class="gasleak-legend-icon" src="assets/gasleak/RE_Safety_GasLeak_SirenYellow_MD.png" alt="">Warning</div>
+                            <div class="gasleak-ov gasleak-legend-line gasleak-legend-normal" style="left:1692px;top:984px;"><img class="gasleak-legend-icon" src="assets/gasleak/RE_Safety_GasLeak_SirenGreen_MD.png" alt="">Normal</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="gasleak-modal-overlay" id="gasleakAlertsOverlay" hidden onclick="if(event.target===event.currentTarget) gasleakCloseAlerts()">
+                <div class="gasleak-modal">
+                    <button class="gasleak-modal-close" onclick="gasleakCloseAlerts()">&times;</button>
+                    <h3>Gas Leak Alerts</h3>
+                    <table>
+                        <thead><tr><th>Time</th><th>Type</th><th>Description</th></tr></thead>
+                        <tbody id="gasleakAlertsTbody"></tbody>
+                    </table>
+                    <div id="gasleakAlertsEmpty" style="display:none;">No active alerts.</div>
                 </div>
             </div>
 

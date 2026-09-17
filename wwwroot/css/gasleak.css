@@ -1,0 +1,380 @@
+/* ===================== GAS LEAK MONITORING (LPG Yard) =====================
+   Ported from the standalone GasSentry project (React/JSX) into plain HTML/CSS/JS
+   to match this app's house style (see Fire Hydrant's .scada-* classes for the
+   equivalent pattern). Every class here is prefixed .gasleak- specifically to
+   avoid colliding with .modal-*, .scada-*, .ems-*, .eb-* etc. already used by
+   the other tabs in this same app.js/style.css. */
+
+.gasleak-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: #000;
+  border-bottom: 1px solid #33393f;
+}
+
+.gasleak-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #d76916;
+}
+
+.gasleak-header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.gasleak-alert-bell-btn {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid #33393f;
+  background: #1a1f25;
+  color: #e7e9ea;
+  font-size: 15px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gasleak-alert-bell-btn.has-alerts {
+  border-color: #bf3030;
+  color: #bf3030;
+  animation: gasleakBlink 1.4s infinite;
+}
+
+.gasleak-alert-bell-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: #bf3030;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
+.gasleak-topbar-btn {
+  border: none;
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  cursor: pointer;
+  background: #1f6fb2;
+  color: #fff;
+}
+
+.gasleak-topbar-btn:hover { filter: brightness(1.15); }
+
+@keyframes gasleakBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+.gasleak-blink { animation: gasleakBlink 0.9s infinite; }
+
+/* ---- plant canvas: fixed 2030x1030 design, scaled to fit via JS transform ---- */
+.gasleak-canvas-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #0a0d11;
+  min-height: 600px;
+}
+
+.gasleak-canvas-scaler {
+  position: relative;
+  overflow: hidden;
+}
+
+.gasleak-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 2030px;
+  height: 1030px;
+  transform-origin: top left;
+}
+
+.gasleak-bg-diagram {
+  position: absolute;
+  pointer-events: none;
+  user-select: none;
+}
+
+.gasleak-ov { position: absolute; }
+
+/* ---- lot / status labels drawn directly on the pipe diagram ---- */
+.gasleak-lot-label {
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(20, 22, 25, 0.75);
+  padding: 3px 10px;
+  border-radius: 4px;
+}
+
+.gasleak-lot-status {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 12px;
+  background: rgba(102, 204, 51, 0.85);
+  color: #0a2e00;
+}
+
+.gasleak-lot-status.danger {
+  background: rgba(191, 48, 48, 0.9);
+  color: #fff;
+  animation: gasleakBlink 1s infinite;
+}
+
+/* ---- pressure gauge ---- */
+.gasleak-gauge-label {
+  font-size: 13px;
+  line-height: 1.3;
+  text-align: center;
+  color: #9aa2a8;
+}
+
+.gasleak-gauge-circle {
+  width: 65px;
+  height: 65px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 20px;
+  color: #66cc33;
+  transition: color 0.3s;
+}
+
+.gasleak-gauge-circle small { font-size: 12px; color: #9aa2a8; }
+.gasleak-gauge-circle.state-green { color: #66cc33; }
+.gasleak-gauge-circle.state-yellow { color: #f2dc1b; }
+.gasleak-gauge-circle.state-red { color: #bf3030; animation: gasleakBlink 1s infinite; }
+
+/* ---- LPG cylinders (exact XML size: 93x118) ---- */
+.gasleak-cylinder {
+  width: 93px;
+  height: auto;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.6));
+}
+
+/* ---- alert cluster icons (bell / buzzer / sensor, exact XML sizes) ---- */
+.gasleak-bell-icon { width: 30px; height: 30px; }
+.gasleak-bell-icon.buzzer { width: 35px; height: 35px; }
+.gasleak-bell-icon.sensor { width: 30px; height: 30px; }
+
+.gasleak-valve-switch {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* Paint Shop valves are read-only in the source mashup, matching Lot 1/2's own
+   togglebutton Disabled=true - view-only, not operator-togglable. */
+.gasleak-valve-switch:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.gasleak-valve-track {
+  width: 46px;
+  height: 20px;
+  border-radius: 10px;
+  background: #66cc33;
+  position: relative;
+  display: block;
+}
+
+.gasleak-valve-switch.closed .gasleak-valve-track { background: #bf3030; }
+
+.gasleak-valve-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  transition: left 0.2s;
+}
+
+.gasleak-valve-switch.closed .gasleak-valve-knob { left: 28px; }
+
+.gasleak-valve-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.gasleak-valve-open { color: #66cc33; }
+.gasleak-valve-close { color: #bf3030; }
+
+.gasleak-siren-dot { width: 38px; height: 38px; }
+
+/* ---- danger overlay (ptcsimage-556, exact XML size: 150x132) ---- */
+.gasleak-danger-gif { pointer-events: none; }
+.gasleak-danger-gif[hidden] { display: none; }
+
+.gasleak-leak-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  text-align: center;
+  background: rgba(20, 22, 25, 0.6);
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+/* ---- vaporizer icon + label (exact XML size: 83x128, label 104x27) ---- */
+.gasleak-vaporizer-icon {
+  width: 83px;
+  height: 128px;
+  object-fit: cover;
+  object-position: 15% center;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: outline-color 0.2s;
+  outline: 2px solid transparent;
+}
+
+.gasleak-vaporizer-icon:hover { outline-color: #d76916; }
+
+.gasleak-vaporizer-label {
+  font-size: 13px;
+  font-weight: 700;
+  background: #2a2f35;
+  border: 1px solid #33393f;
+  border-radius: 4px;
+  padding: 4px 8px;
+  text-align: center;
+  color: #e7e9ea;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.gasleak-vaporizer-label:hover { border-color: #d76916; }
+
+/* ---- paint shop label + equipment icon (exact XML size: 138x128) ---- */
+.gasleak-paintshop-label {
+  background: #fff;
+  color: #333;
+  border: 2px solid #d76916;
+  border-radius: 6px;
+  padding: 6px 0;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.gasleak-heater-icon { width: 138px; height: 128px; object-fit: contain; }
+
+/* ---- status list (exact XML rows, icons 38x38, labels 200 wide) ---- */
+.gasleak-point-row {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  left: 1798px;
+  width: 200px;
+}
+
+.gasleak-point-name {
+  flex: 1;
+  min-width: 0;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  background: rgba(61, 62, 20, 1);
+  border-radius: 6px;
+  padding: 6px 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gasleak-point-siren { width: 38px; height: 38px; flex-shrink: 0; }
+
+/* ---- legend (individually positioned per XML label coordinates) ---- */
+.gasleak-legend-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 700;
+  color: #9aa2a8;
+}
+
+.gasleak-legend-danger { color: #bf3030; }
+.gasleak-legend-warning { color: #f9ef6b; }
+.gasleak-legend-normal { color: #66cc33; }
+
+.gasleak-pipe-sample {
+  width: 26px;
+  height: 5px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+.gasleak-pipe-yellow { background: #f2dc1b; }
+.gasleak-pipe-brown { background: #8a5a2b; }
+
+.gasleak-legend-icon { width: 18px; height: 18px; }
+
+/* ===================== ALERTS POPUP ===================== */
+.gasleak-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+
+.gasleak-modal-overlay[hidden] { display: none; }
+
+.gasleak-modal {
+  background: #12161b;
+  border: 1px solid #33393f;
+  border-radius: 10px;
+  padding: 20px 24px;
+  min-width: 320px;
+  max-width: 90vw;
+  max-height: 80vh;
+  overflow: auto;
+  position: relative;
+  color: #e7e9ea;
+}
+
+.gasleak-modal-close {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  background: none;
+  border: none;
+  color: #9aa2a8;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.gasleak-modal h3 { margin-top: 0; color: #d76916; }
+.gasleak-modal table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.gasleak-modal th, .gasleak-modal td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #33393f; }
