@@ -338,43 +338,188 @@
 
 .gasleak-legend-icon { width: 18px; height: 18px; }
 
-/* ===================== ALERTS POPUP ===================== */
-.gasleak-modal-overlay {
+/* ===================== ALERTS POPUP =====================
+   Mirrors .scada-alerts-* exactly (same CSS custom properties, so this follows the app's
+   light/dark theme the same way Fire Hydrant's popup does) - just prefixed .gasleak- instead. */
+.gasleak-alerts-overlay {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.6);
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 200;
 }
 
-.gasleak-modal-overlay[hidden] { display: none; }
-
-.gasleak-modal {
-  background: #12161b;
-  border: 1px solid #33393f;
-  border-radius: 10px;
-  padding: 20px 24px;
-  min-width: 320px;
-  max-width: 90vw;
+.gasleak-alerts-modal {
+  width: 720px;
+  max-width: 92vw;
   max-height: 80vh;
-  overflow: auto;
-  position: relative;
-  color: #e7e9ea;
+  background: var(--white);
+  border: 1px solid var(--neutral);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  font-family: 'Inter', sans-serif;
 }
 
-.gasleak-modal-close {
-  position: absolute;
-  top: 10px;
-  right: 14px;
+.gasleak-alerts-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--neutral);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--dark);
+}
+
+.gasleak-alerts-close {
   background: none;
   border: none;
-  color: #9aa2a8;
+  color: var(--dark);
   font-size: 20px;
+  line-height: 1;
   cursor: pointer;
+  padding: 0 4px;
 }
 
-.gasleak-modal h3 { margin-top: 0; color: #d76916; }
-.gasleak-modal table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.gasleak-modal th, .gasleak-modal td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #33393f; }
+.gasleak-alerts-close:hover { color: var(--primary); }
+
+.gasleak-alerts-body {
+  padding: 8px 16px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.gasleak-alerts-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  color: var(--dark);
+}
+
+.gasleak-alerts-table th {
+  text-align: left;
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--neutral);
+  color: var(--primary);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.gasleak-alerts-table td {
+  padding: 8px 6px;
+  border-bottom: 1px solid rgba(51, 51, 51, 0.5);
+  vertical-align: top;
+}
+
+.gasleak-alerts-checkcol { width: 28px; }
+
+.gasleak-alerts-empty {
+  padding: 24px 0;
+  text-align: center;
+  color: var(--gray);
+  font-size: 12px;
+}
+
+.gasleak-alerts-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--neutral);
+}
+
+.gasleak-alerts-snooze-label { font-size: 11px; color: var(--dark); }
+
+.gasleak-alerts-snooze-input {
+  flex: 1;
+  background: var(--white);
+  border: 1px solid var(--neutral);
+  color: var(--dark);
+  padding: 5px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+/* ===================== REPORT SCREEN =====================
+   Mirrors .scada-report-* exactly, minus the Duration/Count tabs Fire Hydrant has (Gas Leak
+   has no pump-count/duration domain) - just one Alerts-history table. */
+.gasleak-report-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gasleak-report-modal {
+  width: 95vw;
+  height: 90vh;
+  background: var(--white);
+  border: 1px solid var(--neutral);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  font-family: 'Inter', sans-serif;
+}
+
+.gasleak-report-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--neutral);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--dark);
+  flex-shrink: 0;
+}
+
+.gasleak-report-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--neutral);
+  flex-shrink: 0;
+}
+
+.gasleak-report-toolbar .gasleak-alerts-snooze-input { flex: 0 0 170px; }
+
+.gasleak-report-csv-btn { margin-left: auto; }
+
+.gasleak-report-body {
+  flex: 1;
+  overflow: auto;
+  padding: 16px;
+}
+
+.gasleak-report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  color: var(--dark);
+}
+
+.gasleak-report-table th {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--neutral);
+  color: var(--primary);
+  font-size: 11px;
+  text-transform: uppercase;
+  position: sticky;
+  top: 0;
+  background: var(--white);
+}
+
+.gasleak-report-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(51, 51, 51, 0.5);
+}

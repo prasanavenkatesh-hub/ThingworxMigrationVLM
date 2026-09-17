@@ -982,9 +982,8 @@ function applyGasLeakStatus(data) {
     const danger = data.lot1.alert || data.lot2.alert || data.tagQualityAlert;
     const dangerGif = document.getElementById('gasleakDangerGif');
     if (dangerGif) dangerGif.hidden = !danger;
-
-    const alertCount = (data.lot1.alert ? 1 : 0) + (data.lot2.alert ? 1 : 0) + (data.tagQualityAlert ? 1 : 0);
-    gasleakUpdateBellBadge(alertCount);
+    // Bell badge count is driven by the DB-backed, snooze-aware alerts list (see
+    // renderGasLeakAlertsTable), not the raw live flags here - matching Fire Hydrant's design.
 }
 
 function applyGasLeakZone(zone, statusElId, valveElId, sirenElId) {
@@ -1042,45 +1041,177 @@ function gasleakUpdateBellBadge(count) {
     badge.textContent = String(count);
 }
 
+// Same due/snooze semantics as fireHydrantAlertIsDue: a snoozed-and-not-yet-due alert stays
+// out of the visible list (and the bell badge count) until its snooze deadline passes.
+function gasleakAlertIsDue(a) {
+    return !a.snoozeTime || new Date(a.snoozeTime).getTime() <= Date.now();
+}
+
 async function fetchGasLeakAlerts() {
     try {
         const res = await fetch('/api/gasleak/alerts');
         if (!res.ok) return;
         gasLeakOpenAlerts = await res.json();
-        gasleakUpdateBellBadge(gasLeakOpenAlerts.length);
         renderGasLeakAlertsTable();
     } catch (e) {
         // Broker/API unreachable - keep showing the last known list.
     }
 }
 
+let gasleakSnoozePicker = null;
+
+function updateGasLeakSnoozeButtonState() {
+    const btn = document.getElementById('gasleakSnoozeBtn');
+    if (!btn) return;
+    btn.disabled = document.querySelectorAll('.gasleak-alert-check:checked').length === 0;
+}
+
 function renderGasLeakAlertsTable() {
     const tbody = document.getElementById('gasleakAlertsTbody');
     const empty = document.getElementById('gasleakAlertsEmpty');
-    if (!tbody || !empty) return;
+    if (!tbody) return;
     tbody.innerHTML = '';
-    if (gasLeakOpenAlerts.length === 0) {
-        empty.style.display = '';
-        return;
+    const visible = gasLeakOpenAlerts.filter(gasleakAlertIsDue);
+    if (visible.length === 0) {
+        if (empty) empty.style.display = 'block';
+    } else {
+        if (empty) empty.style.display = 'none';
+        visible.forEach(a => {
+            const tr = document.createElement('tr');
+            const ts = new Date(a.eventTime).toLocaleString();
+            tr.innerHTML = `
+                <td><input type="checkbox" class="gasleak-alert-check" value="${a.alertId}"></td>
+                <td>${ts}</td>
+                <td>${a.type}</td>
+                <td>${a.description}</td>
+            `;
+            tbody.appendChild(tr);
+        });
     }
-    empty.style.display = 'none';
-    gasLeakOpenAlerts.forEach(a => {
-        const tr = document.createElement('tr');
-        const time = new Date(a.eventTime).toLocaleString();
-        tr.innerHTML = `<td>${time}</td><td>${a.type}</td><td>${a.description}</td>`;
-        tbody.appendChild(tr);
-    });
+    gasleakUpdateBellBadge(visible.length);
+    updateGasLeakSnoozeButtonState();
 }
 
 function openGasLeakAlerts() {
-    fetchGasLeakAlerts();
     const overlay = document.getElementById('gasleakAlertsOverlay');
-    if (overlay) overlay.hidden = false;
+    if (!overlay) return;
+    overlay.style.display = 'flex';
+    if (!gasleakSnoozePicker) {
+        gasleakSnoozePicker = flatpickr('#gasleakSnoozeInput', {
+            enableTime: true,
+            dateFormat: "Y-m-d\\TH:i",
+            altInput: true,
+            minDate: 'today'
+        });
+    }
+    fetchGasLeakAlerts();
 }
 
 function gasleakCloseAlerts() {
     const overlay = document.getElementById('gasleakAlertsOverlay');
-    if (overlay) overlay.hidden = true;
+    if (overlay) overlay.style.display = 'none';
+}
+
+async function snoozeGasLeakAlerts() {
+    // AlertId is a 17-digit number exceeding JS's safe integer range, so it's carried as a
+    // string end-to-end (matching the backend's JsonNumberHandling.WriteAsString) - never
+    // round-tripped through Number(), which would silently corrupt it.
+    const checked = Array.from(document.querySelectorAll('.gasleak-alert-check:checked')).map(c => c.value);
+    if (checked.length === 0) return; // button is disabled in this case, but guard anyway
+    const snoozeUntil = gasleakSnoozePicker && gasleakSnoozePicker.selectedDates[0];
+    if (!snoozeUntil) { alert('Pick a snooze date/time first.'); return; }
+    try {
+        await fetch('/api/gasleak/alerts/snooze', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ alertIds: checked, snoozeUntil: snoozeUntil.toISOString() })
+        });
+        fetchGasLeakAlerts();
+    } catch (e) {
+        // API unreachable - user can retry.
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const tbody = document.getElementById('gasleakAlertsTbody');
+    if (tbody) tbody.addEventListener('change', updateGasLeakSnoozeButtonState);
+});
+
+// ---------------------------------------------
+// Gas Leak Report screen - a single Alerts-history table (S.No/Type/Description/Start/End
+// Event), bound to the Reports button. Unlike Fire Hydrant's report modal, there are no
+// Duration/Count tabs here - Gas Leak has no pump-like counting domain, only alert history.
+let gasleakReportFromPicker = null;
+let gasleakReportToPicker = null;
+let gasleakReportAlertsData = [];
+
+function openGasLeakReport() {
+    const overlay = document.getElementById('gasleakReportOverlay');
+    if (!overlay) return;
+    overlay.style.display = 'flex';
+    if (!gasleakReportFromPicker) {
+        const pickerConfig = { enableTime: true, dateFormat: "Y-m-d\\TH:i", altInput: true };
+        gasleakReportFromPicker = flatpickr('#gasleakReportFrom', { ...pickerConfig, defaultDate: new Date(Date.now() - 24 * 3600000) });
+        gasleakReportToPicker = flatpickr('#gasleakReportTo', { ...pickerConfig, defaultDate: new Date() });
+    }
+    fetchGasLeakReport();
+}
+
+function closeGasLeakReport() {
+    const overlay = document.getElementById('gasleakReportOverlay');
+    if (overlay) overlay.style.display = 'none';
+}
+
+async function fetchGasLeakReport() {
+    const from = gasleakReportFromPicker && gasleakReportFromPicker.selectedDates[0];
+    const to = gasleakReportToPicker && gasleakReportToPicker.selectedDates[0];
+    if (!from || !to) return;
+    try {
+        const range = `start=${encodeURIComponent(from.toISOString())}&end=${encodeURIComponent(to.toISOString())}`;
+        const res = await fetch(`/api/gasleak/alerts/history?${range}`);
+        if (!res.ok) return;
+        gasleakReportAlertsData = await res.json();
+        renderGasLeakReportAlertsTable();
+    } catch (e) {
+        // API unreachable - user can retry via Apply.
+    }
+}
+
+function renderGasLeakReportAlertsTable() {
+    const tbody = document.getElementById('gasleakReportAlertsTbody');
+    const empty = document.getElementById('gasleakReportAlertsEmpty');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    if (gasleakReportAlertsData.length === 0) {
+        if (empty) empty.style.display = 'block';
+        return;
+    }
+    if (empty) empty.style.display = 'none';
+    gasleakReportAlertsData.forEach((a, i) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${i + 1}</td>
+            <td>${a.type}</td>
+            <td>${a.description}</td>
+            <td>${new Date(a.startEvent).toLocaleString()}</td>
+            <td>${a.endEvent ? new Date(a.endEvent).toLocaleString() : 'Ongoing'}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+// Reuses the generic downloadCsvBlob() helper already defined above (see Fire Hydrant Report).
+function downloadGasLeakReportCsv() {
+    if (gasleakReportAlertsData.length === 0) { alert('No data to export.'); return; }
+    const header = ['S.No', 'Type', 'Description', 'Start Event', 'End Event'];
+    const rows = gasleakReportAlertsData.map((a, i) => [
+        i + 1,
+        a.type,
+        a.description,
+        new Date(a.startEvent).toLocaleString(),
+        a.endEvent ? new Date(a.endEvent).toLocaleString() : 'Ongoing'
+    ]);
+    downloadCsvBlob('gas-leak-alerts-report', header, rows);
 }
 
 // ---------------------------------------------

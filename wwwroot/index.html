@@ -1224,7 +1224,7 @@
                             <span class="material-symbols-outlined">notifications</span>
                             <span class="gasleak-alert-bell-badge" id="gasleakAlertBellBadge" style="display:none;">0</span>
                         </button>
-                        <button class="gasleak-topbar-btn" onclick="alert('Reporting will be available once its Kepware tags are mapped.')">Reports</button>
+                        <button class="gasleak-topbar-btn" onclick="openGasLeakReport()">Reports</button>
                     </div>
                 </div>
                 <div class="gasleak-canvas-wrap" id="gasleakCanvasWrap">
@@ -1353,15 +1353,64 @@
                 </div>
             </div>
 
-            <div class="gasleak-modal-overlay" id="gasleakAlertsOverlay" hidden onclick="if(event.target===event.currentTarget) gasleakCloseAlerts()">
-                <div class="gasleak-modal">
-                    <button class="gasleak-modal-close" onclick="gasleakCloseAlerts()">&times;</button>
-                    <h3>Gas Leak Alerts</h3>
-                    <table>
-                        <thead><tr><th>Time</th><th>Type</th><th>Description</th></tr></thead>
-                        <tbody id="gasleakAlertsTbody"></tbody>
-                    </table>
-                    <div id="gasleakAlertsEmpty" style="display:none;">No active alerts.</div>
+            <div id="gasleakAlertsOverlay" class="gasleak-alerts-overlay" style="display:none;">
+                <div class="gasleak-alerts-modal">
+                    <div class="gasleak-alerts-header">
+                        <span>Gas Leak Alerts</span>
+                        <button class="gasleak-alerts-close" onclick="gasleakCloseAlerts()">&times;</button>
+                    </div>
+                    <div class="gasleak-alerts-body">
+                        <table class="gasleak-alerts-table">
+                            <thead>
+                                <tr>
+                                    <th class="gasleak-alerts-checkcol"></th>
+                                    <th>Timestamp</th>
+                                    <th>Type</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody id="gasleakAlertsTbody"></tbody>
+                        </table>
+                        <div id="gasleakAlertsEmpty" class="gasleak-alerts-empty" style="display:none;">No open alerts.</div>
+                    </div>
+                    <div class="gasleak-alerts-footer">
+                        <span class="gasleak-alerts-snooze-label">Snooze till:</span>
+                        <input type="text" id="gasleakSnoozeInput" class="gasleak-alerts-snooze-input" placeholder="Pick date/time">
+                        <button class="gasleak-topbar-btn" id="gasleakSnoozeBtn" onclick="snoozeGasLeakAlerts()" disabled>Snooze</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gas Leak Report Screen -->
+            <div id="gasleakReportOverlay" class="gasleak-report-overlay" style="display:none;">
+                <div class="gasleak-report-modal">
+                    <div class="gasleak-report-header">
+                        <span>Gas Leak Reports</span>
+                        <button class="gasleak-alerts-close" onclick="closeGasLeakReport()">&times;</button>
+                    </div>
+                    <div class="gasleak-report-toolbar">
+                        <span class="gasleak-alerts-snooze-label">From:</span>
+                        <input type="text" id="gasleakReportFrom" class="gasleak-alerts-snooze-input" placeholder="From date">
+                        <span class="gasleak-alerts-snooze-label">To:</span>
+                        <input type="text" id="gasleakReportTo" class="gasleak-alerts-snooze-input" placeholder="To date">
+                        <button class="gasleak-topbar-btn" onclick="fetchGasLeakReport()">Apply</button>
+                        <button class="gasleak-topbar-btn gasleak-report-csv-btn" onclick="downloadGasLeakReportCsv()">Download CSV</button>
+                    </div>
+                    <div class="gasleak-report-body">
+                        <table class="gasleak-report-table">
+                            <thead>
+                                <tr>
+                                    <th>S.No</th>
+                                    <th>Type</th>
+                                    <th>Description</th>
+                                    <th>Start Event</th>
+                                    <th>End Event</th>
+                                </tr>
+                            </thead>
+                            <tbody id="gasleakReportAlertsTbody"></tbody>
+                        </table>
+                        <div id="gasleakReportAlertsEmpty" class="gasleak-alerts-empty" style="display:none;">No alerts in this range.</div>
+                    </div>
                 </div>
             </div>
 
