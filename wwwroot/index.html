@@ -1,0 +1,1475 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Factory Connect Reports</title>
+    <link rel="stylesheet" href="css/fonts.css">
+    <link rel="icon" type="image/png" href="assets/logo-small.png">
+    <link rel="stylesheet" href="css/style.v2.css">
+    <link rel="stylesheet" href="css/extra_styles.css?v=1.1">
+    <script src="lib/html2pdf.bundle.min.js"></script>
+    <script src="lib/exceljs.min.js"></script>
+    <script src="lib/FileSaver.min.js"></script>
+    <script>
+        function applyTheme(theme) {
+            if (theme === 'light') {
+                document.body.classList.add('light-mode');
+            } else {
+                document.body.classList.remove('light-mode');
+            }
+            localStorage.setItem('theme', theme);
+            const selector = document.getElementById('themeSelector');
+            if (selector) selector.value = theme;
+
+            const emsTab = document.getElementById('tab-ems-renewable');
+            if (emsTab && emsTab.classList.contains('active') && typeof renderEmsRenewable === 'function') {
+                renderEmsRenewable();
+            }
+            const ebTab = document.getElementById('tab-eb-rtm');
+            if (ebTab && ebTab.classList.contains('active') && typeof renderEbRtm === 'function') {
+                renderEbRtm();
+            }
+        }
+
+        function changeTheme() {
+            const theme = document.getElementById('themeSelector').value;
+            applyTheme(theme);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            applyTheme(savedTheme);
+        });
+    </script>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="appSidebar">
+            <div class="logo-area">
+                <img src="assets/royal_enfield_text.png" alt="Royal Enfield" class="logo-desktop">
+                <img src="assets/logo-small.png" alt="Royal Enfield" class="logo-mobile">
+            </div>
+            <button type="button" id="sidebarToggle" class="sidebar-toggle" onclick="toggleSidebar()"
+                aria-label="Expand menu" aria-expanded="false" title="Expand menu">
+                <span class="material-symbols-outlined icon">chevron_right</span>
+            </button>
+            <nav>
+                <!-- Reports -->
+                <div class="nav-group">
+                    <button class="nav-item active" onclick="toggleSubmenu('reportsMenu')" data-tooltip="Reports">
+                        <span class="material-symbols-outlined icon">description</span> <span
+                            class="text">Reports</span>
+                    </button>
+                    <div id="reportsMenu" class="sub-menu" style="display: block; padding-left: 20px;">
+                        <button class="nav-item sub-item active" onclick="switchTab('reports')"
+                            data-tooltip="Biometric Shiftwise" style="font-size: 0.9em; padding: 5px 10px;">
+                            <span class="material-symbols-outlined icon" style="font-size: 18px;">fingerprint</span>
+                            <span class="text">Biometric Shiftwise</span>
+                        </button>
+                        <button class="nav-item sub-item" onclick="switchTab('biometric-engine-barcode')"
+                            data-tooltip="Biometric Engine NO and Barcode" style="font-size: 0.9em; padding: 5px 10px;">
+                            <span class="material-symbols-outlined icon" style="font-size: 18px;">qr_code_scanner</span>
+                            <span class="text">Biometric Engine NO and Barcode</span>
+                        </button>
+                        <button class="nav-item sub-item" onclick="switchTab('main-line')"
+                            data-tooltip="Main Line Cycle Time" style="font-size: 0.9em; padding: 5px 10px;">
+                            <span class="material-symbols-outlined icon" style="font-size: 18px;">timeline</span>
+                            <span class="text">Main Line Cycle Time</span>
+                        </button>
+                        <button class="nav-item sub-item" onclick="switchTab('poke-yoke')"
+                            data-tooltip="Poke Yoke- Manual Inspection overall" style="font-size: 0.9em; padding: 5px 10px;">
+                            <span class="material-symbols-outlined icon" style="font-size: 18px;">checklist</span>
+                            <span class="text">Poke Yoke- Manual Inspection overall</span>
+                        </button>
+                        <button class="nav-item sub-item" onclick="switchTab('poke-yoke-summary')"
+                            data-tooltip="Poke Yoke- Manual Inspection summary" style="font-size: 0.9em; padding: 5px 10px;">
+                            <span class="material-symbols-outlined icon" style="font-size: 18px;">summarize</span>
+                            <span class="text">Poke Yoke- Manual Inspection summary</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Control Tower Dashboards -->
+                <div class="nav-group" style="margin-top: 10px;">
+                    <button class="nav-item" onclick="toggleSubmenu('dashboardsMenu')" data-tooltip="Dashboards">
+                        <span class="material-symbols-outlined icon">dashboard</span> <span
+                            class="text">Dashboards</span>
+                    </button>
+                    <div id="dashboardsMenu" class="sub-menu" style="display: none; padding-left: 20px;">
+                        <button class="nav-item sub-item" onclick="switchTab('dashboard-1')"
+                            data-tooltip="Overview" style="font-size: 0.9em; padding: 5px 10px;">
+                            <span class="material-symbols-outlined icon" style="font-size: 18px;">analytics</span> <span
+                                class="text">Overview</span>
+                        </button>
+                        <button class="nav-item sub-item" onclick="switchTab('fire-hydrant')"
+                            data-tooltip="Fire Hydrant Monitoring" style="font-size: 0.9em; padding: 5px 10px;">
+                            <span class="material-symbols-outlined icon" style="font-size: 18px;">local_fire_department</span>
+                            <span class="text">Fire Hydrant Monitoring</span>
+                        </button>
+                        <button class="nav-item sub-item" onclick="switchTab('ems-renewable')"
+                            data-tooltip="EMS Renewable" style="font-size: 0.9em; padding: 5px 10px;">
+                            <span class="material-symbols-outlined icon" style="font-size: 18px;">solar_power</span>
+                            <span class="text">EMS Renewable</span>
+                        </button>
+                        <button class="nav-item sub-item" onclick="switchTab('eb-rtm')"
+                            data-tooltip="EB-Real Time Monitoring" style="font-size: 0.9em; padding: 5px 10px;">
+                            <span class="material-symbols-outlined icon" style="font-size: 18px;">bolt</span>
+                            <span class="text">EB-Real Time Monitoring</span>
+                        </button>
+                    </div>
+                </div>
+            </nav>
+            <script>
+                function toggleSubmenu(id) {
+                    var el = document.getElementById(id);
+                    if (el.style.display === 'none') {
+                        el.style.display = 'block';
+                    } else {
+                        el.style.display = 'none';
+                    }
+                }
+
+                function applySidebarState(expanded) {
+                    const sidebar = document.getElementById('appSidebar');
+                    const toggle = document.getElementById('sidebarToggle');
+                    if (!sidebar || !toggle) return;
+                    sidebar.classList.toggle('expanded', expanded);
+                    toggle.setAttribute('aria-expanded', String(expanded));
+                    toggle.setAttribute('aria-label', expanded ? 'Collapse menu' : 'Expand menu');
+                    toggle.title = expanded ? 'Collapse menu' : 'Expand menu';
+                }
+
+                function toggleSidebar() {
+                    const expanded = !document.getElementById('appSidebar').classList.contains('expanded');
+                    applySidebarState(expanded);
+                    localStorage.setItem('sidebarExpanded', String(expanded));
+                }
+
+                document.addEventListener('DOMContentLoaded', () => {
+                    applySidebarState(localStorage.getItem('sidebarExpanded') === 'true');
+                });
+            </script>
+
+
+            <div class="user-info-sidebar">
+                <span id="sidebarEmpId" class="emp-id-text"></span>
+            </div>
+            <div class="app-version">
+                <span id="appVersion"></span>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <h1 style="margin: 0;">FACTORY CONNECT DASHBOARDS</h1>
+                    <select id="mainDashboardDropdown" class="select-royal" style="padding: 4px 8px; font-size: 13px; height: auto; min-width: 100px; display: none;">
+                        <option value="">Loading...</option>
+                    </select>
+                </div>
+                <div class="header-actions">
+                    <select id="themeSelector" onchange="changeTheme()" class="select-royal"
+                        style="margin-right: 15px; padding: 4px 8px; font-size: 13px; height: auto;">
+                        <option value="dark">Dark Theme</option>
+                        <option value="light">Light Theme</option>
+                    </select>
+                    <span class="app-label">Version 26.1</span>
+                    <button class="btn-header-logout" onclick="logout()" title="Logout">
+                        <span class="material-symbols-outlined">logout</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Global Dashboard Filter REMOVED -->
+
+            <!-- New Inspection Tab -->
+            <div id="tab-new" class="tab-pane" style="display:none;">
+                <div class="scan-section">
+                    <div class="input-group large">
+                        <input type="text" id="absInput" placeholder="Scan ABS Number" autofocus
+                            onkeydown="handleEnter(event)">
+                        <span id="scanMessage" class="scan-message"></span>
+                    </div>
+
+                    <!-- Link to History Tile -->
+                    <div id="alreadyCompletedLink" class="history-link-tile" style="display: none;"
+                        onclick="navigateToHistory()">
+                        <div class="link-content">
+                            <span class="material-symbols-outlined icon">history</span>
+                            <div class="text-group">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span class="title">Inspection Completed</span>
+                                    <span id="linkBadge"></span>
+                                </div>
+                                <span class="subtitle">Click to view details for <strong id="linkAbs"></strong></span>
+                            </div>
+                            <span class="material-symbols-outlined arrow">arrow_forward</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="inspection-area" class="inspection-area" style="display: none;">
+                    <div class="info-card">
+                        <div class="info-item">
+                            <span class="label">ABS Modulator:</span>
+                            <span class="value" id="displayAbs"></span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Model:</span>
+                            <span class="value" id="displayModel"></span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">ABS Kit No:</span>
+                            <span class="value" id="displayKit"></span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">TESTED DATETIME:</span>
+                            <span class="value" id="displayDate"></span>
+                        </div>
+                    </div>
+
+                    <div class="checklist-scroll-container">
+                        <div class="table-container">
+                            <table id="checklistTable">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 50px;">S.No</th>
+                                        <th>Issue Desc</th>
+                                        <th>Specification</th>
+                                        <th style="width: 140px;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="checklistBody">
+                                    <!-- Rows injected here -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Rework History Container -->
+                        <div id="reworkHistoryContainer"></div>
+
+                    </div>
+
+                    <div class="action-bar">
+                        <span id="submitMessage" class="submit-message"></span>
+                        <button class="btn btn-primary btn-large" onclick="submitPdi()">Submit</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rework Tab -->
+            <div id="tab-rework" class="tab-pane">
+                <!-- Rework Filter -->
+                <div class="filter-controls"
+                    style="padding: 10px; gap:10px; align-items:center; background:#1e1e1e; border-radius: 8px; margin-bottom: 15px; border: 1px solid #333; display:flex; flex-wrap: wrap; row-gap: 10px;">
+                    <label style="color:#888; font-size:13px;">Rework Filter:</label>
+                    <input type="text" id="reworkStart" class="filter-input" placeholder="Start"
+                        style="background:#333; border:none; color:#fff; padding:5px; border-radius:4px; max-width: 130px;">
+                    <span style="color:#666;">to</span>
+                    <input type="text" id="reworkEnd" class="filter-input" placeholder="End"
+                        style="background:#333; border:none; color:#fff; padding:5px; border-radius:4px; max-width: 130px;">
+                    <button id="reworkApplyBtn" class="btn-primary"
+                        style="padding:6px 12px; height:auto; font-size:12px;">Apply</button>
+
+                    <button onclick="resetFilter('rework')" title="Reset Date"
+                        style="background:none; border:none; color: #ef4444; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 4px;">
+                        <span class="material-symbols-outlined" style="font-size: 20px;">refresh</span>
+                    </button>
+
+                    <!-- Scoped Search -->
+                    <!-- Scoped Search -->
+                    <div style="flex-basis: 100%; height: 0;"></div>
+                    <div class="search-wrapper" style="margin-top: 5px; display: flex; align-items: center; gap: 4px;">
+                        <input type="text" id="reworkSearch" placeholder="Search ABS..."
+                            style="background:#333; border:none; color:#fff; padding:6px; border-radius:4px; width: 180px;">
+                        <button class="clear-btn" onclick="clearSearch('rework')" id="reworkClearBtn"
+                            title="Clear Search"
+                            style="background:none; border:none; color: #ef4444; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 4px;">
+                            <span class="material-symbols-outlined" style="font-size: 20px;">refresh</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="rework-list-container">
+                    <div class="empty-state">
+                        <span class="material-symbols-outlined icon">build_circle</span>
+                        <h3>No items in Rework</h3>
+                    </div>
+                </div>
+                <!-- Load More Rework -->
+                <div id="loadMoreRework" class="load-more-container"
+                    style="text-align:center; padding:10px; display:none;">
+                    <button class="btn-secondary" style="font-size:12px;" onclick="loadMore('rework')">Load
+                        More</button>
+                </div>
+            </div>
+
+            <!-- Completed Tab -->
+            <div id="tab-completed" class="tab-pane">
+                <!-- Completed Filter -->
+                <div class="filter-controls"
+                    style="padding: 10px; gap:10px; align-items:center; background:#1e1e1e; border-radius: 8px; margin-bottom: 15px; border: 1px solid #333; display:flex; flex-wrap: wrap; row-gap: 10px;">
+                    <label style="color:#888; font-size:13px;">Completed Filter:</label>
+                    <input type="text" id="completedStart" class="filter-input" placeholder="Start"
+                        style="background:#333; border:none; color:#fff; padding:5px; border-radius:4px; max-width: 130px;">
+                    <span style="color:#666;">to</span>
+                    <input type="text" id="completedEnd" class="filter-input" placeholder="End"
+                        style="background:#333; border:none; color:#fff; padding:5px; border-radius:4px; max-width: 130px;">
+                    <button id="completedApplyBtn" class="btn-primary"
+                        style="padding:6px 12px; height:auto; font-size:12px;">Apply</button>
+
+                    <button onclick="resetFilter('completed')" title="Reset Date"
+                        style="background:none; border:none; color: #ef4444; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 4px;">
+                        <span class="material-symbols-outlined" style="font-size: 20px;">refresh</span>
+                    </button>
+
+                    <!-- Scoped Search -->
+                    <!-- Scoped Search -->
+                    <div style="flex-basis: 100%; height: 0;"></div>
+                    <div class="search-wrapper" style="margin-top: 5px; display: flex; align-items: center; gap: 4px;">
+                        <input type="text" id="completedSearch" placeholder="Search ABS..."
+                            style="background:#333; border:none; color:#fff; padding:6px; border-radius:4px; width: 180px;">
+                        <button class="clear-btn" onclick="clearSearch('completed')" id="completedClearBtn"
+                            title="Clear Search"
+                            style="background:none; border:none; color: #ef4444; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 4px;">
+                            <span class="material-symbols-outlined" style="font-size: 20px;">refresh</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="completed-list-container">
+                    <div class="empty-state">
+                        <span class="material-symbols-outlined icon">check_circle</span>
+                        <h3>No items in Completed</h3>
+                    </div>
+                </div>
+                <!-- Load More Completed -->
+                <div id="loadMoreCompleted" class="load-more-container"
+                    style="text-align:center; padding:10px; display:none;">
+                    <button class="btn-secondary" style="font-size:12px;" onclick="loadMore('completed')">Load
+                        More</button>
+                </div>
+            </div>
+
+            <!-- Reports Tab -->
+            <div id="tab-reports" class="tab-pane">
+                <!-- Reports Filter -->
+                <div class="filter-controls"
+                    style="padding: 10px; gap:10px; align-items:center; background:#1e1e1e; border-radius: 8px; margin-bottom: 15px; border: 1px solid #333; display:flex; flex-wrap: wrap; row-gap: 10px;">
+                    <label style="color:#888; font-size:13px;">Reports Filter:</label>
+                    <input type="text" id="reportsStart" class="filter-input" placeholder="Start"
+                        style="background:#333; border:none; color:#fff; padding:5px; border-radius:4px; max-width: 130px;">
+                    <span style="color:#666;">to</span>
+                    <input type="text" id="reportsEnd" class="filter-input" placeholder="End"
+                        style="background:#333; border:none; color:#fff; padding:5px; border-radius:4px; max-width: 130px;">
+
+                    <!-- Select HC Dropdown -->
+                    <select id="reportsHcDropdown" class="select-royal">
+                        <option value="">Select HC</option>
+                    </select>
+
+                    <button id="reportsApplyBtn" class="btn-primary"
+                        style="padding:6px 12px; height:auto; font-size:12px;">Apply</button>
+
+                    <button onclick="resetFilter('reports')" title="Reset Date"
+                        style="background:none; border:none; color: #ef4444; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 4px;">
+                        <span class="material-symbols-outlined" style="font-size: 20px;">refresh</span>
+                    </button>
+
+                    <!-- Export Button -->
+                    <button onclick="exportToExcel()" class="btn-export-royal" title="Export to Excel"
+                        style="margin-left: 10px;">
+                        <span class="material-symbols-outlined">table_view</span> Excel Export
+                    </button>
+                </div>
+
+                <!-- Wrapper for Flex Layout -->
+                <div
+                    style="flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #1e1e1e; border-radius: 8px; border: 1px solid #333;">
+
+                    <!-- Scrollable Table Area -->
+                    <div class="table-container"
+                        style="flex: 1; overflow-y: auto; margin:0; border:none; border-radius: 0; box-shadow:none;">
+                        <table id="reportsTable" style="width: 100%; border-collapse: collapse;">
+                            <thead style="position: sticky; top: 0; z-index: 10; background: #1f1f1f;">
+                                <tr style="color: #888; text-align: left; border-bottom: 1px solid #333;">
+                                    <th style="padding: 10px;">Station ID</th>
+                                    <th style="padding: 10px;">Station Number</th>
+                                    <th style="padding: 10px;">Station Name</th>
+                                    <th style="padding: 10px;">Station Type</th>
+                                    <th style="padding: 10px;">Punch DateTime</th>
+                                    <th style="padding: 10px;">Shift</th>
+                                    <th style="padding: 10px;">Emp ID</th>
+                                    <th style="padding: 10px;">Emp Name</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reportsBody">
+                                <!-- Rows injected via JS -->
+                            </tbody>
+                        </table>
+                        <div id="reportsEmpty" class="empty-state" style="display:none; padding: 20px;">
+                            <span class="material-symbols-outlined icon">search_off</span>
+                            <h3>No records found</h3>
+                        </div>
+                    </div>
+
+                    <!-- Pagination for Reports (Fixed at Bottom of Card) -->
+                    <div id="reportsPagination" class="pagination-container"
+                        style="display:none; justify-content: space-between; align-items: center; gap: 12px; padding: 10px; border-top: 1px solid #333; background: #1e1e1e;">
+                        <span id="reportsTotalCount" class="total-count-badge">Total Count: 0</span>
+                        <div style="display:flex; align-items: center; gap: 12px;">
+                            <button class="btn-pagination-modern" onclick="changeReportPage(-1)"
+                                id="btnPrevReport">Previous</button>
+                            <span id="reportsPageLabel" style="color: #cccccc; font-size: 13px;">Page 1</span>
+                            <button class="btn-pagination-modern" onclick="changeReportPage(1)"
+                                id="btnNextReport">Next</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Biometric Engine NO and Barcode Tab -->
+            <div id="tab-biometric-engine-barcode" class="tab-pane">
+                <!-- Filter Bar -->
+                <div class="filter-controls"
+                    style="padding: 10px; gap:10px; align-items:center; background:#1e1e1e; border-radius: 8px; margin-bottom: 15px; border: 1px solid #333; display:flex; flex-wrap: wrap; row-gap: 10px;">
+
+                    <label style="color:#888; font-size:13px;">Select HC:</label>
+                    <select id="engineBarcodeHcDropdown" class="select-royal">
+                        <option value="">Select HC</option>
+                    </select>
+
+                    <input type="text" id="engineBarcodeEngineNo" class="filter-input" placeholder="Engine Number"
+                        style="background:#333; border:none; color:#fff; padding:5px; border-radius:4px; max-width: 150px;">
+
+                    <!-- Toggle Mode: Engine Number <-> Barcode -->
+                    <div style="display: flex; align-items: center; border-left: 1px solid #444; border-right: 1px solid #444; padding: 0 10px;">
+                        <span id="engineBarcodeLabelEngine" class="mode-label active">Engine No</span>
+                        <label class="re-toggle" title="Select Input Field">
+                            <input type="checkbox" id="engineBarcodeModeToggle" onchange="toggleEngineBarcodeMode()">
+                            <span class="re-toggle-slider"></span>
+                        </label>
+                        <span id="engineBarcodeLabelBarcode" class="mode-label">Barcode</span>
+                    </div>
+
+                    <input type="text" id="engineBarcodeBarcode" class="filter-input" placeholder="Barcode Number"
+                        style="background:#333; border:none; color:#fff; padding:5px; border-radius:4px; max-width: 150px; opacity: 0.4;" disabled>
+
+                    <button id="engineBarcodeApplyBtn" class="btn-primary"
+                        style="padding:6px 12px; height:auto; font-size:12px;">Apply</button>
+
+                    <!-- Export Button -->
+                    <button onclick="exportEngineBarcodeToExcel()" class="btn-export-royal" title="Export to Excel"
+                        style="margin-left: 10px;">
+                        <span class="material-symbols-outlined">table_view</span> Excel Export
+                    </button>
+                </div>
+
+                <!-- Wrapper for Flex Layout -->
+                <div
+                    style="flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #1e1e1e; border-radius: 8px; border: 1px solid #333;">
+
+                    <!-- Scrollable Table Area -->
+                    <div class="table-container"
+                        style="flex: 1; overflow-y: auto; margin:0; border:none; border-radius: 0; box-shadow:none;">
+                        <table id="engineBarcodeTable" style="width: 100%; border-collapse: collapse;">
+                            <thead style="position: sticky; top: 0; z-index: 10; background: #1f1f1f;">
+                                <tr style="color: #888; text-align: left; border-bottom: 1px solid #333;">
+                                    <th style="padding: 10px;">Station ID</th>
+                                    <th style="padding: 10px;">Engine Number / Barcode</th>
+                                    <th style="padding: 10px;">Station Number</th>
+                                    <th style="padding: 10px;">Station Name</th>
+                                    <th style="padding: 10px;">Station Type</th>
+                                    <th style="padding: 10px;">Punch DateTime</th>
+                                    <th style="padding: 10px;">Shift</th>
+                                    <th style="padding: 10px;">Emp ID</th>
+                                    <th style="padding: 10px;">Emp Name</th>
+                                </tr>
+                            </thead>
+                            <tbody id="engineBarcodeBody">
+                                <!-- Rows injected via JS -->
+                            </tbody>
+                        </table>
+                        <div id="engineBarcodeEmpty" class="empty-state" style="display:none; padding: 20px;">
+                            <span class="material-symbols-outlined icon">search_off</span>
+                            <h3>No records found</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Line Cycle Time Tab -->
+<div id="tab-main-line" class="tab-pane">
+                <!-- Reports Filter -->
+                <div class="filter-controls"
+                    style="padding: 10px; gap:10px; align-items:center; background:#1e1e1e; border-radius: 8px; margin-bottom: 15px; border: 1px solid #333; display:flex; flex-wrap: wrap; row-gap: 10px;">
+                    <label style="color:#888; font-size:13px;">Filter:</label>
+                    <input type="text" id="mainLineStart" class="filter-input" placeholder="Start"
+                        style="background:#333; border:none; color:#fff; padding:5px; border-radius:4px; max-width: 130px;">
+                    <span style="color:#666;">to</span>
+                    <input type="text" id="mainLineEnd" class="filter-input" placeholder="End"
+                        style="background:#333; border:none; color:#fff; padding:5px; border-radius:4px; max-width: 130px;">
+
+                    <!-- Model Dropdown -->
+                    <select id="mainLineModel" class="select-royal">
+                        <option value="">All Models</option>
+                    </select>
+
+                    <button id="mainLineApplyBtn" class="btn-primary"
+                        style="padding:6px 12px; height:auto; font-size:12px;">Apply</button>
+
+                    <button onclick="resetFilter('main-line')" title="Reset Date"
+                        style="background:none; border:none; color: #ef4444; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 4px;">
+                        <span class="material-symbols-outlined" style="font-size: 20px;">refresh</span>
+                    </button>
+
+                    <!-- Export Button -->
+                    <button onclick="exportMainLineToExcel()" class="btn-export-royal" title="Export to Excel"
+                        style="margin-left: 10px;">
+                        <span class="material-symbols-outlined">table_view</span> Excel Export
+                    </button>
+                    <!-- Pareto View Button -->
+                    <button onclick="openParetoView()" class="btn-export-royal" title="Pareto View"
+                        style="margin-left: 10px;">
+                        <span class="material-symbols-outlined">bar_chart</span> Pareto View
+                    </button>
+
+                    
+                </div>
+
+                <!-- Wrapper for Flex Layout -->
+                <div
+                    style="flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #1e1e1e; border-radius: 8px; border: 1px solid #333;">
+
+                    <!-- Scrollable Table Area -->
+                    <div class="table-container"
+                        style="flex: 1; overflow-y: auto; margin:0; border:none; border-radius: 0; box-shadow:none;">
+                        <table id="mainLineTable" style="width: 100%; border-collapse: collapse;">
+                            <thead style="position: sticky; top: 0; z-index: 10; background: #1f1f1f;">
+                                <tr style="color: #888; text-align: left; border-bottom: 1px solid #333;">
+                                    <th style="padding: 10px; width: 40px;">S.No</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Date/Time</th>
+                                    <th style="padding: 10px; white-space: nowrap; color: #d8232a;">Max STN Name</th>
+                                    <th style="padding: 10px; white-space: nowrap; color: #d8232a;">Max Cycle Time</th>
+                                    <th style="padding: 10px;">ST1</th>
+                                    <th style="padding: 10px;">ST2</th>
+                                    <th style="padding: 10px;">ST3</th>
+                                    <th style="padding: 10px;">ST4</th>
+                                    <th style="padding: 10px;">ST5</th>
+                                    <th style="padding: 10px;">ST6</th>
+                                    <th style="padding: 10px;">ST7</th>
+                                    <th style="padding: 10px;">ST8</th>
+                                    <th style="padding: 10px;">ST9</th>
+                                    <th style="padding: 10px;">ST10</th>
+                                    <th style="padding: 10px;">ST11</th>
+                                    <th style="padding: 10px;">ST12</th>
+                                    <th style="padding: 10px;">ST13</th>
+                                    <th style="padding: 10px;">ST14</th>
+                                    <th style="padding: 10px;">ST15</th>
+                                    <th style="padding: 10px;">ST16</th>
+                                    <th style="padding: 10px;">ST17</th>
+                                    <th style="padding: 10px;">ST18</th>
+                                    <th style="padding: 10px;">ST19</th>
+                                    <th style="padding: 10px;">ST20</th>
+                                    <th style="padding: 10px;">ST21</th>
+                                    <th style="padding: 10px;">ST22</th>
+                                    <th style="padding: 10px;">ST23</th>
+                                    <th style="padding: 10px;">ST24</th>
+                                    <th style="padding: 10px;">ST25</th>
+                                    <th style="padding: 10px;">ST26</th>
+                                    <th style="padding: 10px;">ST27</th>
+                                    <th style="padding: 10px;">ST28</th>
+                                    <th style="padding: 10px;">ST29</th>
+                                    <th style="padding: 10px;">ST30</th>
+                                    <th style="padding: 10px;">ST31</th>
+                                    <th style="padding: 10px;">ST32</th>
+                                    <th style="padding: 10px;">ST33</th>
+                                    <th style="padding: 10px;">ST34</th>
+                                    <th style="padding: 10px;">ST35</th>
+                                    <th style="padding: 10px;">ST36</th>
+                                    <th style="padding: 10px;">ST37</th>
+                                    <th style="padding: 10px;">ST38</th>
+                                    <th style="padding: 10px;">ST39</th>
+                                    <th style="padding: 10px;">ST40</th>
+                                    <th style="padding: 10px;">ST41</th>
+                                    <th style="padding: 10px;">ST42</th>
+                                    <th style="padding: 10px;">ST43</th>
+                                    <th style="padding: 10px;">ST44</th>
+                                    <th style="padding: 10px;">ST45</th>
+                                    <th style="padding: 10px;">ST46</th>
+                                    <th style="padding: 10px;">ST47</th>
+                                    <th style="padding: 10px;">ST48</th>
+                                    <th style="padding: 10px;">ST49</th>
+                                    <th style="padding: 10px;">ST50</th>
+                                    <th style="padding: 10px;">ST51</th>
+                                    <th style="padding: 10px;">ST52</th>
+                                    <th style="padding: 10px;">ST53</th>
+                                    <th style="padding: 10px;">ST54</th>
+                                </tr>
+                            </thead>
+                            <tbody id="mainLineBody">
+                                <!-- Rows injected via JS -->
+                            </tbody>
+                        </table>
+                        <div style="padding: 10px; color: var(--primary); font-size: 12px; font-style: italic;">
+                            *All cycle times are in seconds.
+                        </div>
+                        <div id="mainLineEmpty" class="empty-state" style="display:none; padding: 20px;">
+                            <span class="material-symbols-outlined icon">search_off</span>
+                            <h3>No records found</h3>
+                        </div>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div id="mainLinePagination" class="pagination-container"
+                        style="display:none; justify-content: space-between; align-items: center; gap: 12px; padding: 10px; border-top: 1px solid #333; background: #1e1e1e;">
+                        <span id="mainLineTotalCount" class="total-count-badge">Total Count: 0</span>
+                        <div style="display:flex; align-items: center; gap: 12px;">
+                            <button class="btn-pagination-modern" onclick="changeMainLinePage(-1)"
+                                id="btnPrevMainLine">Previous</button>
+                            <span id="mainLinePageLabel" style="color: #cccccc; font-size: 13px;">Page 1</span>
+                            <button class="btn-pagination-modern" onclick="changeMainLinePage(1)"
+                                id="btnNextMainLine">Next</button>
+                        </div>
+                    </div>
+                </div></div>
+
+            <!-- Poke Yoke Manual Inspection Tab -->
+            
+<!-- Poke Yoke Manual Inspection Tab -->
+            <div id="tab-poke-yoke" class="tab-pane">
+                <!-- Reports Filter -->
+                <div class="filter-controls"
+                    style="padding: 10px; gap:10px; align-items:center; background:#1e1e1e; border-radius: 8px; margin-bottom: 15px; border: 1px solid #333; display:flex; flex-wrap: wrap; row-gap: 10px;">
+                    <style>
+                        .re-toggle {
+                            position: relative;
+                            display: inline-block;
+                            width: 44px;
+                            height: 24px;
+                            margin: 0 5px;
+                        }
+                        .re-toggle input {
+                            opacity: 0;
+                            width: 0;
+                            height: 0;
+                        }
+                        .re-toggle-slider {
+                            position: absolute;
+                            cursor: pointer;
+                            top: 0;
+                            left: 0;
+                            right: 0;
+                            bottom: 0;
+                            background-color: #444; /* Dark grey for HC mode */
+                            transition: .3s;
+                            border-radius: 24px;
+                            border: 1px solid #555;
+                        }
+                        .re-toggle-slider:before {
+                            position: absolute;
+                            content: "";
+                            height: 18px;
+                            width: 18px;
+                            left: 2px;
+                            bottom: 2px;
+                            background-color: #fff;
+                            transition: .3s;
+                            border-radius: 50%;
+                            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+                        }
+                        .re-toggle input:checked + .re-toggle-slider {
+                            background-color: #ef4444; /* RE Red for Eng No mode */
+                            border-color: #ef4444;
+                        }
+                        .re-toggle input:checked + .re-toggle-slider:before {
+                            transform: translateX(20px);
+                        }
+                        .mode-label {
+                            font-size: 13px;
+                            color: #888;
+                            font-weight: normal;
+                            transition: color 0.3s;
+                        }
+                        .mode-label.active {
+                            color: #fff;
+                            font-weight: bold;
+                        }
+                        body.light-mode .mode-label.active {
+                            color: #000;
+                        }
+                    </style>
+                    <!-- Toggle Mode -->
+                    <div style="display: flex; align-items: center; border-right: 1px solid #444; padding-right: 10px; margin-right: 5px;">
+                        <span id="modeLabelHC" class="mode-label active">HC</span>
+                        <label class="re-toggle">
+                            <input type="checkbox" id="pokeYokeModeToggle" onchange="togglePokeYokeMode()">
+                            <span class="re-toggle-slider"></span>
+                        </label>
+                        <span id="modeLabelEng" class="mode-label">Eng No</span>
+                    </div>
+
+                    <label style="color:#888; font-size:13px;">Filter:</label>
+                    
+                    <input type="text" id="pokeYokeStart" class="filter-input poke-yoke-hc-mode-elements" placeholder="Start"
+                        style="background:#333; border:none; color:#fff; padding:5px; border-radius:4px; max-width: 130px;">
+                    <span class="poke-yoke-hc-mode-elements" style="color:#666;">to</span>
+                    <input type="text" id="pokeYokeEnd" class="filter-input poke-yoke-hc-mode-elements" placeholder="End"
+                        style="background:#333; border:none; color:#fff; padding:5px; border-radius:4px; max-width: 130px;">
+
+                    <!-- Model Dropdown (Always visible) -->
+                    <select id="pokeYokeModel" class="select-royal">
+                        <option value="">Select HC</option>
+                    </select>
+
+                    <!-- Station Dropdown (Multi-Select) -->
+                    <div id="pokeYokeStationContainer" class="poke-yoke-hc-mode-elements" style="position: relative;">
+                        <button type="button" id="pokeYokeStationBtn" class="select-royal" style="padding:4px 8px; font-size:13px; min-width:120px; text-align:left; cursor:pointer;" onclick="document.getElementById('pokeYokeStationDropdown').style.display = document.getElementById('pokeYokeStationDropdown').style.display === 'none' ? 'block' : 'none';">
+                            Select Stations
+                        </button>
+                        <div id="pokeYokeStationDropdown" style="display:none; position:absolute; top:100%; left:0; background:#333; border:1px solid #444; border-radius:4px; padding:10px; z-index:100; max-height:250px; overflow-y:auto; min-width:150px; box-shadow:0 4px 6px rgba(0,0,0,0.3); font-size: 13px;">
+                            <label style="display:block; margin-bottom:8px; border-bottom:1px solid #555; padding-bottom:5px; cursor:pointer;">
+                                <input type="checkbox" id="pokeYokeStationSelectAll" onclick="toggleAllStations(this)"> <strong>Select All</strong>
+                            </label>
+                            <div id="pokeYokeStationCheckboxes" style="display:flex; flex-direction:column; gap:5px;">
+                                <!-- Stations injected here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Engine Number Input (Hidden by default) -->
+                    <input type="text" id="pokeYokeEngNo" class="filter-input poke-yoke-eng-mode-elements" placeholder="Engine Number"
+                        style="background:#333; border:none; color:#fff; padding:5px; border-radius:4px; max-width: 150px; display: none;">
+
+                    <button id="pokeYokeApplyBtn" class="btn-primary"
+                        style="padding:6px 12px; height:auto; font-size:12px;">Apply</button>
+
+                    <button onclick="resetFilter('poke-yoke')" title="Reset Date"
+                        style="background:none; border:none; color: #ef4444; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 4px;">
+                        <span class="material-symbols-outlined" style="font-size: 20px;">refresh</span>
+                    </button>
+
+                    <!-- Export Button -->
+                    <button onclick="exportPokeYokeToExcel()" class="btn-export-royal" title="Export to Excel"
+                        style="margin-left: 10px;">
+                        <span class="material-symbols-outlined">table_view</span> Excel Export
+                    </button>
+                    
+
+                    
+                </div>
+
+                <!-- Wrapper for Flex Layout -->
+                <div
+                    style="flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #1e1e1e; border-radius: 8px; border: 1px solid #333;">
+
+                    <!-- Scrollable Table Area -->
+                    <div class="table-container"
+                        style="flex: 1; overflow-y: auto; margin:0; border:none; border-radius: 0; box-shadow:none;">
+                        <table id="pokeYokeTable" style="width: 100%; border-collapse: collapse;">
+                            <thead style="position: sticky; top: 0; z-index: 10; background: #1f1f1f;">
+                                <tr style="color: #888; text-align: left; border-bottom: 1px solid #333;">
+                                    <th style="padding: 10px; width: 40px;">S.No</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Description</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Station Number</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Engine Number</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Date Time</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pokeYokeBody">
+                                <!-- Rows injected via JS -->
+                            </tbody>
+                        </table>
+                        
+                        <div id="pokeYokeEmpty" class="empty-state" style="display:none; padding: 20px;">
+                            <span class="material-symbols-outlined icon">search_off</span>
+                            <h3>No records found</h3>
+                        </div>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div id="pokeYokePagination" class="pagination-container"
+                        style="display:none; justify-content: space-between; align-items: center; gap: 12px; padding: 10px; border-top: 1px solid #333; background: #1e1e1e;">
+                        <span id="pokeYokeTotalCount" class="total-count-badge">Total Count: 0</span>
+                        <div style="display:flex; align-items: center; gap: 12px;">
+                            <button class="btn-pagination-modern" onclick="changePokeYokePage(-1)"
+                                id="btnPrevPokeYoke">Previous</button>
+                            <span id="pokeYokePageLabel" style="color: #cccccc; font-size: 13px;">Page 1</span>
+                            <button class="btn-pagination-modern" onclick="changePokeYokePage(1)"
+                                id="btnNextPokeYoke">Next</button>
+                        </div>
+                    </div>
+                </div></div>
+
+            <!-- Poke Yoke Manual Inspection Tab -->
+
+            <!-- Poke Yoke Manual Inspection Summary Tab -->
+            <div id="tab-poke-yoke-summary" class="tab-pane">
+                <!-- Summary Filter -->
+                <div class="filter-controls"
+                    style="padding: 10px; gap:10px; align-items:center; background:#1e1e1e; border-radius: 8px; margin-bottom: 15px; border: 1px solid #333; display:flex; flex-wrap: wrap; row-gap: 10px;">
+                    <label style="color:#888; font-size:13px;">Filter:</label>
+                    
+                    <input type="text" id="pokeYokeSummaryStart" class="filter-input" placeholder="Start"
+                        style="background:#333; border:none; color:#fff; padding:5px; border-radius:4px; max-width: 130px;">
+                    <span style="color:#666;">to</span>
+                    <input type="text" id="pokeYokeSummaryEnd" class="filter-input" placeholder="End"
+                        style="background:#333; border:none; color:#fff; padding:5px; border-radius:4px; max-width: 130px;">
+
+                    <!-- Model Dropdown -->
+                    <select id="pokeYokeSummaryModel" class="select-royal">
+                        <option value="">Select HC</option>
+                    </select>
+
+                    <!-- Station Dropdown (Multi-Select) -->
+                    <div id="pokeYokeSummaryStationContainer" style="position: relative;">
+                        <button type="button" id="pokeYokeSummaryStationBtn" class="select-royal" style="padding:4px 8px; font-size:13px; min-width:120px; text-align:left; cursor:pointer;" onclick="document.getElementById('pokeYokeSummaryStationDropdown').style.display = document.getElementById('pokeYokeSummaryStationDropdown').style.display === 'none' ? 'block' : 'none';">
+                            Select Stations
+                        </button>
+                        <div id="pokeYokeSummaryStationDropdown" style="display:none; position:absolute; top:100%; left:0; background:#333; border:1px solid #444; border-radius:4px; padding:10px; z-index:100; max-height:250px; overflow-y:auto; min-width:150px; box-shadow:0 4px 6px rgba(0,0,0,0.3); font-size: 13px;">
+                            <label style="display:block; margin-bottom:8px; border-bottom:1px solid #555; padding-bottom:5px; cursor:pointer;">
+                                <input type="checkbox" id="pokeYokeSummaryStationSelectAll" onclick="toggleAllSummaryStations(this)"> <strong>Select All</strong>
+                            </label>
+                            <div id="pokeYokeSummaryStationCheckboxes" style="display:flex; flex-direction:column; gap:5px;">
+                                <!-- Stations injected here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <button id="pokeYokeSummaryApplyBtn" class="btn-primary"
+                        style="padding:6px 12px; height:auto; font-size:12px;">Apply</button>
+
+                    <button onclick="resetFilter('poke-yoke-summary')" title="Reset Date"
+                        style="background:none; border:none; color: #ef4444; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 4px;">
+                        <span class="material-symbols-outlined" style="font-size: 20px;">refresh</span>
+                    </button>
+
+                    <!-- Export Button -->
+                    <button onclick="exportPokeYokeSummaryToExcel()" class="btn-export-royal" title="Export to Excel"
+                        style="margin-left: 10px;">
+                        <span class="material-symbols-outlined">table_view</span> Excel Export
+                    </button>
+                </div>
+
+                <!-- Wrapper for Flex Layout -->
+                <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #1e1e1e; border-radius: 8px; border: 1px solid #333;">
+                    <!-- Scrollable Table Area -->
+                    <div class="table-container" style="flex: 1; overflow-y: auto; margin:0; border:none; border-radius: 0; box-shadow:none;">
+                        <table id="pokeYokeSummaryTable" style="width: 100%; border-collapse: collapse;">
+                            <thead style="position: sticky; top: 0; z-index: 10; background: #1f1f1f;">
+                                <tr style="color: #888; text-align: left; border-bottom: 1px solid #333;">
+                                    <th style="padding: 10px; width: 40px;">S.No</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Shift</th>
+                                    <th style="padding: 10px; white-space: nowrap;">No Of Engines</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Station Description</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Station Number</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Status</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Starting Engine Number</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Ending Engine Number</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Starting Date time</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Ending Date time</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Duration</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pokeYokeSummaryBody">
+                                <!-- Rows injected via JS -->
+                            </tbody>
+                        </table>
+                        
+                        <div id="pokeYokeSummaryEmpty" class="empty-state" style="display:none; padding: 20px;">
+                            <span class="material-symbols-outlined icon">search_off</span>
+                            <h3>No records found</h3>
+                        </div>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div id="pokeYokeSummaryPagination" class="pagination-container"
+                        style="display:none; justify-content: space-between; align-items: center; gap: 12px; padding: 10px; border-top: 1px solid #333; background: #1e1e1e;">
+                        <span id="pokeYokeSummaryTotalCount" class="total-count-badge">Total Count: 0</span>
+                        <div style="display:flex; align-items: center; gap: 12px;">
+                            <button class="btn-pagination-modern" onclick="changePokeYokeSummaryPage(-1)" id="btnPrevPokeYokeSummary">Previous</button>
+                            <span id="pokeYokeSummaryPageLabel" style="color: #cccccc; font-size: 13px;">Page 1</span>
+                            <button class="btn-pagination-modern" onclick="changePokeYokeSummaryPage(1)" id="btnNextPokeYokeSummary">Next</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fire Hydrant Monitoring Dashboard -->
+            <div id="tab-fire-hydrant" class="tab-pane">
+                <div class="scada-scroll">
+                    <div class="scada-header-row">
+                        <div class="scada-title">Safety Fire Hydrant Line - Pressure Monitoring</div>
+                        <div class="scada-header-right">
+                            <div class="scada-line-legend">
+                                <span class="scada-legend-swatch hydrant"></span> Hydrant Line
+                                <span class="scada-legend-swatch sprinkler"></span> Sprinkler Line
+                            </div>
+                            <div class="scada-topbar-buttons">
+                                <button class="scada-alert-bell-btn" id="fireHydrantAlertBellBtn" onclick="openFireHydrantAlerts()" title="Alerts">
+                                    <span class="material-symbols-outlined">notifications</span>
+                                    <span class="scada-alert-bell-badge" id="fireHydrantAlertBellBadge" style="display:none;">!</span>
+                                </button>
+                                <button class="scada-topbar-btn">Demo</button>
+                                <button class="scada-topbar-btn" onclick="openFireHydrantReport()">Reports</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="scada-canvas-wrap">
+                    <div class="scada-canvas" id="scadaCanvas">
+
+                        <svg id="scadaPipesSvg" class="scada-pipes-svg" viewBox="0 0 2000 590" xmlns="http://www.w3.org/2000/svg">
+                            <!-- tank outlet drops only; the manifold (headers + 5 branches) is drawn dynamically by
+                                 renderScadaManifold() so every pipe segment measures and locks onto the actual
+                                 rendered center of its valve/pump element instead of guessed coordinates -->
+                            <path class="scada-pipe-path" id="scadaTank1Drop" d="M80,253 L80,253" />
+                            <path class="scada-flow-overlaypipe" id="scadaTank1DropFlow" data-flow-group="tank" d="M80,253 L80,253" />
+                            <path class="scada-pipe-path" id="scadaTank2Drop" d="M180,253 L180,253" />
+                            <path class="scada-flow-overlaypipe" id="scadaTank2DropFlow" data-flow-group="tank" d="M180,253 L180,253" />
+                            <g id="scadaManifoldPipes"></g>
+                        </svg>
+
+                        <!-- Water tank assembly (two-compartment tank with brick partition, top nozzles, ladder and inlet) -->
+                        <div class="scada-widget scada-level-scale" style="left:8px;top:40px;width:14px;height:180px;">
+                            <span class="scada-level-tick" style="top:-6px;">100%</span>
+                            <span class="scada-level-tick" style="top:39px;">75%</span>
+                            <span class="scada-level-tick" style="top:84px;">50%</span>
+                            <span class="scada-level-tick" style="top:129px;">25%</span>
+                            <span class="scada-level-tick" style="top:174px;">0%</span>
+                        </div>
+
+                        <div class="scada-widget scada-tank-assembly" style="left:30px;top:6px;width:200px;height:270px;">
+                            <svg class="scada-tank-structure" viewBox="0 0 200 270" width="200" height="270">
+                                <!-- water top-up inlet -->
+                                <path class="scada-pipe-path thin" d="M0,14 L26,14 L26,26" />
+                                <image class="scada-valve-img" href="assets/valve.png" x="7" y="3" width="16" height="16" />
+                                <text x="2" y="7" class="scada-tank-inlet-label">Water Top Up</text>
+
+                                <!-- header frame + nozzles -->
+                                <rect x="4" y="26" width="192" height="8" class="scada-tank-frame" />
+                                <rect x="45" y="16" width="6" height="10" class="scada-tank-frame" />
+                                <rect x="145" y="16" width="6" height="10" class="scada-tank-frame" />
+
+                                <!-- ladder -->
+                                <line x1="176" y1="0" x2="176" y2="26" class="scada-tank-frame-line" />
+                                <line x1="182" y1="0" x2="182" y2="26" class="scada-tank-frame-line" />
+                                <line x1="176" y1="4" x2="182" y2="4" class="scada-tank-frame-line" />
+                                <line x1="176" y1="10" x2="182" y2="10" class="scada-tank-frame-line" />
+                                <line x1="176" y1="16" x2="182" y2="16" class="scada-tank-frame-line" />
+                                <line x1="176" y1="22" x2="182" y2="22" class="scada-tank-frame-line" />
+
+                                <!-- tank outlines -->
+                                <rect x="8" y="34" width="84" height="180" class="scada-tank-outline" />
+                                <rect x="108" y="34" width="84" height="180" class="scada-tank-outline" />
+
+                                <!-- outlet stubs to butterfly valves -->
+                                <path class="scada-pipe-path thin" d="M50,214 L50,226" />
+                                <path class="scada-pipe-path thin" d="M150,214 L150,226" />
+                                <path class="scada-pipe-path thin" d="M50,238 L50,253" />
+                                <path class="scada-pipe-path thin" d="M150,238 L150,253" />
+                            </svg>
+
+                            <div class="scada-tank-brick" style="left:92px;top:34px;width:16px;height:180px;"></div>
+
+                            <div class="scada-tank-fill2" data-tank="wt1" style="left:9px;top:214px;width:82px;height:0px;"></div>
+                            <div class="scada-tank-fill2" data-tank="wt2" style="left:109px;top:214px;width:82px;height:0px;"></div>
+
+                            <span class="scada-tank-cap-label" style="left:20px;top:42px;">232 m&sup3;</span>
+                            <span class="scada-tank-cap-label" style="left:120px;top:42px;">232 m&sup3;</span>
+
+                            <span class="scada-tank-pct2" data-tank-pct="wt1" style="left:9px;top:140px;width:82px;"></span>
+                            <span class="scada-tank-pct2" data-tank-pct="wt2" style="left:109px;top:140px;width:82px;"></span>
+
+                            <img id="scadaTank1Valve" class="scada-valve-img vert" src="assets/valve.png" style="left:39px;top:216px;width:22px;height:22px;">
+                            <img id="scadaTank2Valve" class="scada-valve-img vert" src="assets/valve.png" style="left:139px;top:216px;width:22px;height:22px;">
+
+                            <div class="scada-tank-label" style="left:8px;top:246px;width:84px;">Water Tank 1<br>(232 m&sup3;)</div>
+                            <div class="scada-tank-label" style="left:108px;top:246px;width:84px;">Water Tank 2<br>(232 m&sup3;)</div>
+                        </div>
+
+                        <!-- Pump manifold: 5-column CSS grid, piping drawn dynamically into #scadaManifoldPipes -->
+                        <div class="scada-widget scada-manifold-wrap" id="scadaManifoldWrap" style="left:260px;top:15px;width:760px;">
+                            <div class="scada-manifold-row">
+                                <div class="scada-manifold-grid" id="scadaManifoldGrid"></div>
+                                <div class="scada-control-panel">
+                                    <div class="scada-cp-title">Feedback to<br>Controller</div>
+                                    <div class="scada-cp-gauges">
+                                        <span class="scada-cp-gauge"></span>
+                                        <span class="scada-cp-gauge"></span>
+                                        <span class="scada-cp-gauge"></span>
+                                    </div>
+                                    <div class="scada-cp-leds">
+                                        <span class="scada-led red"></span>
+                                        <span class="scada-led green"></span>
+                                    </div>
+                                    <img id="scadaCautionIcon" class="scada-caution-icon" src="assets/Caution.gif" title="Alarm: a monitored value is in the red band">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Gauges -->
+                        <div class="scada-widget scada-gauge" data-gauge="hydrant" style="left:20px;top:400px;width:120px;"></div>
+                        <div class="scada-widget scada-gauge" data-gauge="sprinkler" style="left:160px;top:400px;width:120px;"></div>
+
+                        <!-- Shopfloor Pressure: coordinate-based absolute schematic beside the pump
+                             manifold (not below). One SVG layer (z-index:0) draws every pipe segment
+                             at fixed coordinates; cards (.pipe-card, z-index:1) are absolutely
+                             positioned on top. EV Building sits above G120 with its own vertical
+                             connector; G120/RO/Fire Hydrant/MRS sit on the top branch. -->
+                        <div class="scada-widget pipe-schematic" style="left:1190px;top:15px;width:770px;height:470px;">
+                            <svg class="pipe-svg" viewBox="0 0 770 470" xmlns="http://www.w3.org/2000/svg">
+                                <!-- Main Spine: top branch + vertical trunk, 10px maroon -->
+                                <path class="pipe-seg" stroke-width="10" d="M4,159 L544,159" />
+                                <path class="pipe-seg" stroke-width="10" d="M4,159 L4,415" />
+                                <!-- EV Building -> G120 vertical connector -->
+                                <path class="pipe-seg" stroke-width="8" d="M90,50 L90,90" />
+                                <!-- G120 / RO / Fire Hydrant / MRS stubs onto the top branch -->
+                                <path class="pipe-seg" stroke-width="8" d="M90,140 L90,159" />
+                                <path class="pipe-seg" stroke-width="8" d="M240,140 L240,159" />
+                                <path class="pipe-seg" stroke-width="8" d="M390,140 L390,159" />
+                                <path class="pipe-seg" stroke-width="8" d="M540,140 L540,159" />
+                                <!-- Row arms off the trunk: stop at each card's edge, resume on the other side -->
+                                <path class="pipe-seg" stroke-width="8" d="M4,255 L30,255" />
+                                <path class="pipe-seg" stroke-width="8" d="M150,255 L270,255" />
+                                <path class="pipe-seg" stroke-width="8" d="M4,335 L30,335" />
+                                <path class="pipe-seg" stroke-width="8" d="M150,335 L270,335" />
+                                <!-- Row 3: FG Warehouse -> spine -> Vehicle Assembly (left edge), resumes at its right edge -> Paint Shop 1 -->
+                                <path class="pipe-seg" stroke-width="8" d="M-20,415 L30,415" />
+                                <path class="pipe-seg" stroke-width="8" d="M150,415 L270,415" />
+                                <!-- Tee-connector ticks at each card border -->
+                                <line class="pipe-tee" x1="84" y1="154" x2="96" y2="154" />
+                                <line class="pipe-tee" x1="234" y1="154" x2="246" y2="154" />
+                                <line class="pipe-tee" x1="384" y1="154" x2="396" y2="154" />
+                                <line class="pipe-tee" x1="534" y1="154" x2="546" y2="154" />
+                                <line class="pipe-tee" x1="30" y1="249" x2="30" y2="261" />
+                                <line class="pipe-tee" x1="150" y1="249" x2="150" y2="261" />
+                                <line class="pipe-tee" x1="270" y1="249" x2="270" y2="261" />
+                                <line class="pipe-tee" x1="30" y1="329" x2="30" y2="341" />
+                                <line class="pipe-tee" x1="150" y1="329" x2="150" y2="341" />
+                                <line class="pipe-tee" x1="270" y1="329" x2="270" y2="341" />
+                                <line class="pipe-tee" x1="-20" y1="409" x2="-20" y2="421" />
+                                <line class="pipe-tee" x1="30" y1="409" x2="30" y2="421" />
+                                <line class="pipe-tee" x1="150" y1="409" x2="150" y2="421" />
+                                <line class="pipe-tee" x1="270" y1="409" x2="270" y2="421" />
+                            </svg>
+
+                            <!-- Header -->
+                            <div class="pipe-card" data-key="ev" style="left:30px;top:0;width:120px;height:50px;">
+                                <div class="pipe-card-name">EV Building</div><div class="pipe-card-val"></div>
+                            </div>
+                            <div class="pipe-card" data-key="g120" style="left:30px;top:90px;width:120px;height:50px;">
+                                <div class="pipe-card-name">G120</div><div class="pipe-card-val"></div>
+                            </div>
+                            <div class="pipe-card" data-key="ro" style="left:180px;top:90px;width:120px;height:50px;">
+                                <div class="pipe-card-name">RO, ETP &amp; STP</div><div class="pipe-card-val"></div>
+                            </div>
+                            <div class="pipe-card" data-key="fh" style="left:330px;top:90px;width:120px;height:50px;">
+                                <div class="pipe-card-name">Fire Hydrant</div><div class="pipe-card-val"></div>
+                            </div>
+                            <div class="pipe-card" data-key="mrs" style="left:480px;top:90px;width:120px;height:50px;">
+                                <div class="pipe-card-name">MRS</div><div class="pipe-card-val"></div>
+                            </div>
+
+                            <!-- Left column: positioned via `right` per spec -->
+                            <div class="pipe-card" data-key="machine" style="right:620px;top:230px;width:120px;height:50px;">
+                                <div class="pipe-card-name">Machine Shop</div><div class="pipe-card-val"></div>
+                            </div>
+                            <div class="pipe-card" data-key="engine" style="right:620px;top:310px;width:120px;height:50px;">
+                                <div class="pipe-card-name">Engine Assembly</div><div class="pipe-card-val"></div>
+                            </div>
+                            <!-- FG Warehouse: leftmost in this row, directly left of Vehicle Assembly,
+                                 narrower than the other cards. -->
+                            <div class="pipe-card narrow" data-key="warehouse" style="left:-110px;top:390px;width:90px;height:50px;">
+                                <div class="pipe-card-name">FG Warehouse</div><div class="pipe-card-val"></div>
+                            </div>
+                            <div class="pipe-card" data-key="vehicle" style="right:620px;top:390px;width:120px;height:50px;">
+                                <div class="pipe-card-name">Vehicle Assembly</div><div class="pipe-card-val"></div>
+                            </div>
+
+                            <!-- Right column: positioned via `left` per spec -->
+                            <div class="pipe-card" data-key="canteen" style="left:270px;top:230px;width:120px;height:50px;">
+                                <div class="pipe-card-name">Canteen</div><div class="pipe-card-val"></div>
+                            </div>
+                            <div class="pipe-card" data-key="paint2" style="left:270px;top:310px;width:120px;height:50px;">
+                                <div class="pipe-card-name">Paint Shop 2</div><div class="pipe-card-val"></div>
+                            </div>
+                            <div class="pipe-card" data-key="paint1" style="left:270px;top:390px;width:120px;height:50px;">
+                                <div class="pipe-card-name">Paint Shop 1</div><div class="pipe-card-val"></div>
+                            </div>
+                        </div>
+                    </div>
+                    </div>
+                    </div>
+
+                <!-- Fire Hydrant Alerts Popup -->
+                <div id="fireHydrantAlertsOverlay" class="scada-alerts-overlay" style="display:none;">
+                    <div class="scada-alerts-modal">
+                        <div class="scada-alerts-header">
+                            <span>Fire Hydrant Alerts</span>
+                            <button class="scada-alerts-close" onclick="closeFireHydrantAlerts()">&times;</button>
+                        </div>
+                        <div class="scada-alerts-body">
+                            <table class="scada-alerts-table">
+                                <thead>
+                                    <tr>
+                                        <th class="scada-alerts-checkcol"></th>
+                                        <th>Timestamp</th>
+                                        <th>Type</th>
+                                        <th>Description</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="fireHydrantAlertsTbody"></tbody>
+                            </table>
+                            <div id="fireHydrantAlertsEmpty" class="scada-alerts-empty" style="display:none;">No open alerts.</div>
+                        </div>
+                        <div class="scada-alerts-footer">
+                            <span class="scada-alerts-snooze-label">Snooze till:</span>
+                            <input type="text" id="fireHydrantSnoozeInput" class="scada-alerts-snooze-input" placeholder="Pick date/time">
+                            <button class="scada-topbar-btn" id="fireHydrantSnoozeBtn" onclick="snoozeFireHydrantAlerts()" disabled>Snooze</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fire Hydrant Report Screen -->
+                <div id="fireHydrantReportOverlay" class="scada-report-overlay" style="display:none;">
+                    <div class="scada-report-modal">
+                        <div class="scada-report-header">
+                            <span>Fire Hydrant Reports</span>
+                            <button class="scada-alerts-close" onclick="closeFireHydrantReport()">&times;</button>
+                        </div>
+                        <div class="scada-report-toolbar">
+                            <span class="scada-alerts-snooze-label">From:</span>
+                            <input type="text" id="fireHydrantReportFrom" class="scada-alerts-snooze-input" placeholder="From date">
+                            <span class="scada-alerts-snooze-label">To:</span>
+                            <input type="text" id="fireHydrantReportTo" class="scada-alerts-snooze-input" placeholder="To date">
+                            <button class="scada-topbar-btn" onclick="fetchFireHydrantReport()">Apply</button>
+                            <button class="scada-topbar-btn scada-report-csv-btn" onclick="downloadFireHydrantReportCsv()">Download CSV</button>
+                        </div>
+                        <div class="scada-report-tabs">
+                            <button class="scada-report-tab active" data-report-tab="duration" onclick="switchFireHydrantReportTab('duration')">Duration</button>
+                            <button class="scada-report-tab" data-report-tab="count" onclick="switchFireHydrantReportTab('count')">Count</button>
+                            <button class="scada-report-tab" data-report-tab="alerts" onclick="switchFireHydrantReportTab('alerts')">Alerts</button>
+                        </div>
+                        <div class="scada-report-body">
+                            <div class="scada-report-pane" data-report-pane="duration">
+                                <table class="scada-report-table">
+                                    <thead>
+                                        <tr>
+                                            <th>S.No</th>
+                                            <th>Pump</th>
+                                            <th>Start Time</th>
+                                            <th>End Time</th>
+                                            <th>Duration</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="fireHydrantReportDurationTbody"></tbody>
+                                </table>
+                                <div id="fireHydrantReportDurationEmpty" class="scada-alerts-empty" style="display:none;">No pump runs in this range.</div>
+                            </div>
+                            <div class="scada-report-pane" data-report-pane="count" style="display:none;">
+                                <table class="scada-report-table">
+                                    <thead>
+                                        <tr>
+                                            <th>S.No</th>
+                                            <th>Pump</th>
+                                            <th>Start Count</th>
+                                            <th>End Count</th>
+                                            <th>Run Count</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="fireHydrantReportCountTbody"></tbody>
+                                </table>
+                                <div id="fireHydrantReportCountEmpty" class="scada-alerts-empty" style="display:none;">No pump count data in this range.</div>
+                            </div>
+                            <div class="scada-report-pane" data-report-pane="alerts" style="display:none;">
+                                <table class="scada-report-table">
+                                    <thead>
+                                        <tr>
+                                            <th>S.No</th>
+                                            <th>Type</th>
+                                            <th>Description</th>
+                                            <th>Start Event</th>
+                                            <th>End Event</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="fireHydrantReportAlertsTbody"></tbody>
+                                </table>
+                                <div id="fireHydrantReportAlertsEmpty" class="scada-alerts-empty" style="display:none;">No alerts in this range.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- EMS Renewable Dashboard -->
+            <div id="tab-ems-renewable" class="tab-pane">
+                <div class="ems-dashboard">
+                    <div class="ems-topbar">
+                        <div class="ems-topbar-title">Vallam - Renewable Energy Source</div>
+                        <div class="ems-topbar-right">
+                            <span class="ems-date-badge">31/03/2026</span>
+                            <span class="material-symbols-outlined">calendar_month</span>
+                            <span class="material-symbols-outlined">notifications</span>
+                        </div>
+                    </div>
+                    <div class="ems-grid">
+                        <div class="ems-col-left">
+                            <div class="ems-card">
+                                <div class="ems-card-header">
+                                    <span class="ems-card-title">Green Energy</span>
+                                    <span class="ems-month-toggle" id="emsMonthToggle"></span>
+                                </div>
+                                <div class="ems-green-stats">
+                                    <div class="ems-stats-row">
+                                        <div class="ems-stat-block">
+                                            <div class="ems-stat-label">% of Green Energy</div>
+                                            <div class="ems-stat-value neon" id="emsPctGreen"></div>
+                                        </div>
+                                        <div class="ems-stat-block">
+                                            <div class="ems-stat-label">CO2 Reduction :</div>
+                                            <div class="ems-stat-value" id="emsCo2"></div>
+                                        </div>
+                                    </div>
+                                    <div class="ems-total-bar">
+                                        <div id="emsTotalGreen"></div>
+                                        <div id="emsTotalUnits"></div>
+                                    </div>
+                                </div>
+                                <div class="ems-green-body">
+                                    <div class="ems-donut-wrap">
+                                        <canvas id="emsDonutChart"></canvas>
+                                    </div>
+                                    <div class="ems-source-table-wrap">
+                                        <table class="ems-source-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Source</th>
+                                                    <th>Previous Month in lakhs (kWh)</th>
+                                                    <th>Perc (%)</th>
+                                                    <th>Current Month in lakhs (kWh)</th>
+                                                    <th>Perc (%)</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="emsSourceTableBody"></tbody>
+                                            <tfoot>
+                                                <tr>
+                                                    <td colspan="3"></td>
+                                                    <td>% of Green Energy</td>
+                                                    <td id="emsSourceFooterPct"></td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="ems-card">
+                                <div class="ems-card-header"><span class="ems-card-title">VOC - Monitoring</span></div>
+                                <div class="ems-voc-body">
+                                    <div class="ems-voc-stats">
+                                        <div class="ems-voc-stat"><span>Total Station :</span><b id="emsTotalStation"></b></div>
+                                        <div class="ems-voc-stat"><span>Live Station :</span><b id="emsLiveStation"></b></div>
+                                        <div class="ems-voc-stat"><span>Monitoring Stage :</span><b id="emsMonitoringStage"></b></div>
+                                        <div class="ems-voc-stat"><span>Specification :</span><b id="emsSpec"></b></div>
+                                    </div>
+                                    <div class="ems-voc-chart"><canvas id="emsVocChart"></canvas></div>
+                                    <div class="ems-voc-gauge">
+                                        <div id="emsGauge"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="ems-col-right">
+                            <div class="ems-card">
+                                <div class="ems-card-header">
+                                    <span class="ems-card-title">In-House Roof Top Solar - 1 MWp</span>
+                                    <span class="ems-month-toggle">March - 2026</span>
+                                </div>
+                                <div class="ems-solar-stats">
+                                    <div class="ems-stat-block"><div class="ems-stat-label">Live (kW)</div><div class="ems-stat-value" id="emsLive"></div></div>
+                                    <div class="ems-stat-block"><div class="ems-stat-label">Today (kWh)</div><div class="ems-stat-value neon" id="emsToday"></div></div>
+                                    <div class="ems-stat-block"><div class="ems-stat-label">Yesterday (kWh)</div><div class="ems-stat-value neon" id="emsYesterday"></div></div>
+                                    <div class="ems-stat-block"><div class="ems-stat-label">MTD (kWh)</div><div class="ems-stat-value neon" id="emsMtd"></div></div>
+                                </div>
+                                <div class="ems-solar-chart"><canvas id="emsSolarChart"></canvas></div>
+                            </div>
+                            <div class="ems-card">
+                                <div class="ems-card-header"><span class="ems-card-title">Green Power Contributions</span></div>
+                                <div class="ems-contrib-chart"><canvas id="emsContribChart"></canvas></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- EB Real Time Monitoring Dashboard -->
+            <div id="tab-eb-rtm" class="tab-pane">
+                <div class="eb-dashboard">
+                    <div class="eb-sidebar">
+                        <table class="eb-phase-table" id="ebPhaseTable"></table>
+                        <div class="eb-side-block">
+                            <div class="eb-side-label">Max Demand (kVA)</div>
+                            <div class="eb-side-value neon" id="ebMaxDemand"></div>
+                            <div class="eb-side-sublabel">Max Limit</div>
+                            <div class="eb-side-subvalue" id="ebMaxLimit"></div>
+                        </div>
+                        <div class="eb-side-block">
+                            <div class="eb-side-label">Present Demand (kVA)</div>
+                            <div class="eb-side-value neon" id="ebPresentDemand"></div>
+                        </div>
+                        <div class="eb-side-block">
+                            <div class="eb-side-label">Power Failure Count / day</div>
+                            <div class="eb-side-sublabel">Duration</div>
+                            <div class="eb-side-value red" id="ebPfDuration"></div>
+                            <div class="eb-side-sublabel">Count</div>
+                            <div class="eb-side-value red" id="ebPfCount"></div>
+                        </div>
+                    </div>
+                    <div class="eb-main">
+                        <div class="eb-topbar">
+                            <div class="eb-title">Vallam Real Time Monitoring - <span>33KV EB Incomer|Source_7</span></div>
+                            <div class="eb-topbar-right">
+                                <span class="eb-date-badge">07/09/2026</span>
+                                <span class="material-symbols-outlined">calendar_month</span>
+                                <span class="material-symbols-outlined">notifications</span>
+                            </div>
+                        </div>
+                        <div class="eb-filterbar" id="ebFilterBar"></div>
+                        <div class="eb-gauge-row" id="ebGaugeRow"></div>
+                        <div class="eb-chart-grid">
+                            <div class="eb-chart-card">
+                                <div class="eb-chart-title">Voltage (V)</div>
+                                <div class="eb-chart-canvas-wrap"><canvas id="ebChartVoltage"></canvas></div>
+                            </div>
+                            <div class="eb-chart-card">
+                                <div class="eb-chart-title">Frequency (Hz)</div>
+                                <div class="eb-chart-canvas-wrap"><canvas id="ebChartFrequency"></canvas></div>
+                            </div>
+                            <div class="eb-chart-card">
+                                <div class="eb-chart-title">Power Factor (PF)</div>
+                                <div class="eb-chart-canvas-wrap"><canvas id="ebChartPf"></canvas></div>
+                            </div>
+                            <div class="eb-chart-card">
+                                <div class="eb-chart-title">Current (A)</div>
+                                <div class="eb-chart-canvas-wrap"><canvas id="ebChartCurrent"></canvas></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>            <!-- Read Only Modal -->
+        <div id="readOnlyModal" class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Inspection Details <span id="modalAbsBadge"></span></h2>
+                    <div class="header-controls">
+                        <button class="icon-btn" onclick="downloadPdf()" title="Download PDF">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512" width="24" height="24"
+                                fill="#F40F02">
+                                <path
+                                    d="M181.9 256.1c-5-16-4.9-46.9-2-46.9 8.4 0 7.6 36.9 2 46.9zm-1.7 47.2c-7.7 20.2-17.3 43.3-28.4 62.7 18.3-7 39-17.2 62.9-21.9-12.7-9.6-24.9-23.4-34.5-40.8zM86.1 428.1c0 .8 13.2-5.4 34.9-40.2-6.7 6.3-29.1 24.5-34.9 40.2zM248 160h136v328c0 13.3-10.7 24-24 24H24c-13.3 0-24-10.7-24-24V24c0-13.3 10.7-24 24-24h184v160zm-33.1 160c-31.3-17.7-62.1-41.9-91.4-71.7-26.4-14.3-54.6-46-54.6-104.7 0-3.6 0-10.9 .3-22C73.2 132 95.2 139.8 116 139.8c43.6 0 78.4-32.9 85.6-48.3 19.4 17.5 45.4 75.6 59.8 141.5 28.5 7.9 66.8 17.7 78.4 16.8 2.5 0 8.5-.6 8.5-4.4 0-19.1-84.1-15.4-86.4-15.3-7.5-6.7-18-24.1-23.7-44.1 4.3-17.4 7-38.3 7-56.1 0-27.4-18.7-27.4-21-27.4-26.6 0-36.2 38.6-26 73.6 6.5 22.3 15.6 44.4 26.8 65.6-32.4 43.1-66.2 80-100.2 107.5-12.8 10.3-30.8 20.9-44.5 30.6-18.4 13.1-41 33.6-41 53 0 16.4 14.5 26.4 28 26.4 20.6 0 54.3-30 83.9-66.1 28.4 8.2 60.1 12.3 84.6 12.3 32.8 0 56.6-9.1 56.6-21.5 0-10-8.9-16.7-16.4-16.7-15.3 0-46.3 4.1-83.9-8.4z" />
+                            </svg>
+                        </button>
+                        <button class="close-modal" onclick="closeModal()">×</button>
+                    </div>
+                </div>
+
+                <div class="modal-info-grid">
+                    <div class="info-group">
+                        <label>ABS Modulator</label>
+                        <span id="modalAbs"></span>
+                    </div>
+                    <div class="info-group">
+                        <label>Model</label>
+                        <span id="modalModel"></span>
+                    </div>
+                    <div class="info-group">
+                        <label>Kit Number</label>
+                        <span id="modalKit"></span>
+                    </div>
+                    <div class="info-group">
+                        <label>PDI Completion Date</label>
+                        <span id="modalDate"></span>
+                    </div>
+                </div>
+
+                <div class="modal-table-wrapper">
+                    <table class="read-only-table">
+                        <thead>
+                            <tr>
+                                <th>S.No</th>
+                                <th>Description</th>
+                                <th>Specification</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modalBody">
+                            <!-- Rows injected via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Success Popup -->
+        <div id="successPopup" class="success-popup">
+            <div class="popup-content">
+                <div class="icon-pulse">
+                    <span class="material-symbols-outlined">check_circle</span>
+                </div>
+                <h2 id="popupTitle">Success!</h2>
+                <div id="popupBadgeContainer"></div>
+            </div>
+        </div>
+
+        <!-- Flatpickr (Rich Date Picker) -->
+        <link rel="stylesheet" href="lib/flatpickr/flatpickr.min.css">
+        <link rel="stylesheet" href="lib/flatpickr/dark.css">
+        <script src="lib/flatpickr/flatpickr.min.js"></script>
+
+        <!-- Pareto Modal -->
+        <div id="paretoModal" class="modal-overlay"
+            style="display:none; align-items: center; justify-content: center; z-index: 1000;">
+            <div class="modal-content" style="width: 95%; max-width: 1400px; padding: 0;">
+                <div class="modal-header"
+                    style="border-bottom: 2px solid var(--primary); padding: 15px 20px; display: flex; flex-direction: column; align-items: stretch; gap: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h2 style="font-size: 18px; margin: 0;">Pareto Analysis</h2>
+                        <button class="close-modal" onclick="closeParetoView()"><span
+                                class="material-symbols-outlined">close</span></button>
+                    </div>
+                    <div class="pareto-tabs">
+                        <button class="pill-tab active" id="tabLineStoppage" onclick="switchParetoTab('stoppage')">Line
+                            Stoppage Occurrence</button>
+                        <button class="pill-tab" id="tabEngineLoss" onclick="switchParetoTab('engineLoss')">Engine
+                            Loss</button>
+                    </div>
+                </div>
+                <div style="padding: 20px; height: 500px; position: relative; width: 100%; box-sizing: border-box;"
+                    id="paretoChartContainer">
+                    <style>
+                        @keyframes spin {
+                            100% {
+                                transform: rotate(360deg);
+                            }
+                        }
+                    </style>
+                    <div id="paretoLoading"
+                        style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); display:none; flex-direction:column; align-items:center;">
+                        <span class="material-symbols-outlined"
+                            style="animation: spin 1s linear infinite; font-size:40px; color:var(--primary);">autorenew</span>
+                        <p style="margin-top:10px; font-weight: bold;">Processing Pareto Chart...</p>
+                    </div>
+                    <canvas id="paretoChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <script src="lib/chart.min.js"></script>
+        <script src="js/app.js"></script>
+</body>
+
+</html>

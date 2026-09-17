@@ -1,0 +1,6 @@
+@ControlTower_HostAddress = http://localhost:5059
+
+GET {{ControlTower_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
