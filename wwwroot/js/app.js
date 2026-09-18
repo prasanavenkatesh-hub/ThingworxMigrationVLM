@@ -1,21 +1,21 @@
 const API_BASE = '/api/pdi';
 
-// Authentication Check (Global)
-if (window.location.pathname.indexOf('login.html') === -1) {
-    if (sessionStorage.getItem('isLoggedIn') !== 'true') {
-        window.location.href = 'login.html';
-    } else {
-        // Show logged in user if element exists
-        const empId = sessionStorage.getItem('empId');
-        if (empId) {
-            // We might want to show this somewhere, e.g. sidebar
-            const sidebarBadge = document.getElementById('sidebarEmpId');
-            if (sidebarBadge) {
-                sidebarBadge.textContent = empId;
-            }
-        }
-    }
-}
+// Authentication Check (Global) - temporarily disabled
+// if (window.location.pathname.indexOf('login.html') === -1) {
+//     if (sessionStorage.getItem('isLoggedIn') !== 'true') {
+//         window.location.href = 'login.html';
+//     } else {
+//         // Show logged in user if element exists
+//         const empId = sessionStorage.getItem('empId');
+//         if (empId) {
+//             // We might want to show this somewhere, e.g. sidebar
+//             const sidebarBadge = document.getElementById('sidebarEmpId');
+//             if (sidebarBadge) {
+//                 sidebarBadge.textContent = empId;
+//             }
+//         }
+//     }
+// }
 
 let currentChecklist = [];
 let currentAbs = '';
