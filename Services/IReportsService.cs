@@ -13,5 +13,17 @@ namespace ControlTower.Services
         Task<IEnumerable<PokeYokeReport>> GetPokeYokeReportAsync(string line, string historyCard, string? station, string? startDate, string? endDate, string? engineNo = null);
         Task<IEnumerable<PokeYokeSummaryReport>> GetPokeYokeSummaryReportAsync(string line, string historyCard, string? station, string? startDate, string? endDate);
         Task<IEnumerable<BiometricEngineBarcodeReport>> GetBiometricEngineBarcodeReportAsync(string line, string historyCard, string value);
+        Task<IEnumerable<QHoldReport>> GetQHoldReportAsync(
+            string mode,
+            string? startDate,
+            string? endDate,
+            string? model,
+            string? engineNumber,
+            string? qHoldStation,
+            string? result,
+            string? category,
+            string? rejectionDetails,
+            string? reworkDetails,
+            string? shift);
     }
 }
