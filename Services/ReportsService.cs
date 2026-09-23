@@ -17,6 +17,7 @@ namespace ControlTower.Services
         private readonly string _pokeYokeFilterConnectionString;
         private readonly string _pokeYokeDataConnectionString;
         private readonly string _qHoldConnectionString;
+        private readonly string _cylinderHeadLeakConnectionString;
 
         public ReportsService(IConfiguration configuration)
         {
@@ -26,6 +27,7 @@ namespace ControlTower.Services
             _pokeYokeFilterConnectionString = configuration.GetConnectionString("PokeYokeFilterConnection") ?? "";
             _pokeYokeDataConnectionString = configuration.GetConnectionString("PokeYokeDataConnection") ?? "";
             _qHoldConnectionString = configuration.GetConnectionString("QHoldConnection") ?? "";
+            _cylinderHeadLeakConnectionString = configuration.GetConnectionString("CylinderHeadLeakConnection") ?? "";
         }
 
         private static (string Name, DateTime Start) ResolveShiftStart(DateTime eventDateTime, IConfigurationSection shiftsSection)
@@ -630,6 +632,32 @@ namespace ControlTower.Services
                     "dbo.usp_GetQHoldReport",
                     parameters,
                     commandType: CommandType.StoredProcedure);
+
+                return rows;
+            }
+        }
+
+        public async Task<IEnumerable<CylinderHeadLeakReport>> GetCylinderHeadLeakReportAsync(
+            string? startDate,
+            string? endDate,
+            string? plant,
+            string? assemblyLine,
+            string? shift)
+        {
+            using (var connection = new SqlConnection(_cylinderHeadLeakConnectionString))
+            {
+                var parameters = new DynamicParameters();
+                parameters.Add("@StartDate", DateTime.TryParse(startDate, out var sd) ? sd : (object?)null);
+                parameters.Add("@EndDate", DateTime.TryParse(endDate, out var ed) ? ed : (object?)null);
+                parameters.Add("@Plant", plant);
+                parameters.Add("@AssemblyLine", assemblyLine);
+                parameters.Add("@Shift", shift);
+
+                var rows = await connection.QueryAsync<CylinderHeadLeakReport>(
+                    "dbo.usp_GetCylinderHeadLeakRejectionReport",
+                    parameters,
+                    commandType: CommandType.StoredProcedure,
+                    commandTimeout: 120);
 
                 return rows;
             }

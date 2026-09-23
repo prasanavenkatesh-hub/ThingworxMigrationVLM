@@ -95,6 +95,11 @@
                             <span class="material-symbols-outlined icon" style="font-size: 18px;">report</span>
                             <span class="text">Engine QHold Report</span>
                         </button>
+                        <button class="nav-item sub-item" onclick="switchTab('cylinder-head-leak')"
+                            data-tooltip="Cylinder Head Leak Rejection Report" style="font-size: 0.9em; padding: 5px 10px;">
+                            <span class="material-symbols-outlined icon" style="font-size: 18px;">water_drop</span>
+                            <span class="text">Cylinder Head Leak Rejection Report</span>
+                        </button>
                     </div>
                 </div>
 
@@ -1045,6 +1050,87 @@
                             <span id="qHoldPageLabel" style="color: #cccccc; font-size: 13px;">Page 1</span>
                             <button class="btn-pagination-modern" onclick="changeQHoldPage(1)" id="btnNextQHold">Next</button>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cylinder Head Leak Rejection Report Tab -->
+            <div id="tab-cylinder-head-leak" class="tab-pane" style="zoom: 0.85;">
+                <!-- Filters Card -->
+                <div style="padding: 8px 12px; background:#1e1e1e; border-radius: 8px; border: 1px solid #333; margin-bottom: 10px;">
+                    <div style="display:flex; flex-wrap: wrap; gap:8px 14px; align-items:center; margin-bottom: 8px;">
+                        <span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+                            <label style="color:#888; font-size:12px;">Plant</label>
+                            <select id="cylinderHeadPlant" class="select-royal" style="padding:5px 24px 5px 8px; font-size:12px;">
+                                <option value="ALL">All</option>
+                                <option value="ORAGADAM">ORAGADAM</option>
+                                <option value="VALLAM">VALLAM</option>
+                            </select>
+                        </span>
+                        <span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+                            <label style="color:#888; font-size:12px;">Assembly Line</label>
+                            <select id="cylinderHeadLine" class="select-royal" style="padding:5px 24px 5px 8px; font-size:12px;">
+                                <option value="ALL">All</option>
+                                <option value="EA1">EA1</option>
+                                <option value="EA2">EA2</option>
+                                <option value="EA3">EA3</option>
+                            </select>
+                        </span>
+                        <span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+                            <label style="color:#888; font-size:12px;">Shift</label>
+                            <select id="cylinderHeadShift" class="select-royal" style="padding:5px 24px 5px 8px; font-size:12px;">
+                                <option value="ALL">All</option>
+                                <option value="A">A</option>
+                                <option value="B">B</option>
+                                <option value="C">C</option>
+                            </select>
+                        </span>
+                        <span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+                            <label style="color:#888; font-size:12px;">From</label>
+                            <input type="text" id="cylinderHeadStart" class="filter-input" placeholder="Start"
+                                style="background:#333; border:none; color:#fff; padding:5px; border-radius:4px; width: 150px;">
+                        </span>
+                        <span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+                            <label style="color:#888; font-size:12px;">To</label>
+                            <input type="text" id="cylinderHeadEnd" class="filter-input" placeholder="End"
+                                style="background:#333; border:none; color:#fff; padding:5px; border-radius:4px; width: 150px;">
+                        </span>
+                        <button onclick="clearCylinderHeadFilters()" class="btn-primary" style="padding:5px 10px; height:auto; font-size:12px; background:#555;">Clear Filters</button>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <button id="cylinderHeadSummaryBtn" class="btn-primary" style="padding:5px 12px; height:auto; font-size:12px;" onclick="switchCylinderHeadView('summary')">Summary</button>
+                        <button id="cylinderHeadTrendBtn" class="btn-primary" style="padding:5px 12px; height:auto; font-size:12px; background:#555;" onclick="switchCylinderHeadView('trend')">Cellwise rej trend</button>
+                    </div>
+                </div>
+
+                <!-- Loading Indicator -->
+                <div id="cylinderHeadLoading" style="display:none; align-items:center; gap:8px; color:#ccc; font-size:13px; padding: 10px 4px;">
+                    <span class="material-symbols-outlined" style="font-size:18px; animation: spin 1s linear infinite;">progress_activity</span>
+                    Loading Cylinder Head Leak Rejection report...
+                </div>
+
+                <!-- KPI Cards Row -->
+                <div id="cylinderHeadCards" style="display:flex; gap:12px; flex-wrap: wrap; margin-bottom: 10px;"></div>
+
+                <!-- Summary Pivot Table View -->
+                <div id="cylinderHeadSummaryView" style="flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; background: #1e1e1e; border-radius: 8px; border: 1px solid #333;">
+                    <div class="table-container" style="flex: 1; min-height: 0; overflow: auto; margin:0; border:none; border-radius: 0; box-shadow:none;">
+                        <table id="cylinderHeadTable" style="width: 100%; border-collapse: collapse;">
+                            <thead id="cylinderHeadTableHead" style="position: sticky; top: 0; z-index: 10; background: #1f1f1f;"></thead>
+                            <tbody id="cylinderHeadTableBody"><!-- Rows injected via JS --></tbody>
+                        </table>
+                        <div id="cylinderHeadEmpty" class="empty-state" style="display:none; padding: 20px;">
+                            <span class="material-symbols-outlined icon">search_off</span>
+                            <h3>No records found</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cellwise Rejection Trend View -->
+                <div id="cylinderHeadTrendView" style="display:none; background: #1e1e1e; border-radius: 8px; border: 1px solid #333; padding: 12px;">
+                    <div style="color:#ccc; font-size:13px; font-weight:600; margin-bottom: 8px;">Cylinder Head Leak Rejection % - Cellwise Trend</div>
+                    <div style="position:relative; height: 460px;">
+                        <canvas id="cylinderHeadTrendChart"></canvas>
                     </div>
                 </div>
             </div>

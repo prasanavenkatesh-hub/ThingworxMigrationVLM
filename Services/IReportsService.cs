@@ -25,5 +25,11 @@ namespace ControlTower.Services
             string? rejectionDetails,
             string? reworkDetails,
             string? shift);
+        Task<IEnumerable<CylinderHeadLeakReport>> GetCylinderHeadLeakReportAsync(
+            string? startDate,
+            string? endDate,
+            string? plant,
+            string? assemblyLine,
+            string? shift);
     }
 }
