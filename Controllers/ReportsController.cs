@@ -89,5 +89,24 @@ namespace ControlTower.Controllers
             var result = await _reportsService.GetPokeYokeSummaryReportAsync(line, historyCard, station, startDate, endDate);
             return Ok(result);
         }
+
+        [HttpGet("qhold/data")]
+        public async Task<ActionResult<IEnumerable<QHoldReport>>> GetQHoldReport(
+            [FromQuery] string? mode,
+            [FromQuery] string? startDate,
+            [FromQuery] string? endDate,
+            [FromQuery] string? model,
+            [FromQuery] string? engineNumber,
+            [FromQuery] string? qHoldStation,
+            [FromQuery] string? result,
+            [FromQuery] string? category,
+            [FromQuery] string? rejectionDetails,
+            [FromQuery] string? reworkDetails,
+            [FromQuery] string? shift)
+        {
+            var data = await _reportsService.GetQHoldReportAsync(
+                mode ?? "Overall", startDate, endDate, model, engineNumber, qHoldStation, result, category, rejectionDetails, reworkDetails, shift);
+            return Ok(data);
+        }
     }
 }
