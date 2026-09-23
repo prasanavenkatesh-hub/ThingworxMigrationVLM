@@ -108,5 +108,17 @@ namespace ControlTower.Controllers
                 mode ?? "Overall", startDate, endDate, model, engineNumber, qHoldStation, result, category, rejectionDetails, reworkDetails, shift);
             return Ok(data);
         }
+
+        [HttpGet("cylinder-head-leak/data")]
+        public async Task<ActionResult<IEnumerable<CylinderHeadLeakReport>>> GetCylinderHeadLeakReport(
+            [FromQuery] string? startDate,
+            [FromQuery] string? endDate,
+            [FromQuery] string? plant,
+            [FromQuery] string? assemblyLine,
+            [FromQuery] string? shift)
+        {
+            var data = await _reportsService.GetCylinderHeadLeakReportAsync(startDate, endDate, plant, assemblyLine, shift);
+            return Ok(data);
+        }
     }
 }
