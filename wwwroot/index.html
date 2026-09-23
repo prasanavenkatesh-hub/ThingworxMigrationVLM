@@ -91,6 +91,11 @@
                             <span class="material-symbols-outlined icon" style="font-size: 18px;">summarize</span>
                             <span class="text">Poke Yoke- Manual Inspection summary</span>
                         </button>
+                        <button class="nav-item sub-item" onclick="switchTab('qhold')"
+                            data-tooltip="Engine QHold Report" style="font-size: 0.9em; padding: 5px 10px;">
+                            <span class="material-symbols-outlined icon" style="font-size: 18px;">report</span>
+                            <span class="text">Engine QHold Report</span>
+                        </button>
                     </div>
                 </div>
 
@@ -901,6 +906,150 @@
                             <button class="btn-pagination-modern" onclick="changePokeYokeSummaryPage(-1)" id="btnPrevPokeYokeSummary">Previous</button>
                             <span id="pokeYokeSummaryPageLabel" style="color: #cccccc; font-size: 13px;">Page 1</span>
                             <button class="btn-pagination-modern" onclick="changePokeYokeSummaryPage(1)" id="btnNextPokeYokeSummary">Next</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Engine QHold Report Tab -->
+            <div id="tab-qhold" class="tab-pane" style="zoom: 0.8;">
+                <div style="display:flex; gap:12px; align-items:stretch; flex-wrap: wrap; margin-bottom: 10px;">
+                    <!-- Filters Card -->
+                    <div style="flex: 1; min-width: 320px; padding: 8px 12px; background:#1e1e1e; border-radius: 8px; border: 1px solid #333;">
+                        <div style="display:flex; flex-wrap: wrap; gap:8px 14px; align-items:center; margin-bottom: 6px;">
+                            <span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+                                <label style="color:#888; font-size:12px;">AssemblyLine</label>
+                                <select id="qHoldLine" class="select-royal" style="padding:5px 24px 5px 8px; font-size:12px;">
+                                    <option value="EA02">EA02</option>
+                                </select>
+                            </span>
+                            <span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+                                <label style="color:#888; font-size:12px;">From</label>
+                                <input type="text" id="qHoldStart" class="filter-input" placeholder="Start"
+                                    style="background:#333; border:none; color:#fff; padding:5px; border-radius:4px; width: 150px;">
+                            </span>
+                            <span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+                                <label style="color:#888; font-size:12px;">To</label>
+                                <input type="text" id="qHoldEnd" class="filter-input" placeholder="End"
+                                    style="background:#333; border:none; color:#fff; padding:5px; border-radius:4px; width: 150px;">
+                            </span>
+                            <span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+                                <label style="color:#888; font-size:12px;">Model</label>
+                                <select id="qHoldModel" class="select-royal" style="padding:5px 24px 5px 8px; font-size:12px; width: 110px;">
+                                    <option value="ALL">ALL</option>
+                                </select>
+                            </span>
+                            <span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+                                <label style="color:#888; font-size:12px;">Engine Number</label>
+                                <select id="qHoldEngineNumber" class="select-royal" style="padding:5px 24px 5px 8px; font-size:12px; width: 150px;">
+                                    <option value="ALL">ALL</option>
+                                </select>
+                            </span>
+                        </div>
+                        <div style="display:flex; flex-wrap: wrap; gap:8px 14px; align-items:center; margin-bottom: 6px;">
+                            <span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+                                <label style="color:#888; font-size:12px;">Rejection Details</label>
+                                <select id="qHoldRejectionDetails" class="select-royal" style="padding:5px 24px 5px 8px; font-size:12px; width: 130px;">
+                                    <option value="ALL">ALL</option>
+                                </select>
+                            </span>
+                            <span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+                                <label style="color:#888; font-size:12px;">Rework Details</label>
+                                <select id="qHoldReworkDetails" class="select-royal" style="padding:5px 24px 5px 8px; font-size:12px; width: 130px;">
+                                    <option value="ALL">ALL</option>
+                                </select>
+                            </span>
+                            <span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+                                <label style="color:#888; font-size:12px;">Category</label>
+                                <select id="qHoldCategory" class="select-royal" style="padding:5px 24px 5px 8px; font-size:12px; width: 110px;">
+                                    <option value="ALL">ALL</option>
+                                </select>
+                            </span>
+                            <span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+                                <label style="color:#888; font-size:12px;">Qhold Result</label>
+                                <select id="qHoldResult" class="select-royal" style="padding:5px 24px 5px 8px; font-size:12px; width: 110px;">
+                                    <option value="ALL">ALL</option>
+                                </select>
+                            </span>
+                            <span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+                                <label style="color:#888; font-size:12px;">Qhold Station</label>
+                                <select id="qHoldStation" class="select-royal" style="padding:5px 24px 5px 8px; font-size:12px; width: 110px;">
+                                    <option value="ALL">ALL</option>
+                                </select>
+                            </span>
+                            <span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+                                <label style="color:#888; font-size:12px;">Shift</label>
+                                <select id="qHoldShift" class="select-royal" style="padding:5px 24px 5px 8px; font-size:12px; width: 80px;">
+                                    <option value="ALL">ALL</option>
+                                </select>
+                            </span>
+                        </div>
+                        <div style="display:flex; flex-wrap: wrap; gap:8px; align-items:center;">
+                            <button id="qHoldOverallBtn" class="btn-primary" style="padding:5px 10px; height:auto; font-size:12px;" onclick="fetchQHoldReport('Overall')">Overall</button>
+                            <button id="qHoldDistinctBtn" class="btn-primary" style="padding:5px 10px; height:auto; font-size:12px;" onclick="fetchQHoldReport('Distinct')">Distinct Engine Numbers</button>
+                            <button id="qHoldDuplicateBtn" class="btn-primary" style="padding:5px 10px; height:auto; font-size:12px;" onclick="fetchQHoldReport('Duplicate')">Duplicate Engine Numbers</button>
+                            <button onclick="clearQHoldFilters()" class="btn-primary" style="padding:5px 10px; height:auto; font-size:12px; background:#555;">Clear Filters</button>
+                            <button onclick="exportQHoldToExcel()" class="btn-export-royal" title="Export to Excel">
+                                <span class="material-symbols-outlined">table_view</span> Export Excel
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Donut Card -->
+                    <div style="width: 220px; padding: 8px 12px; background:#1e1e1e; border-radius: 8px; border: 1px solid #333; display:flex; flex-direction:column; align-items:center;">
+                        <div style="color:#ccc; font-size:12px; margin-bottom: 4px;">Qhold Station Status</div>
+                        <div style="width: 120px; height: 120px;">
+                            <canvas id="qHoldStatusChart"></canvas>
+                        </div>
+                        <div id="qHoldStatusLegend" style="display:flex; gap:10px; margin-top: 6px; font-size: 11px; color:#ccc; flex-wrap: wrap; justify-content:center;"></div>
+                    </div>
+                </div>
+
+                <!-- Wrapper for Flex Layout -->
+                <div style="flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; background: #1e1e1e; border-radius: 8px; border: 1px solid #333;">
+                    <div class="table-container" style="flex: 1; min-height: 0; overflow-y: auto; margin:0; border:none; border-radius: 0; box-shadow:none;">
+                        <table id="qHoldTable" style="width: 100%; border-collapse: collapse;">
+                            <thead style="position: sticky; top: 0; z-index: 10; background: #1f1f1f;">
+                                <tr style="color: #888; text-align: left; border-bottom: 1px solid #333;">
+                                    <th style="padding: 10px; width: 40px;">S.No</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Date</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Shift</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Engine Number</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Model Code</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Qhold Station</th>
+                                    <th style="padding: 10px; white-space: nowrap;">User ID</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Qhold Result</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Rejection Details</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Root Cause</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Rework Details</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Category</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Supplier</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Rework Date</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Recheck Status</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Reworked By</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Verified By</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Barcode 1</th>
+                                </tr>
+                            </thead>
+                            <tbody id="qHoldBody">
+                                <!-- Rows injected via JS -->
+                            </tbody>
+                        </table>
+
+                        <div id="qHoldEmpty" class="empty-state" style="display:none; padding: 20px;">
+                            <span class="material-symbols-outlined icon">search_off</span>
+                            <h3>No records found</h3>
+                        </div>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div id="qHoldPagination" class="pagination-container"
+                        style="display:none; justify-content: space-between; align-items: center; gap: 12px; padding: 10px; border-top: 1px solid #333; background: #1e1e1e;">
+                        <span id="qHoldTotalCount" class="total-count-badge">Total Count: 0</span>
+                        <div style="display:flex; align-items: center; gap: 12px;">
+                            <button class="btn-pagination-modern" onclick="changeQHoldPage(-1)" id="btnPrevQHold">Previous</button>
+                            <span id="qHoldPageLabel" style="color: #cccccc; font-size: 13px;">Page 1</span>
+                            <button class="btn-pagination-modern" onclick="changeQHoldPage(1)" id="btnNextQHold">Next</button>
                         </div>
                     </div>
                 </div>

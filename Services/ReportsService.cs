@@ -16,6 +16,7 @@ namespace ControlTower.Services
         private readonly string _mainlineConnectionString;
         private readonly string _pokeYokeFilterConnectionString;
         private readonly string _pokeYokeDataConnectionString;
+        private readonly string _qHoldConnectionString;
 
         public ReportsService(IConfiguration configuration)
         {
@@ -24,6 +25,7 @@ namespace ControlTower.Services
             _mainlineConnectionString = configuration.GetConnectionString("MainlineConnection") ?? "";
             _pokeYokeFilterConnectionString = configuration.GetConnectionString("PokeYokeFilterConnection") ?? "";
             _pokeYokeDataConnectionString = configuration.GetConnectionString("PokeYokeDataConnection") ?? "";
+            _qHoldConnectionString = configuration.GetConnectionString("QHoldConnection") ?? "";
         }
 
         private static (string Name, DateTime Start) ResolveShiftStart(DateTime eventDateTime, IConfigurationSection shiftsSection)
@@ -594,6 +596,43 @@ namespace ControlTower.Services
             }
 
             return results.OrderByDescending(r => r.PunchDateTime);
+        }
+
+        public async Task<IEnumerable<QHoldReport>> GetQHoldReportAsync(
+            string mode,
+            string? startDate,
+            string? endDate,
+            string? model,
+            string? engineNumber,
+            string? qHoldStation,
+            string? result,
+            string? category,
+            string? rejectionDetails,
+            string? reworkDetails,
+            string? shift)
+        {
+            using (var connection = new SqlConnection(_qHoldConnectionString))
+            {
+                var parameters = new DynamicParameters();
+                parameters.Add("@Mode", string.IsNullOrWhiteSpace(mode) ? "Overall" : mode);
+                parameters.Add("@StartDate", DateTime.TryParse(startDate, out var sd) ? sd : (object?)null);
+                parameters.Add("@EndDate", DateTime.TryParse(endDate, out var ed) ? ed : (object?)null);
+                parameters.Add("@Model", model);
+                parameters.Add("@EngineNumber", engineNumber);
+                parameters.Add("@QHoldStation", qHoldStation);
+                parameters.Add("@Result", result);
+                parameters.Add("@Category", category);
+                parameters.Add("@RejectionDetails", rejectionDetails);
+                parameters.Add("@ReworkDetails", reworkDetails);
+                parameters.Add("@Shift", shift);
+
+                var rows = await connection.QueryAsync<QHoldReport>(
+                    "dbo.usp_GetQHoldReport",
+                    parameters,
+                    commandType: CommandType.StoredProcedure);
+
+                return rows;
+            }
         }
     }
 }
