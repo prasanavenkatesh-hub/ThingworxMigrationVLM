@@ -18,6 +18,9 @@ namespace ControlTower.Services
         private readonly string _pokeYokeDataConnectionString;
         private readonly string _qHoldConnectionString;
         private readonly string _cylinderHeadLeakConnectionString;
+        // Categorywise Rework: each assembly line has its own Rework DB, each holding an identical
+        // dbo.usp_GetCategorywiseReworkReport, so the line only selects the connection.
+        private readonly Dictionary<string, string> _reworkConnectionStrings;
 
         public ReportsService(IConfiguration configuration)
         {
@@ -28,6 +31,11 @@ namespace ControlTower.Services
             _pokeYokeDataConnectionString = configuration.GetConnectionString("PokeYokeDataConnection") ?? "";
             _qHoldConnectionString = configuration.GetConnectionString("QHoldConnection") ?? "";
             _cylinderHeadLeakConnectionString = configuration.GetConnectionString("CylinderHeadLeakConnection") ?? "";
+            _reworkConnectionStrings = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["EA01"] = configuration.GetConnectionString("ReworkEA01Connection") ?? "",
+                ["EA02"] = configuration.GetConnectionString("ReworkEA02Connection") ?? ""
+            };
         }
 
         private static (string Name, DateTime Start) ResolveShiftStart(DateTime eventDateTime, IConfigurationSection shiftsSection)
@@ -655,6 +663,33 @@ namespace ControlTower.Services
 
                 var rows = await connection.QueryAsync<CylinderHeadLeakReport>(
                     "dbo.usp_GetCylinderHeadLeakRejectionReport",
+                    parameters,
+                    commandType: CommandType.StoredProcedure,
+                    commandTimeout: 120);
+
+                return rows;
+            }
+        }
+
+        public bool IsCategorywiseReworkLine(string? line) =>
+            !string.IsNullOrWhiteSpace(line) && _reworkConnectionStrings.ContainsKey(line);
+
+        public async Task<IEnumerable<CategorywiseReworkReport>> GetCategorywiseReworkReportAsync(
+            string line,
+            string? startDate,
+            string? endDate,
+            string? station)
+        {
+            using (var connection = new SqlConnection(_reworkConnectionStrings[line]))
+            {
+                // Date-time range from the From/To pickers; the proc filters Date_Time > @StartDate AND <= @EndDate.
+                var parameters = new DynamicParameters();
+                parameters.Add("@StartDate", DateTime.TryParse(startDate, out var sd) ? sd : (object?)null, DbType.DateTime);
+                parameters.Add("@EndDate", DateTime.TryParse(endDate, out var ed) ? ed : (object?)null, DbType.DateTime);
+                parameters.Add("@Station", string.IsNullOrWhiteSpace(station) || station == "ALL" ? null : station);
+
+                var rows = await connection.QueryAsync<CategorywiseReworkReport>(
+                    "dbo.usp_GetCategorywiseReworkReport",
                     parameters,
                     commandType: CommandType.StoredProcedure,
                     commandTimeout: 120);

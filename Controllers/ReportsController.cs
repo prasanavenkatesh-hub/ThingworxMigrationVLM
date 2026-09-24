@@ -120,5 +120,21 @@ namespace ControlTower.Controllers
             var data = await _reportsService.GetCylinderHeadLeakReportAsync(startDate, endDate, plant, assemblyLine, shift);
             return Ok(data);
         }
+
+        [HttpGet("categorywise-rework/data")]
+        public async Task<ActionResult<IEnumerable<CategorywiseReworkReport>>> GetCategorywiseReworkReport(
+            [FromQuery] string? line,
+            [FromQuery] string? startDate,
+            [FromQuery] string? endDate,
+            [FromQuery] string? station)
+        {
+            if (!_reportsService.IsCategorywiseReworkLine(line))
+            {
+                return BadRequest("line must be EA01 or EA02.");
+            }
+
+            var data = await _reportsService.GetCategorywiseReworkReportAsync(line!, startDate, endDate, station);
+            return Ok(data);
+        }
     }
 }

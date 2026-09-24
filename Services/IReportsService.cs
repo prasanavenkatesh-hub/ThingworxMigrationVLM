@@ -31,5 +31,11 @@ namespace ControlTower.Services
             string? plant,
             string? assemblyLine,
             string? shift);
+        bool IsCategorywiseReworkLine(string? line);
+        Task<IEnumerable<CategorywiseReworkReport>> GetCategorywiseReworkReportAsync(
+            string line,
+            string? startDate,
+            string? endDate,
+            string? station);
     }
 }

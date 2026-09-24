@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="css/style.v2.css">
     <link rel="stylesheet" href="css/extra_styles.css?v=1.1">
     <link rel="stylesheet" href="css/gasleak.css">
+    <link rel="stylesheet" href="css/rework.css">
     <script src="lib/html2pdf.bundle.min.js"></script>
     <script src="lib/exceljs.min.js"></script>
     <script src="lib/FileSaver.min.js"></script>
@@ -31,6 +32,10 @@
             const ebTab = document.getElementById('tab-eb-rtm');
             if (ebTab && ebTab.classList.contains('active') && typeof renderEbRtm === 'function') {
                 renderEbRtm();
+            }
+            const cwrTab = document.getElementById('tab-categorywise-rework');
+            if (cwrTab && cwrTab.classList.contains('active') && typeof renderCwr === 'function') {
+                renderCwr();
             }
         }
 
@@ -100,6 +105,11 @@
                             data-tooltip="Cylinder Head Leak Rejection Report" style="font-size: 0.9em; padding: 5px 10px;">
                             <span class="material-symbols-outlined icon" style="font-size: 18px;">water_drop</span>
                             <span class="text">Cylinder Head Leak Rejection Report</span>
+                        </button>
+                        <button class="nav-item sub-item" onclick="switchTab('categorywise-rework')"
+                            data-tooltip="Categorywise Rework Report" style="font-size: 0.9em; padding: 5px 10px;">
+                            <span class="material-symbols-outlined icon" style="font-size: 18px;">build_circle</span>
+                            <span class="text">Categorywise Rework Report</span>
                         </button>
                     </div>
                 </div>
@@ -1138,6 +1148,129 @@
                     <div style="position:relative; height: 460px;">
                         <canvas id="cylinderHeadTrendChart"></canvas>
                     </div>
+                </div>
+            </div>
+
+            <!-- Categorywise Rework Report (Leak / PDI / Testing) -->
+            <div id="tab-categorywise-rework" class="tab-pane">
+                <div class="cwr">
+                    <div class="cwr-header">
+                        <div class="cwr-title">
+                            <h2 id="cwrTitle">EA01 Categorywise Rework Report</h2>
+                        </div>
+                        <div class="cwr-stations" id="cwrStations">
+                            <button class="cwr-station-btn active" data-station="Leak" onclick="setCwrStation('Leak')">
+                                <span class="material-symbols-outlined">water_drop</span>Leak <span class="cwr-badge" data-badge="Leak">0</span>
+                            </button>
+                            <button class="cwr-station-btn" data-station="PDI" onclick="setCwrStation('PDI')">
+                                <span class="material-symbols-outlined">fact_check</span>PDI <span class="cwr-badge" data-badge="PDI">0</span>
+                            </button>
+                            <button class="cwr-station-btn" data-station="Testing" onclick="setCwrStation('Testing')">
+                                <span class="material-symbols-outlined">speed</span>Testing <span class="cwr-badge" data-badge="Testing">0</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="cwr-filters">
+                        <div class="cwr-field cwr-field-line">
+                            <label for="cwrLine">Line</label>
+                            <select id="cwrLine" class="select-royal" onchange="setCwrLine()">
+                                <option value="EA01">EA01</option>
+                                <option value="EA02">EA02</option>
+                            </select>
+                        </div>
+                        <div class="cwr-field cwr-field-date">
+                            <label for="cwrStart">From</label>
+                            <input type="text" id="cwrStart" class="cwr-input" placeholder="From date">
+                        </div>
+                        <div class="cwr-field cwr-field-date">
+                            <label for="cwrEnd">To</label>
+                            <input type="text" id="cwrEnd" class="cwr-input" placeholder="To date">
+                        </div>
+                        <div class="cwr-field">
+                            <label for="cwrShift">Shift</label>
+                            <select id="cwrShift" class="select-royal" data-cwr-filter="shift"><option value="ALL">All</option></select>
+                        </div>
+                        <div class="cwr-field">
+                            <label for="cwrEngine">Engine Number</label>
+                            <input type="text" id="cwrEngine" class="cwr-input" list="cwrEngineList" placeholder="All" autocomplete="off">
+                            <datalist id="cwrEngineList"></datalist>
+                        </div>
+                        <div class="cwr-field">
+                            <label for="cwrModel">Model Code</label>
+                            <select id="cwrModel" class="select-royal" data-cwr-filter="model"><option value="ALL">All</option></select>
+                        </div>
+                        <div class="cwr-field">
+                            <label for="cwrDefect">Defect</label>
+                            <select id="cwrDefect" class="select-royal" data-cwr-filter="description"><option value="ALL">All</option></select>
+                        </div>
+                        <div class="cwr-field">
+                            <label for="cwrCategory">Category</label>
+                            <select id="cwrCategory" class="select-royal" data-cwr-filter="category"><option value="ALL">All</option></select>
+                        </div>
+                        <div class="cwr-field">
+                            <label for="cwrCorrection">Correction</label>
+                            <select id="cwrCorrection" class="select-royal" data-cwr-filter="correction"><option value="ALL">All</option></select>
+                        </div>
+                        <div class="cwr-actions">
+                            <button class="cwr-btn" onclick="clearCwrFilters()">
+                                <span class="material-symbols-outlined">filter_alt_off</span>Clear
+                            </button>
+                            <button class="cwr-btn" onclick="exportCwrToExcel()">
+                                <span class="material-symbols-outlined">download</span>Excel
+                            </button>
+                        </div>
+                    </div>
+
+                    <section class="cwr-card">
+                        <div class="cwr-card-head">
+                            <div class="cwr-card-title" id="cwrMatrixTitle">NOK Qty - Defect vs Category<small>Day &amp; shiftwise</small></div>
+                            <div class="cwr-toolbar">
+                                <span class="cwr-seg-label">Rows</span>
+                                <div class="cwr-seg" id="cwrRowsSeg">
+                                    <button class="active" data-value="defect-category" onclick="setCwrRows('defect-category')">Defect &amp; Category</button>
+                                    <button data-value="defect" onclick="setCwrRows('defect')">Defect</button>
+                                    <button data-value="category" onclick="setCwrRows('category')">Category</button>
+                                </div>
+                                <span class="cwr-seg-label">Columns</span>
+                                <div class="cwr-seg" id="cwrColsSeg">
+                                    <button class="active" data-value="shift" onclick="setCwrCols('shift')">Day + Shift</button>
+                                    <button data-value="day" onclick="setCwrCols('day')">Day</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="cwrLoading" class="cwr-loading" style="padding: 12px 14px;" hidden>
+                            <span class="material-symbols-outlined">progress_activity</span>Loading rework data...
+                        </div>
+                        <div class="cwr-table-wrap">
+                            <table class="cwr-table" id="cwrTable"></table>
+                            <div class="cwr-empty" id="cwrEmpty" hidden>
+                                <span class="material-symbols-outlined">search_off</span>
+                                No rework records for the selected filters
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="cwr-card">
+                        <div class="cwr-card-head">
+                            <div class="cwr-card-title" id="cwrParetoTitle">Rejection Pareto<small>Click a bar to filter</small></div>
+                            <div class="cwr-toolbar">
+                                <div class="cwr-seg" id="cwrParetoSeg">
+                                    <button class="active" data-value="description" onclick="setCwrParetoBy('description')">Defect wise</button>
+                                    <button data-value="category" onclick="setCwrParetoBy('category')">Category wise</button>
+                                </div>
+                                <div class="cwr-seg" id="cwrTopSeg">
+                                    <button class="active" data-value="20" onclick="setCwrTop(20)">Top 20</button>
+                                    <button data-value="0" onclick="setCwrTop(0)">All</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="cwr-pareto-scroll">
+                            <div class="cwr-pareto-box" id="cwrParetoBox">
+                                <canvas id="cwrParetoChart"></canvas>
+                            </div>
+                        </div>
+                    </section>
                 </div>
             </div>
 
