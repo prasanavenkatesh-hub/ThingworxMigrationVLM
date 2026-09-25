@@ -108,5 +108,33 @@ namespace ControlTower.Controllers
                 mode ?? "Overall", startDate, endDate, model, engineNumber, qHoldStation, result, category, rejectionDetails, reworkDetails, shift);
             return Ok(data);
         }
+
+        [HttpGet("cylinder-head-leak/data")]
+        public async Task<ActionResult<IEnumerable<CylinderHeadLeakReport>>> GetCylinderHeadLeakReport(
+            [FromQuery] string? startDate,
+            [FromQuery] string? endDate,
+            [FromQuery] string? plant,
+            [FromQuery] string? assemblyLine,
+            [FromQuery] string? shift)
+        {
+            var data = await _reportsService.GetCylinderHeadLeakReportAsync(startDate, endDate, plant, assemblyLine, shift);
+            return Ok(data);
+        }
+
+        [HttpGet("categorywise-rework/data")]
+        public async Task<ActionResult<IEnumerable<CategorywiseReworkReport>>> GetCategorywiseReworkReport(
+            [FromQuery] string? line,
+            [FromQuery] string? startDate,
+            [FromQuery] string? endDate,
+            [FromQuery] string? station)
+        {
+            if (!_reportsService.IsCategorywiseReworkLine(line))
+            {
+                return BadRequest("line must be EA01 or EA02.");
+            }
+
+            var data = await _reportsService.GetCategorywiseReworkReportAsync(line!, startDate, endDate, station);
+            return Ok(data);
+        }
     }
 }
