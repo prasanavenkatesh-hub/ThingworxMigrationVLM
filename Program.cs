@@ -7,6 +7,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IReportsService, ReportsService>();
 
 builder.Services.AddSingleton<FireHydrantStateStore>();
@@ -52,7 +53,12 @@ if (app.Environment.IsDevelopment())
 app.UseCors("AllowAll");
 
 app.UseDefaultFiles(); // Serve index.html by default
-app.UseStaticFiles();  // Serve files from wwwroot
+// Serve files from wwwroot. no-cache = browsers revalidate (cheap 304 via ETag) instead of running a
+// stale app.js / css after a deploy.
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx => ctx.Context.Response.Headers.CacheControl = "no-cache"
+});
 
 app.UseAuthorization();
 

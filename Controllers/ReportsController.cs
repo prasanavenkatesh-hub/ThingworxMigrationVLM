@@ -136,5 +136,38 @@ namespace ControlTower.Controllers
             var data = await _reportsService.GetCategorywiseReworkReportAsync(line!, startDate, endDate, station);
             return Ok(data);
         }
+
+        // startDate / endDate are production days (yyyy-MM-dd), inclusive.
+        [HttpGet("summary/data")]
+        public async Task<ActionResult<SummaryReportData>> GetSummaryReport(
+            [FromQuery] string? line,
+            [FromQuery] string? stage,
+            [FromQuery] string? startDate,
+            [FromQuery] string? endDate)
+        {
+            if (!_reportsService.IsSummaryReportRequest(line, stage))
+            {
+                return BadRequest("line must be EA01 or EA02 and stage must be Leak, PDI or Testing.");
+            }
+            if (!DateTime.TryParse(startDate, out var sd) || !DateTime.TryParse(endDate, out var ed) || sd.Date > ed.Date)
+            {
+                return BadRequest("startDate and endDate must be valid dates with startDate <= endDate.");
+            }
+            if ((ed.Date - sd.Date).TotalDays > 92)
+            {
+                return BadRequest("Date range is limited to 93 days.");
+            }
+
+            try
+            {
+                var data = await _reportsService.GetSummaryReportAsync(line!, stage!, sd, ed);
+                return Ok(data);
+            }
+            catch (Microsoft.Data.SqlClient.SqlException ex) when (ex.Number == 2812)
+            {
+                // 2812 = procedure not found: dbo.usp_GetSummaryReport is deployed by hand per line database.
+                return StatusCode(503, $"dbo.usp_GetSummaryReport is not created yet in the {line!.ToUpperInvariant()} database ({ex.Message})");
+            }
+        }
     }
 }

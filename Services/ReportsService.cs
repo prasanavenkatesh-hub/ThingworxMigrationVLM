@@ -1,6 +1,7 @@
 using ControlTower.Models;
 using Dapper;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using System.Collections.Generic;
 using System.Data;
@@ -21,10 +22,17 @@ namespace ControlTower.Services
         // Categorywise Rework: each assembly line has its own Rework DB, each holding an identical
         // dbo.usp_GetCategorywiseReworkReport, so the line only selects the connection.
         private readonly Dictionary<string, string> _reworkConnectionStrings;
+        private readonly IMemoryCache _cache;
 
-        public ReportsService(IConfiguration configuration)
+        // Summary Report: one dbo.usp_GetSummaryReport per line (ConnectionStrings:Summary{Line}Connection),
+        // taking the stage as a parameter.
+        private static readonly string[] SummaryReportStages = { "Leak", "PDI", "Testing" };
+        private static readonly TimeSpan SummaryReportCacheDuration = TimeSpan.FromSeconds(60);
+
+        public ReportsService(IConfiguration configuration, IMemoryCache cache)
         {
             _configuration = configuration;
+            _cache = cache;
             _connectionString = configuration.GetConnectionString("DefaultConnection") ?? "";
             _mainlineConnectionString = configuration.GetConnectionString("MainlineConnection") ?? "";
             _pokeYokeFilterConnectionString = configuration.GetConnectionString("PokeYokeFilterConnection") ?? "";
@@ -696,6 +704,57 @@ namespace ControlTower.Services
 
                 return rows;
             }
+        }
+
+        public bool IsSummaryReportRequest(string? line, string? stage) =>
+            !string.IsNullOrWhiteSpace(line) && !string.IsNullOrWhiteSpace(stage)
+            && _reworkConnectionStrings.ContainsKey(line) && SummaryReportStages.Contains(stage, StringComparer.OrdinalIgnoreCase);
+
+        public async Task<SummaryReportData> GetSummaryReportAsync(string line, string stage, DateTime startDate, DateTime endDate)
+        {
+            line = line.ToUpperInvariant();
+            stage = SummaryReportStages.First(k => k.Equals(stage, StringComparison.OrdinalIgnoreCase));
+
+            // Shop-floor data changes every few seconds; a short cache stops auto-refreshing TVs and
+            // several viewers from each re-running the same month-long query.
+            var cacheKey = $"summary:{line}:{stage}:{startDate:yyyyMMdd}:{endDate:yyyyMMdd}";
+            if (_cache.TryGetValue(cacheKey, out SummaryReportData? cached) && cached != null)
+            {
+                return cached;
+            }
+
+            var data = new SummaryReportData { Line = line, Stage = stage, GeneratedAt = DateTime.Now };
+
+            using (var connection = new SqlConnection(_configuration.GetConnectionString($"Summary{line}Connection") ?? ""))
+            {
+                // Production days, inclusive; the proc turns them into the 00:15 -> 00:15 window.
+                var parameters = new DynamicParameters();
+                parameters.Add("@Stage", stage);
+                parameters.Add("@StartDate", startDate.Date, DbType.Date);
+                parameters.Add("@EndDate", endDate.Date, DbType.Date);
+
+                using var grid = await connection.QueryMultipleAsync(
+                    "dbo.usp_GetSummaryReport",
+                    parameters,
+                    commandType: CommandType.StoredProcedure,
+                    commandTimeout: 180);
+
+                // Fixed result-set order (see the proc header); EA02 has no Monthly set.
+                async Task<List<SummaryReportRow>> Next() =>
+                    grid.IsConsumed ? new List<SummaryReportRow>() : (await grid.ReadAsync<SummaryReportRow>()).ToList();
+
+                data.Daily = await Next();
+                data.Hourly = await Next();
+                data.Latest = await Next();
+                data.Rework = await Next();
+                data.Range = await Next();
+            }
+
+            // Leak's Daily set carries the Bypassed / NA / Empty counts of the Power BI Status table too.
+            if (stage == "Leak") data.Status = data.Daily;
+
+            _cache.Set(cacheKey, data, SummaryReportCacheDuration);
+            return data;
         }
     }
 }

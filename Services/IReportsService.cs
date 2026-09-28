@@ -37,5 +37,7 @@ namespace ControlTower.Services
             string? startDate,
             string? endDate,
             string? station);
+        bool IsSummaryReportRequest(string? line, string? stage);
+        Task<SummaryReportData> GetSummaryReportAsync(string line, string stage, DateTime startDate, DateTime endDate);
     }
 }
