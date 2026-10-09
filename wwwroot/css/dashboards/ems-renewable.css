@@ -1,0 +1,481 @@
+/* EMS Renewable Dashboard */
+.ems-dashboard {
+    background: var(--background);
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    color: var(--dark);
+    font-family: 'Inter', sans-serif;
+    padding: 8px;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.ems-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2px 6px 8px;
+    flex-shrink: 0;
+}
+
+.ems-topbar-title {
+    color: #ff9d1a;
+    font-weight: 700;
+    font-size: 15px;
+}
+
+.ems-topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--gray);
+}
+
+.ems-date-badge {
+    background: var(--white);
+    border: 1px solid var(--neutral);
+    border-radius: 4px;
+    padding: 3px 8px;
+    font-size: 11px;
+    color: var(--dark);
+}
+
+.ems-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 62% 38%;
+    gap: 8px;
+    min-height: 0;
+}
+
+.ems-col-left,
+.ems-col-right {
+    display: grid;
+    grid-template-rows: 1fr 1fr;
+    gap: 8px;
+    min-height: 0;
+}
+
+.ems-card {
+    border: 1px solid var(--neutral);
+    border-radius: 4px;
+    background: var(--white);
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.ems-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 6px;
+    flex-shrink: 0;
+}
+
+.ems-card-title {
+    color: #facc15;
+    font-weight: 700;
+    font-size: 13px;
+}
+
+.ems-month-toggle {
+    font-size: 11px;
+    color: #93c5fd;
+}
+
+.ems-othersource-btn {
+    background: #F49D1A;
+    border: 1px solid #F49D1A;
+    color: #000;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 4px;
+    padding: 4px 10px;
+    cursor: pointer;
+}
+
+.ems-othersource-btn:hover {
+    background: #d98600;
+}
+
+.ems-os-modal .ems-os-content {
+    width: 95%;
+    max-width: 1400px;
+    height: 90vh;
+    max-height: 900px;
+}
+
+.ems-os-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 0 24px;
+    border-bottom: 1px solid var(--neutral);
+    flex-shrink: 0;
+}
+
+.ems-os-tab {
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    padding: 12px 6px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gray);
+    cursor: pointer;
+}
+
+.ems-os-tab.active {
+    color: var(--dark);
+    border-bottom-color: #F49D1A;
+}
+
+.ems-os-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px;
+}
+
+.ems-os-pane {
+    display: none;
+}
+
+.ems-os-pane.active {
+    display: block;
+}
+
+.ems-os-toprow {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.ems-os-month {
+    border: 1px solid var(--neutral);
+    border-radius: 4px;
+    padding: 6px 8px;
+    font-size: 13px;
+    margin-right: auto;
+}
+
+.ems-os-update-btn {
+    background: #1a8ff4;
+    border: none;
+    color: #fff;
+    font-weight: 600;
+    font-size: 13px;
+    border-radius: 4px;
+    padding: 8px 20px;
+    cursor: pointer;
+}
+
+.ems-os-update-btn:hover {
+    background: #0f6fc7;
+}
+
+.ems-os-field-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px 32px;
+    margin-bottom: 20px;
+}
+
+.ems-os-field-grid-1 {
+    grid-template-columns: minmax(0, 320px);
+    gap: 14px;
+}
+
+.ems-os-field-grid-3 {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.ems-os-field-grid-4 {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+.ems-os-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.ems-os-field label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--dark);
+}
+
+.ems-os-field input {
+    border: 1px solid var(--neutral);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 13px;
+}
+
+.ems-os-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.ems-os-table th {
+    background: #111;
+    color: #fff;
+    padding: 8px;
+    text-align: left;
+}
+
+.ems-os-table td {
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--neutral);
+}
+
+.ems-os-empty {
+    padding: 16px;
+    text-align: center;
+    color: var(--gray);
+    font-size: 12px;
+}
+
+.ems-green-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 6px;
+    flex-shrink: 0;
+}
+
+.ems-stats-row {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.ems-stat-block {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.ems-stat-label {
+    font-size: 10px;
+    color: var(--gray);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.ems-stat-value {
+    font-family: 'Roboto Mono', 'Consolas', monospace;
+    font-size: 22px;
+    font-weight: 700;
+    color: #93c5fd;
+}
+
+.ems-stat-value .unit {
+    font-size: 12px;
+    font-weight: 400;
+}
+
+.ems-stat-value.neon,
+.neon {
+    color: #39ff14 !important;
+}
+
+.muted {
+    color: #93c5fd;
+}
+
+.ems-total-bar {
+    background: var(--background);
+    border: 1px solid var(--neutral);
+    border-radius: 4px;
+    padding: 4px 10px;
+    font-size: 11px;
+    color: var(--gray);
+    line-height: 1.6;
+    margin-left: auto;
+    align-self: flex-start;
+}
+
+.ems-total-bar b {
+    font-family: 'Roboto Mono', 'Consolas', monospace;
+    color: var(--dark);
+}
+
+.ems-green-body {
+    flex: 1;
+    display: flex;
+    gap: 10px;
+    min-height: 0;
+}
+
+.ems-donut-wrap {
+    position: relative;
+    width: 40%;
+    min-width: 0;
+}
+
+.ems-source-table-wrap {
+    flex: 1;
+    min-width: 0;
+    overflow: auto;
+}
+
+.ems-source-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+}
+
+.ems-source-table th {
+    color: #93c5fd;
+    text-align: left;
+    font-weight: 600;
+    padding: 4px 6px;
+    border-bottom: 1px solid var(--neutral);
+}
+
+.ems-source-table td {
+    color: var(--dark);
+    padding: 5px 6px;
+    border-top: 1px solid var(--neutral);
+}
+
+.ems-source-table tfoot td {
+    border-top: 1px solid var(--neutral);
+    font-weight: 700;
+    color: var(--dark);
+}
+
+.ems-source-name {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.ems-voc-body {
+    flex: 1;
+    display: flex;
+    gap: 10px;
+    min-height: 0;
+}
+
+.ems-voc-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 110px;
+    flex-shrink: 0;
+}
+
+.ems-voc-stat {
+    background: var(--background);
+    border: 1px solid var(--neutral);
+    border-radius: 4px;
+    padding: 5px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.ems-voc-stat span {
+    font-size: 9px;
+    color: var(--gray);
+    text-transform: uppercase;
+}
+
+.ems-voc-stat b {
+    font-family: 'Roboto Mono', 'Consolas', monospace;
+    font-size: 16px;
+    color: #39ff14;
+}
+
+.ems-voc-chart {
+    flex: 1;
+    min-width: 0;
+}
+
+.ems-voc-gauge {
+    width: 150px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.ems-gauge-svg {
+    width: 100%;
+}
+
+.ems-gauge-zone {
+    fill: none;
+    stroke-width: 10;
+}
+
+.ems-gauge-zone.ok {
+    stroke: #22c55e;
+}
+
+.ems-gauge-zone.warn {
+    stroke: #eab308;
+}
+
+.ems-gauge-zone.fault {
+    stroke: #ef4444;
+}
+
+.ems-needle {
+    stroke: var(--dark);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+}
+
+.ems-needle-hub {
+    fill: var(--dark);
+}
+
+.ems-gauge-value {
+    font-family: 'Roboto Mono', 'Consolas', monospace;
+    font-size: 20px;
+    font-weight: 700;
+    color: #39ff14;
+    text-align: center;
+}
+
+.ems-gauge-value span {
+    display: block;
+    font-family: 'Inter', sans-serif;
+    font-size: 9px;
+    color: var(--gray);
+    font-weight: 400;
+}
+
+.ems-gauge-title {
+    font-size: 11px;
+    color: var(--gray);
+    text-align: center;
+    margin-top: 2px;
+}
+
+.ems-solar-stats {
+    display: flex;
+    gap: 22px;
+    margin-bottom: 6px;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+}
+
+.ems-solar-chart,
+.ems-contrib-chart {
+    flex: 1;
+    min-height: 0;
+}

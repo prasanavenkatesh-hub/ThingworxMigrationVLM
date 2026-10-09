@@ -1,0 +1,976 @@
+/* =========================================
+   Fire Hydrant Monitoring Dashboard (SCADA mimic)
+   ========================================= */
+.scada-scroll {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header row: heading, legend and controls all share one flex row so they sit on a single
+   vertical-center baseline instead of being independently absolute-positioned at different
+   top offsets (title/legend/buttons used to sit 18-26px apart vertically). */
+.scada-header-row {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 10px 20px;
+}
+
+.scada-header-right {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+/* Fills all remaining vertical space below the header row and vertically centers the
+   (scaled) canvas within it, so blank space is minimized and evenly distributed rather than
+   all collecting below a top-anchored canvas. Horizontal alignment is left at its flex
+   default (not centered) since the canvas is wider than the viewport and deliberately
+   horizontally scrollable - centering an overflowing flex item makes its start unreachable. */
+.scada-canvas-wrap {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    min-height: 0;
+}
+
+.scada-canvas {
+    position: relative;
+    width: 2000px;
+    height: 590px;
+    background: var(--background);
+    flex-shrink: 0;
+    /* transform: scale(...) is set from JS (fitScadaCanvasScale() in js/dashboards/fire-hydrant.js), sized to the
+       actual available height of .scada-canvas-wrap. A fixed scale here would overflow at
+       shorter viewports (e.g. 1366x768 at some browser zoom levels), and since the canvas's
+       opaque background paints over the header row above it when that happens, the header
+       would appear to vanish entirely rather than just look visually cramped. */
+    transform: scale(1);
+    transform-origin: left center;
+}
+
+.scada-title {
+    color: var(--primary);
+    font-weight: 700;
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+.scada-line-legend {
+    font-size: 12px;
+    color: var(--gray);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.scada-topbar-buttons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.scada-topbar-btn {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border: 1px solid var(--neutral);
+    border-radius: 4px;
+    background: var(--white);
+    color: var(--dark);
+    cursor: pointer;
+}
+
+.scada-topbar-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.scada-topbar-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.scada-topbar-btn:disabled:hover {
+    border-color: var(--neutral);
+    color: var(--dark);
+}
+
+.scada-alert-bell-btn {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+}
+
+.scada-alert-bell-btn .material-symbols-outlined {
+    font-size: 22px;
+    color: #FFC107;
+}
+
+.scada-alert-bell-btn:hover .material-symbols-outlined {
+    color: #FFD54F;
+}
+
+.scada-alert-bell-badge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 14px;
+    text-align: center;
+}
+
+.scada-legend-swatch {
+    display: inline-block;
+    width: 16px;
+    height: 3px;
+    margin-left: 10px;
+}
+
+.scada-legend-swatch.hydrant {
+    background: var(--danger);
+}
+
+.scada-legend-swatch.sprinkler {
+    background: var(--warning);
+}
+
+.scada-pipes-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.scada-pipe-path {
+    fill: none;
+    stroke: var(--gray);
+    stroke-width: 9;
+    stroke-linecap: round;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.25));
+}
+
+.scada-flow-overlaypipe {
+    fill: none;
+    stroke: var(--primary);
+    stroke-width: 3;
+    stroke-linecap: round;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.scada-flow-overlaypipe.flowing {
+    opacity: 1;
+    stroke-dasharray: 10 8;
+    animation: scadaFlow 0.6s linear infinite;
+}
+
+@keyframes scadaFlow {
+    to {
+        stroke-dashoffset: -18;
+    }
+}
+
+.scada-widget {
+    position: absolute;
+}
+
+.scada-valve-img {
+    position: absolute;
+    object-fit: contain;
+    transition: transform 0.4s ease;
+}
+
+.scada-valve-img.vert {
+    /* the PNG's pipe bore sits ~72% down the frame (under the handle), so pivot there
+       instead of the box center, keeping the bore centered on the pipe after rotating */
+    transform-origin: 50% 71.68%;
+    transform: rotate(90deg);
+}
+
+.scada-valve-img.flowing {
+    animation: scadaValveGlow 1.2s ease-in-out infinite;
+}
+
+@keyframes scadaValveGlow {
+
+    0%,
+    100% {
+        filter: drop-shadow(0 0 0px rgba(218, 41, 28, 0));
+    }
+
+    50% {
+        filter: drop-shadow(0 0 6px rgba(218, 41, 28, 0.9));
+    }
+}
+
+/* Tank assembly (CAD-style: header/nozzles, ladder, brick partition, level scale, butterfly valves) */
+.scada-pipe-path.thin {
+    stroke-width: 4;
+}
+
+.scada-tank-structure {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.scada-tank-frame,
+.scada-tank-frame-line {
+    fill: none;
+    stroke: #d8d8d8;
+    stroke-width: 2;
+}
+
+.scada-tank-frame {
+    fill: #2a2a2a;
+}
+
+.scada-tank-outline {
+    fill: rgba(255, 255, 255, 0.03);
+    stroke: #d8d8d8;
+    stroke-width: 2;
+}
+
+.scada-tank-inlet-label {
+    fill: var(--gray);
+    font-size: 7px;
+    text-transform: uppercase;
+}
+
+.scada-tank-brick {
+    position: absolute;
+    background-color: #8a3a2c;
+    background-image:
+        repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.35) 0 2px, transparent 2px 9px),
+        repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.35) 0 2px, transparent 2px 11px);
+    border-left: 1px solid #5c2018;
+    border-right: 1px solid #5c2018;
+}
+
+.scada-tank-fill2 {
+    position: absolute;
+    background: linear-gradient(180deg, #34d399, var(--success));
+    transition: height 0.6s ease, top 0.6s ease, background 0.4s ease;
+}
+
+.scada-tank-fill2.warn {
+    background: linear-gradient(180deg, #fbbf24, var(--warning));
+}
+
+.scada-tank-fill2.fault {
+    background: linear-gradient(180deg, #f87171, var(--danger));
+}
+
+.scada-tank-cap-label {
+    position: absolute;
+    color: #e5e5e5;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.scada-tank-pct2 {
+    position: absolute;
+    text-align: center;
+    color: #ffffff;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.scada-level-scale {
+    border: 1px solid var(--gray);
+    border-radius: 3px;
+    background: linear-gradient(to top,
+            #dc2626 0% 25%,
+            #f59e0b 25% 50%,
+            #eab308 50% 75%,
+            #22c55e 75% 100%);
+}
+
+.scada-level-tick {
+    position: absolute;
+    left: 18px;
+    font-size: 8px;
+    color: var(--gray);
+    white-space: nowrap;
+}
+
+.scada-tank-label {
+    font-size: 11px;
+    text-align: center;
+    color: var(--gray);
+}
+
+.scada-tank-assembly>.scada-tank-label {
+    position: absolute;
+}
+
+/* Diesel tank */
+.scada-diesel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.scada-diesel-label {
+    position: absolute;
+    left: 20%;
+    top: 35px;
+    transform: translateX(-50%);
+    color: #e5e5e5;
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+    z-index: 2;
+}
+
+.scada-diesel-box {
+    width: 70px;
+    height: 44px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    border: 2px solid;
+    /* Sits between the Diesel Pump and Hydrant Main Pump columns (the boundary between grid
+       columns 1 and 2 is at 20% of .scada-manifold-grid's width), just below the top header
+       pipe rather than overlapping it as it did when it lived inside branch 1's own column. */
+    position: absolute;
+    left: 20%;
+    top: 55px;
+    transform: translateX(-50%);
+    z-index: 2;
+}
+
+.scada-diesel-box.ok {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--success);
+    border-color: var(--success);
+}
+
+.scada-diesel-box.warn {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--warning);
+    border-color: var(--warning);
+}
+
+.scada-diesel-box.fault {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--danger);
+    border-color: var(--danger);
+}
+
+/* Gauges */
+.scada-gauge {
+    background: var(--white);
+    border: 1px solid var(--neutral);
+    border-radius: 10px;
+    padding: 10px;
+    text-align: center;
+}
+
+.scada-gauge-svg {
+    width: 100%;
+    height: auto;
+}
+
+.scada-gauge-zone {
+    fill: none;
+    stroke-width: 10;
+}
+
+.scada-gauge-tick {
+    stroke: var(--dark);
+    stroke-width: 1.2;
+}
+
+.scada-gauge-tick-label {
+    font-size: 7px;
+    font-family: 'Roboto Mono', 'Consolas', monospace;
+    fill: var(--dark);
+    text-anchor: middle;
+}
+
+.scada-needle {
+    stroke: var(--dark);
+    stroke-width: 3;
+}
+
+.scada-needle-hub {
+    fill: var(--dark);
+}
+
+.scada-gauge-value {
+    font-size: 18px;
+    font-weight: 900;
+    color: var(--dark);
+    margin-top: -6px;
+}
+
+.scada-gauge-label {
+    font-size: 10px;
+    color: var(--gray);
+    text-transform: uppercase;
+}
+
+/* Pump manifold (5-branch grid + dynamically-measured SVG piping) */
+.scada-manifold-wrap {
+    padding-top: 90px;
+}
+
+.scada-manifold-row {
+    display: flex;
+    gap: 16px;
+    align-items: flex-end;
+}
+
+.scada-manifold-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    position: relative;
+    z-index: 1;
+}
+
+.scada-branch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.scada-branch-slot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+}
+
+.scada-branch-slot.diesel-slot {
+    height: 46px;
+    margin-bottom: 6px;
+}
+
+.scada-branch-slot.outlet {
+    height: 46px;
+    gap: 3px;
+}
+
+.scada-branch-slot.label {
+    height: 34px;
+    justify-content: flex-start;
+}
+
+.scada-branch-slot.toggle {
+    height: 40px;
+}
+
+.scada-branch-slot.pump-icon {
+    height: 52px;
+}
+
+.scada-branch-slot.gate-valve {
+    height: 26px;
+}
+
+.scada-pump-icon-svg circle.body {
+    stroke: #333;
+    stroke-width: 2;
+    transition: filter 0.3s ease;
+}
+
+.scada-branch.running .scada-pump-icon-svg {
+    animation: scadaSpin 1.4s linear infinite;
+    transform-origin: 22px 18px;
+}
+
+.scada-branch.running .scada-pump-icon-svg circle.body {
+    filter: drop-shadow(0 0 4px currentColor);
+}
+
+@keyframes scadaSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.scada-pump-label2 {
+    font-size: 13px;
+    color: #ffffff;
+    text-align: center;
+    line-height: 1.2;
+    font-weight: 700;
+}
+
+.scada-pump-count {
+    font-size: 12px;
+    color: #d1d5db;
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+}
+
+.scada-power-label {
+    font-size: 8px;
+    color: var(--gray);
+    letter-spacing: 1px;
+}
+
+.scada-toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.scada-toggle-text {
+    font-size: 8px;
+    color: var(--gray);
+}
+
+.scada-toggle {
+    position: relative;
+    display: inline-block;
+    width: 32px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.scada-toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.scada-toggle .slider {
+    position: absolute;
+    inset: 0;
+    background: #555;
+    border-radius: 10px;
+    transition: background 0.25s ease;
+}
+
+.scada-toggle .slider::before {
+    content: '';
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    left: 2px;
+    top: 2px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.25s ease;
+}
+
+.scada-toggle input:checked+.slider {
+    background: var(--success);
+}
+
+.scada-toggle input:checked+.slider::before {
+    transform: translateX(16px);
+}
+
+.scada-valve-img.inline {
+    position: static;
+    width: 20px;
+    height: 20px;
+}
+
+/* Control panel */
+.scada-control-panel {
+    position: relative;
+    width: 100px;
+    flex-shrink: 0;
+    background: var(--white);
+    border: 1px solid var(--neutral);
+    border-radius: 8px;
+    padding: 8px;
+    text-align: center;
+    align-self: stretch;
+}
+
+.scada-caution-icon {
+    display: none;
+    position: absolute;
+    bottom: -14px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 28px;
+    height: 28px;
+    z-index: 2;
+}
+
+.scada-caution-icon.show {
+    display: block;
+}
+
+.scada-cp-title {
+    font-size: 10px;
+    color: var(--gray);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+
+.scada-cp-gauges {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.scada-cp-gauge {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid var(--gray);
+    background: conic-gradient(var(--primary) 0deg 120deg, var(--neutral) 120deg 360deg);
+}
+
+.scada-cp-leds {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+}
+
+.scada-led {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.scada-led.red {
+    background: var(--danger);
+    box-shadow: 0 0 6px rgba(239, 68, 68, 0.8);
+}
+
+.scada-led.green {
+    background: var(--success);
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.8);
+}
+
+.scada-manifold-pipe {
+    fill: none;
+    stroke: #808080;
+    stroke-width: 9;
+    stroke-linecap: round;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.25));
+}
+
+.scada-manifold-header-label {
+    font-size: 10px;
+    fill: var(--gray);
+    text-transform: uppercase;
+}
+
+/* Shopfloor Pressure: coordinate-based absolute schematic */
+.pipe-schematic {
+    position: relative;
+}
+
+.pipe-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    overflow: visible;
+}
+
+.pipe-seg {
+    fill: none;
+    stroke: #800000;
+    stroke-linecap: round;
+}
+
+.pipe-tee {
+    stroke: #9aa0a6;
+    stroke-width: 3;
+    stroke-linecap: round;
+}
+
+.pipe-card {
+    position: absolute;
+    z-index: 1;
+    box-sizing: border-box;
+    background: transparent;
+    border: 1px solid #555555;
+    border-radius: 4px;
+    text-align: center;
+    padding-top: 6px;
+    white-space: nowrap;
+}
+
+.pipe-card-name {
+    font-size: 10px;
+    color: var(--dark);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pipe-card.narrow .pipe-card-name {
+    white-space: normal;
+    line-height: 1.15;
+}
+
+.pipe-card.narrow .pipe-card-val {
+    font-size: 20px;
+    letter-spacing: 1px;
+}
+
+.pipe-card-val {
+    margin-top: 6px;
+    font-family: 'Segment7', 'Consolas', 'Courier New', monospace;
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-shadow: 0 0 6px currentColor;
+    color: #6b7280;
+}
+
+
+/* Fire Hydrant Alerts popup */
+.scada-alerts-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.scada-alerts-modal {
+    width: 720px;
+    max-width: 92vw;
+    max-height: 80vh;
+    background: var(--white);
+    border: 1px solid var(--neutral);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    font-family: 'Inter', sans-serif;
+}
+
+.scada-alerts-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--neutral);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--dark);
+}
+
+.scada-alerts-close {
+    background: none;
+    border: none;
+    color: var(--dark);
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 4px;
+}
+
+.scada-alerts-close:hover {
+    color: var(--primary);
+}
+
+.scada-alerts-body {
+    padding: 8px 16px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.scada-alerts-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    color: var(--dark);
+}
+
+.scada-alerts-table th {
+    text-align: left;
+    padding: 8px 6px;
+    border-bottom: 1px solid var(--neutral);
+    color: var(--primary);
+    font-size: 11px;
+    text-transform: uppercase;
+}
+
+.scada-alerts-table td {
+    padding: 8px 6px;
+    border-bottom: 1px solid rgba(51, 51, 51, 0.5);
+    vertical-align: top;
+}
+
+.scada-alerts-checkcol {
+    width: 28px;
+}
+
+.scada-alerts-empty {
+    padding: 24px 0;
+    text-align: center;
+    color: var(--gray);
+    font-size: 12px;
+}
+
+.scada-alerts-footer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--neutral);
+}
+
+.scada-alerts-snooze-label {
+    font-size: 11px;
+    color: var(--dark);
+}
+
+.scada-alerts-snooze-input {
+    flex: 1;
+    background: var(--white);
+    border: 1px solid var(--neutral);
+    color: var(--dark);
+    padding: 5px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+/* Fire Hydrant Report screen - a full-size modal (distinct from the smaller Alerts popup) */
+.scada-report-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.scada-report-modal {
+    width: 95vw;
+    height: 90vh;
+    background: var(--white);
+    border: 1px solid var(--neutral);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    font-family: 'Inter', sans-serif;
+}
+
+.scada-report-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--neutral);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--dark);
+    flex-shrink: 0;
+}
+
+.scada-report-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--neutral);
+    flex-shrink: 0;
+}
+
+.scada-report-toolbar .scada-alerts-snooze-input {
+    flex: 0 0 170px;
+}
+
+.scada-report-csv-btn {
+    margin-left: auto;
+}
+
+.scada-report-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 10px 16px 0;
+    border-bottom: 1px solid var(--neutral);
+    flex-shrink: 0;
+}
+
+.scada-report-tab {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 8px 16px;
+    border: 1px solid var(--neutral);
+    border-bottom: none;
+    border-radius: 4px 4px 0 0;
+    background: transparent;
+    color: var(--gray);
+    cursor: pointer;
+}
+
+.scada-report-tab.active {
+    background: var(--background);
+    color: var(--primary);
+}
+
+.scada-report-body {
+    flex: 1;
+    overflow: auto;
+    padding: 16px;
+}
+
+.scada-report-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    color: var(--dark);
+}
+
+.scada-report-table th {
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--neutral);
+    color: var(--primary);
+    font-size: 11px;
+    text-transform: uppercase;
+    position: sticky;
+    top: 0;
+    background: var(--white);
+}
+
+.scada-report-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid rgba(51, 51, 51, 0.5);
+}

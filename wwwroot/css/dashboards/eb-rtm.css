@@ -1,0 +1,348 @@
+/* EB Real Time Monitoring Dashboard */
+.eb-dashboard {
+    display: flex;
+    background: var(--background);
+    color: var(--dark);
+    font-family: 'Inter', sans-serif;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+.eb-sidebar {
+    width: 18%;
+    border-right: 1px solid var(--neutral);
+    padding: 10px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    flex-shrink: 0;
+    overflow: auto;
+}
+
+.eb-phase-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Roboto Mono', 'Consolas', monospace;
+    font-size: 13px;
+}
+
+.eb-phase-table td {
+    padding: 4px 6px;
+    border-bottom: 1px solid var(--neutral);
+}
+
+.eb-phase-label {
+    color: #60a5fa;
+    font-weight: 700;
+}
+
+.eb-phase-val {
+    color: #f59e0b;
+    text-align: right;
+}
+
+.eb-energy-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Roboto Mono', 'Consolas', monospace;
+    font-size: 12px;
+}
+
+.eb-energy-table th {
+    text-align: right;
+    color: var(--gray);
+    font-size: 10px;
+    text-transform: uppercase;
+    font-weight: 500;
+    padding: 4px 6px;
+    border-bottom: 1px solid var(--neutral);
+}
+
+.eb-energy-table th:first-child,
+.eb-energy-table td:first-child {
+    text-align: left;
+}
+
+.eb-energy-table td {
+    padding: 4px 6px;
+    text-align: right;
+    border-bottom: 1px solid var(--neutral);
+    color: #39ff14;
+}
+
+.eb-side-block {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    border-top: 1px solid var(--neutral);
+    padding-top: 10px;
+}
+
+.eb-side-label {
+    font-size: 11px;
+    color: var(--gray);
+    text-transform: uppercase;
+}
+
+.eb-side-sublabel {
+    font-size: 10px;
+    color: var(--dark);
+    margin-top: 4px;
+}
+
+.eb-side-value {
+    font-family: 'Roboto Mono', 'Consolas', monospace;
+    font-size: 28px;
+    font-weight: 700;
+    color: #39ff14;
+}
+
+.eb-side-value.red {
+    color: #ff1a1a;
+    font-size: 22px;
+}
+
+.eb-side-subvalue {
+    font-family: 'Roboto Mono', 'Consolas', monospace;
+    font-size: 14px;
+    color: var(--dark);
+}
+
+.eb-main {
+    width: 82%;
+    padding: 10px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+}
+
+.eb-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.eb-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #facc15;
+}
+
+.eb-title span {
+    color: #22d3ee;
+}
+
+.eb-topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--gray);
+}
+
+.eb-date-badge {
+    background: var(--white);
+    border: 1px solid var(--neutral);
+    border-radius: 4px;
+    padding: 3px 8px;
+    font-size: 11px;
+    color: var(--dark);
+    font-family: 'Inter', sans-serif;
+    width: 82px;
+    text-align: center;
+    cursor: pointer;
+}
+
+.eb-date-icon {
+    cursor: pointer;
+}
+
+.eb-date-icon:hover {
+    color: var(--dark);
+}
+
+.eb-filterbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.eb-filter-btn {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    padding: 4px 10px;
+    border: 1px solid var(--neutral);
+    border-radius: 4px;
+    background: var(--white);
+    color: var(--dark);
+    cursor: pointer;
+}
+
+.eb-filter-btn.active {
+    background: #f59e0b;
+    border-color: #f59e0b;
+    color: #1a1a1a;
+    font-weight: 700;
+}
+
+.eb-gauge-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.eb-gauge-card {
+    border: 1px solid var(--neutral);
+    border-radius: 4px;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.eb-gauge-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--dark);
+    margin-bottom: 2px;
+    text-align: center;
+}
+
+.eb-gauge-svg {
+    width: 100%;
+    max-width: 170px;
+}
+
+.eb-gauge-zone {
+    fill: none;
+    stroke-width: 16;
+}
+
+/* Dial divisions/numbering - light on the dark theme, dark on the light theme. */
+.eb-gauge-tick {
+    stroke: #e5e7eb;
+    stroke-width: 1;
+}
+
+.eb-gauge-tick.major {
+    stroke-width: 2;
+}
+
+.eb-gauge-label {
+    fill: #e5e7eb;
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    text-anchor: middle;
+    dominant-baseline: middle;
+}
+
+body.light-mode .eb-gauge-tick {
+    stroke: #374151;
+}
+
+body.light-mode .eb-gauge-label {
+    fill: #374151;
+}
+
+/* Needle fill (zone color) is set inline per value; the dark outline keeps it readable over the arc. */
+.eb-needle {
+    stroke: #111111;
+    stroke-width: 1;
+    stroke-linejoin: round;
+}
+
+.eb-needle-hub {
+    stroke: #000000;
+    stroke-width: 1;
+}
+
+/* Background is set inline to the zone color the value falls in; text is always black. */
+.eb-gauge-value {
+    font-family: 'Roboto Mono', 'Consolas', monospace;
+    font-size: 18px;
+    font-weight: 700;
+    color: #000000;
+    border-radius: 2px;
+    padding: 2px 18px;
+    margin-top: -6px;
+    min-width: 70px;
+    text-align: center;
+}
+
+.eb-gauge-value.empty {
+    background: #6b7280;
+}
+
+.eb-chart-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 8px;
+    min-height: 0;
+}
+
+.eb-chart-card {
+    border: 1px solid var(--neutral);
+    border-radius: 4px;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.eb-chart-card .eb-chart-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--dark);
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.eb-chart-canvas-wrap {
+    flex: 1;
+    min-height: 0;
+    position: relative;
+}
+
+/* ALL tab: gauge row + 2x2 trend grid. Other tabs swap this for .eb-detail-view. */
+.eb-all-view {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 0;
+}
+
+/* Single large chart for the Voltage/Frequency/PF/Current/Power Failure/Energy/Max Demand tabs. */
+.eb-detail-view {
+    flex: 1;
+    flex-direction: column;
+    border: 1px solid var(--neutral);
+    border-radius: 4px;
+    padding: 10px 14px;
+    min-height: 420px;
+}
+
+.eb-detail-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--dark);
+    margin: 0 0 6px 40px;
+}
+
+.eb-detail-title:empty {
+    display: none;
+}
+
+.eb-detail-canvas-wrap {
+    flex: 1;
+    min-height: 0;
+    position: relative;
+}

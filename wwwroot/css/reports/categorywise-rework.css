@@ -1,0 +1,389 @@
+/* Categorywise Rework Report (#tab-categorywise-rework).
+   Driven by the app's theme variables (--white = surface, --dark = text, --neutral = border,
+   --gray = muted) so it follows the light/dark toggle. Gold accent mirrors the Power BI report. */
+
+#tab-categorywise-rework {
+    --cwr-accent: #f5b301;
+    --cwr-accent-text: #f5b301;
+    --cwr-accent-soft: rgba(245, 179, 1, 0.14);
+    --cwr-heat: 245, 179, 1;
+    --cwr-row-alt: rgba(255, 255, 255, 0.025);
+    padding: 16px 24px;
+}
+
+body.light-mode #tab-categorywise-rework {
+    --cwr-accent-text: #a86f00;
+    --cwr-accent-soft: rgba(245, 179, 1, 0.18);
+    --cwr-row-alt: rgba(0, 0, 0, 0.025);
+}
+
+/* The loading/empty blocks set display:flex, which would otherwise beat the [hidden] attribute. */
+.cwr [hidden] { display: none !important; }
+
+/* style.v2.css forces every light-mode <th> to a dark #1f1f1f band with !important; keep this
+   report's header on the theme surface instead. */
+body.light-mode #tab-categorywise-rework .cwr-table th {
+    background: var(--white) !important;
+    color: var(--dark) !important;
+    border-color: var(--neutral) !important;
+}
+
+body.light-mode #tab-categorywise-rework .cwr-table thead tr:nth-child(2) th { color: var(--gray) !important; }
+
+.cwr {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-right: 4px;
+}
+
+/* ---- Header: title + station switch ---- */
+.cwr-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.cwr-title h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--dark);
+    letter-spacing: 0.2px;
+}
+
+.cwr-stations {
+    display: inline-flex;
+    background: var(--white);
+    border: 1px solid var(--neutral);
+    border-radius: 10px;
+    padding: 4px;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.cwr-station-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: none;
+    background: transparent;
+    color: var(--gray);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 7px 14px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.cwr-station-btn .material-symbols-outlined { font-size: 18px; }
+
+.cwr-station-btn:hover { color: var(--dark); background: var(--cwr-accent-soft); }
+
+.cwr-station-btn.active {
+    background: var(--cwr-accent);
+    color: #1a1a1a;
+}
+
+.cwr-station-btn .cwr-badge {
+    min-width: 22px;
+    padding: 1px 7px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    background: var(--neutral);
+    color: var(--dark);
+    text-align: center;
+}
+
+.cwr-station-btn.active .cwr-badge { background: rgba(0, 0, 0, 0.18); color: #1a1a1a; }
+
+/* ---- Filter bar ---- */
+.cwr-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 10px 12px;
+    background: var(--white);
+    border: 1px solid var(--neutral);
+    border-radius: 10px;
+    padding: 12px 14px;
+}
+
+.cwr-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 120px;
+    flex: 1 1 130px;
+    max-width: 210px;
+}
+
+.cwr-field.cwr-field-date { flex: 0 1 185px; min-width: 170px; max-width: 200px; }
+.cwr-field.cwr-field-line { flex: 0 0 110px; min-width: 110px; }
+
+.cwr-field label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--gray);
+}
+
+.cwr-field select,
+.cwr-field input {
+    width: 100%;
+    min-width: 0; /* .select-royal sets min-width:150px, which overflows narrower fields */
+    box-sizing: border-box;
+    height: 34px;
+    padding: 6px 28px 6px 10px;
+    font-size: 13px;
+    border-radius: 6px;
+}
+
+.cwr-field input.cwr-input {
+    background: var(--background);
+    color: var(--dark);
+    border: 1px solid var(--neutral);
+    padding-right: 10px;
+    outline: none;
+}
+
+.cwr-field input.cwr-input:focus,
+.cwr-field select:focus { border-color: var(--cwr-accent); }
+
+.cwr-field.is-filtered select,
+.cwr-field.is-filtered input.cwr-input { border-color: var(--cwr-accent); }
+
+.cwr-actions {
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
+    flex-wrap: wrap;
+}
+
+.cwr-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 34px;
+    padding: 0 14px;
+    border-radius: 6px;
+    border: 1px solid var(--neutral);
+    background: var(--background);
+    color: var(--dark);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.cwr-btn .material-symbols-outlined { font-size: 18px; }
+.cwr-btn:hover { border-color: var(--cwr-accent); }
+.cwr-btn:disabled { opacity: 0.55; cursor: wait; }
+
+.cwr-btn.primary {
+    background: var(--cwr-accent);
+    border-color: var(--cwr-accent);
+    color: #1a1a1a;
+}
+
+/* ---- Cards ---- */
+.cwr-card {
+    background: var(--white);
+    border: 1px solid var(--neutral);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.cwr-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--neutral);
+}
+
+.cwr-card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--dark);
+}
+
+.cwr-card-title small {
+    display: block;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--gray);
+    margin-top: 1px;
+}
+
+.cwr-toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+.cwr-seg {
+    display: inline-flex;
+    border: 1px solid var(--neutral);
+    border-radius: 7px;
+    overflow: hidden;
+}
+
+.cwr-seg button {
+    border: none;
+    background: transparent;
+    color: var(--gray);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 11px;
+    cursor: pointer;
+}
+
+.cwr-seg button + button { border-left: 1px solid var(--neutral); }
+.cwr-seg button:hover { color: var(--dark); }
+.cwr-seg button.active { background: var(--cwr-accent-soft); color: var(--cwr-accent-text); }
+
+.cwr-seg-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--gray);
+    margin-right: -4px;
+}
+
+/* ---- Matrix table ---- */
+.cwr-table-wrap {
+    overflow: auto;
+    max-height: 62vh;
+    min-height: 120px;
+}
+
+.cwr-table {
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 13px;
+    color: var(--dark);
+    min-width: 100%;
+}
+
+.cwr-table th,
+.cwr-table td {
+    padding: 6px 9px;
+    border-bottom: 1px solid var(--neutral);
+    white-space: nowrap;
+    background: var(--white);
+}
+
+.cwr-table thead th {
+    position: sticky;
+    z-index: 3;
+    font-size: 12px;
+    font-weight: 700;
+    text-align: center;
+    background: var(--white);
+    color: var(--dark);
+    border-bottom: 1px solid var(--neutral);
+}
+
+.cwr-table thead tr:first-child th { top: 0; }
+.cwr-table thead tr:nth-child(2) th { top: 31px; font-weight: 600; color: var(--gray); }
+
+.cwr-table th.cwr-date { border-left: 1px solid var(--neutral); }
+.cwr-table td.cwr-day-start { border-left: 1px solid var(--neutral); }
+
+.cwr-table td.cwr-num {
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    min-width: 30px;
+}
+
+.cwr-table .cwr-sticky-1,
+.cwr-table .cwr-sticky-2 {
+    position: sticky;
+    z-index: 2;
+    text-align: left;
+    white-space: normal;
+}
+
+.cwr-table .cwr-sticky-1 { left: 0; min-width: 220px; max-width: 220px; width: 220px; font-weight: 600; }
+.cwr-table .cwr-sticky-2 { left: 220px; min-width: 130px; max-width: 160px; border-right: 1px solid var(--neutral); }
+.cwr-table.cwr-single .cwr-sticky-1 { border-right: 1px solid var(--neutral); min-width: 260px; max-width: 320px; width: auto; }
+
+.cwr-table thead .cwr-sticky-1,
+.cwr-table thead .cwr-sticky-2 { z-index: 4; }
+
+.cwr-table td.cwr-group { vertical-align: top; }
+.cwr-table tbody tr.cwr-alt td.cwr-num,
+.cwr-table tbody tr.cwr-alt td.cwr-sticky-2 { box-shadow: inset 0 0 0 999px var(--cwr-row-alt); }
+
+.cwr-table .cwr-total {
+    position: sticky;
+    right: 0;
+    z-index: 2;
+    text-align: right;
+    font-weight: 700;
+    min-width: 90px;
+    border-left: 1px solid var(--neutral);
+    box-shadow: inset 0 0 0 999px var(--cwr-accent-soft);
+}
+
+.cwr-table thead .cwr-total { z-index: 4; text-align: center; }
+
+.cwr-table tfoot td {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    font-weight: 700;
+    border-top: 2px solid var(--cwr-accent);
+    border-bottom: none;
+    box-shadow: inset 0 0 0 999px var(--cwr-accent-soft);
+}
+
+.cwr-table tfoot .cwr-sticky-1 { z-index: 3; }
+.cwr-table tfoot .cwr-total { z-index: 3; }
+
+.cwr-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 40px 16px;
+    color: var(--gray);
+    font-size: 13px;
+}
+
+.cwr-empty .material-symbols-outlined { font-size: 36px; }
+
+.cwr-loading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--gray);
+    font-size: 13px;
+}
+
+.cwr-loading .material-symbols-outlined { animation: spin 1s linear infinite; font-size: 18px; }
+
+/* ---- Pareto ---- */
+.cwr-pareto-scroll { overflow-x: auto; padding: 8px 14px 12px; }
+.cwr-pareto-box { position: relative; height: 380px; min-width: 100%; }
+
+@media (max-width: 900px) {
+    #tab-categorywise-rework { padding: 12px; }
+    .cwr-actions { margin-left: 0; }
+    .cwr-table .cwr-sticky-1 { min-width: 150px; max-width: 150px; width: 150px; }
+    .cwr-table .cwr-sticky-2 { left: 150px; }
+}

@@ -7,12 +7,16 @@
     <title>Factory Connect Reports</title>
     <link rel="stylesheet" href="css/fonts.css">
     <link rel="icon" type="image/png" href="assets/logo-small.png">
-    <link rel="stylesheet" href="css/style.v2.css">
+    <!-- Shared shell styles, then one stylesheet per module (css/dashboards, css/reports) -->
+    <link rel="stylesheet" href="css/style.v2.css?v=4">
     <link rel="stylesheet" href="css/extra_styles.css?v=1.1">
-    <link rel="stylesheet" href="css/gasleak.css">
-    <script src="lib/html2pdf.bundle.min.js"></script>
+    <link rel="stylesheet" href="css/dashboards/fire-hydrant.css?v=1">
+    <link rel="stylesheet" href="css/dashboards/gas-leak.css?v=1">
+    <link rel="stylesheet" href="css/dashboards/ems-renewable.css?v=2">
+    <link rel="stylesheet" href="css/dashboards/eb-rtm.css?v=1">
+    <link rel="stylesheet" href="css/reports/categorywise-rework.css?v=1">
+    <link rel="stylesheet" href="css/reports/summary-report.css?v=1">
     <script src="lib/exceljs.min.js"></script>
-    <script src="lib/FileSaver.min.js"></script>
     <script>
         function applyTheme(theme) {
             if (theme === 'light') {
@@ -29,8 +33,16 @@
                 renderEmsRenewable();
             }
             const ebTab = document.getElementById('tab-eb-rtm');
-            if (ebTab && ebTab.classList.contains('active') && typeof renderEbRtm === 'function') {
-                renderEbRtm();
+            if (ebTab && ebTab.classList.contains('active') && typeof ebRenderActiveView === 'function') {
+                ebRenderActiveView();
+            }
+            const cwrTab = document.getElementById('tab-categorywise-rework');
+            if (cwrTab && cwrTab.classList.contains('active') && typeof renderCwr === 'function') {
+                renderCwr();
+            }
+            const srTab = document.getElementById('tab-summary-report');
+            if (srTab && srTab.classList.contains('active') && typeof renderSr === 'function') {
+                renderSr();
             }
         }
 
@@ -59,43 +71,8 @@
                 <span class="material-symbols-outlined icon">chevron_right</span>
             </button>
             <nav>
-                <!-- Reports -->
-                <div class="nav-group">
-                    <button class="nav-item active" onclick="toggleSubmenu('reportsMenu')" data-tooltip="Reports">
-                        <span class="material-symbols-outlined icon">description</span> <span
-                            class="text">Reports</span>
-                    </button>
-                    <div id="reportsMenu" class="sub-menu" style="display: block; padding-left: 20px;">
-                        <button class="nav-item sub-item active" onclick="switchTab('reports')"
-                            data-tooltip="Biometric Shiftwise" style="font-size: 0.9em; padding: 5px 10px;">
-                            <span class="material-symbols-outlined icon" style="font-size: 18px;">fingerprint</span>
-                            <span class="text">Biometric Shiftwise</span>
-                        </button>
-                        <button class="nav-item sub-item" onclick="switchTab('biometric-engine-barcode')"
-                            data-tooltip="Biometric Engine NO and Barcode" style="font-size: 0.9em; padding: 5px 10px;">
-                            <span class="material-symbols-outlined icon" style="font-size: 18px;">qr_code_scanner</span>
-                            <span class="text">Biometric Engine NO and Barcode</span>
-                        </button>
-                        <button class="nav-item sub-item" onclick="switchTab('main-line')"
-                            data-tooltip="Main Line Cycle Time" style="font-size: 0.9em; padding: 5px 10px;">
-                            <span class="material-symbols-outlined icon" style="font-size: 18px;">timeline</span>
-                            <span class="text">Main Line Cycle Time</span>
-                        </button>
-                        <button class="nav-item sub-item" onclick="switchTab('poke-yoke')"
-                            data-tooltip="Poke Yoke- Manual Inspection overall" style="font-size: 0.9em; padding: 5px 10px;">
-                            <span class="material-symbols-outlined icon" style="font-size: 18px;">checklist</span>
-                            <span class="text">Poke Yoke- Manual Inspection overall</span>
-                        </button>
-                        <button class="nav-item sub-item" onclick="switchTab('poke-yoke-summary')"
-                            data-tooltip="Poke Yoke- Manual Inspection summary" style="font-size: 0.9em; padding: 5px 10px;">
-                            <span class="material-symbols-outlined icon" style="font-size: 18px;">summarize</span>
-                            <span class="text">Poke Yoke- Manual Inspection summary</span>
-                        </button>
-                    </div>
-                </div>
-
                 <!-- Control Tower Dashboards -->
-                <div class="nav-group" style="margin-top: 10px;">
+                <div class="nav-group">
                     <button class="nav-item" onclick="toggleSubmenu('dashboardsMenu')" data-tooltip="Dashboards">
                         <span class="material-symbols-outlined icon">dashboard</span> <span
                             class="text">Dashboards</span>
@@ -128,15 +105,102 @@
                         </button>
                     </div>
                 </div>
+
+                <!-- Reports (grouped: Biometric / Production / Quality) -->
+                <div class="nav-group" style="margin-top: 10px;">
+                    <button class="nav-item" onclick="toggleSubmenu('reportsMenu')" data-tooltip="Reports">
+                        <span class="material-symbols-outlined icon">description</span> <span
+                            class="text">Reports</span>
+                    </button>
+                    <div id="reportsMenu" class="sub-menu" style="display: none; padding-left: 20px;">
+                        <!-- Biometric -->
+                        <button class="nav-item sub-item nav-subgroup" onclick="toggleSubmenu('reportsBiometricMenu')"
+                            data-tooltip="Biometric" style="font-size: 0.9em; padding: 5px 10px;">
+                            <span class="material-symbols-outlined icon" style="font-size: 18px;">badge</span>
+                            <span class="text">Biometric</span>
+                        </button>
+                        <div id="reportsBiometricMenu" class="sub-menu" style="display: none; padding-left: 12px;">
+                            <button class="nav-item sub-item" id="nav-reports" onclick="switchTab('reports')"
+                                data-tooltip="Biometric Shiftwise" style="font-size: 0.9em; padding: 5px 10px;">
+                                <span class="material-symbols-outlined icon" style="font-size: 18px;">fingerprint</span>
+                                <span class="text">Biometric Shiftwise</span>
+                            </button>
+                            <button class="nav-item sub-item" id="nav-biometric-engine-barcode" onclick="switchTab('biometric-engine-barcode')"
+                                data-tooltip="Biometric Engine NO and Barcode" style="font-size: 0.9em; padding: 5px 10px;">
+                                <span class="material-symbols-outlined icon" style="font-size: 18px;">qr_code_scanner</span>
+                                <span class="text">Biometric Engine NO and Barcode</span>
+                            </button>
+                        </div>
+
+                        <!-- Production -->
+                        <button class="nav-item sub-item nav-subgroup" onclick="toggleSubmenu('reportsProductionMenu')"
+                            data-tooltip="Production" style="font-size: 0.9em; padding: 5px 10px;">
+                            <span class="material-symbols-outlined icon" style="font-size: 18px;">precision_manufacturing</span>
+                            <span class="text">Production</span>
+                        </button>
+                        <div id="reportsProductionMenu" class="sub-menu" style="display: none; padding-left: 12px;">
+                            <button class="nav-item sub-item" id="nav-main-line" onclick="switchTab('main-line')"
+                                data-tooltip="Main Line Cycle Time" style="font-size: 0.9em; padding: 5px 10px;">
+                                <span class="material-symbols-outlined icon" style="font-size: 18px;">timeline</span>
+                                <span class="text">Main Line Cycle Time</span>
+                            </button>
+                            <button class="nav-item sub-item" id="nav-summary-report" onclick="switchTab('summary-report')"
+                                data-tooltip="Summary Report" style="font-size: 0.9em; padding: 5px 10px;">
+                                <span class="material-symbols-outlined icon" style="font-size: 18px;">monitoring</span>
+                                <span class="text">Summary Report</span>
+                            </button>
+                        </div>
+
+                        <!-- Quality -->
+                        <button class="nav-item sub-item nav-subgroup" onclick="toggleSubmenu('reportsQualityMenu')"
+                            data-tooltip="Quality" style="font-size: 0.9em; padding: 5px 10px;">
+                            <span class="material-symbols-outlined icon" style="font-size: 18px;">verified</span>
+                            <span class="text">Quality</span>
+                        </button>
+                        <div id="reportsQualityMenu" class="sub-menu" style="display: none; padding-left: 12px;">
+                            <button class="nav-item sub-item" id="nav-qhold" onclick="switchTab('qhold')"
+                                data-tooltip="Engine QHold Report" style="font-size: 0.9em; padding: 5px 10px;">
+                                <span class="material-symbols-outlined icon" style="font-size: 18px;">report</span>
+                                <span class="text">Engine QHold Report</span>
+                            </button>
+                            <button class="nav-item sub-item" id="nav-cylinder-head-leak" onclick="switchTab('cylinder-head-leak')"
+                                data-tooltip="Cylinder Head Leak Rejection Report" style="font-size: 0.9em; padding: 5px 10px;">
+                                <span class="material-symbols-outlined icon" style="font-size: 18px;">water_drop</span>
+                                <span class="text">Cylinder Head Leak Rejection Report</span>
+                            </button>
+                            <button class="nav-item sub-item" id="nav-categorywise-rework" onclick="switchTab('categorywise-rework')"
+                                data-tooltip="Categorywise Rework Report" style="font-size: 0.9em; padding: 5px 10px;">
+                                <span class="material-symbols-outlined icon" style="font-size: 18px;">build_circle</span>
+                                <span class="text">Categorywise Rework Report</span>
+                            </button>
+                            <button class="nav-item sub-item" id="nav-poke-yoke" onclick="switchTab('poke-yoke')"
+                                data-tooltip="Poke Yoke- Manual Inspection overall" style="font-size: 0.9em; padding: 5px 10px;">
+                                <span class="material-symbols-outlined icon" style="font-size: 18px;">checklist</span>
+                                <span class="text">Poke Yoke- Manual Inspection overall</span>
+                            </button>
+                            <button class="nav-item sub-item" id="nav-poke-yoke-summary" onclick="switchTab('poke-yoke-summary')"
+                                data-tooltip="Poke Yoke- Manual Inspection summary" style="font-size: 0.9em; padding: 5px 10px;">
+                                <span class="material-symbols-outlined icon" style="font-size: 18px;">summarize</span>
+                                <span class="text">Poke Yoke- Manual Inspection summary</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </nav>
             <script>
+                // Accordion: opening a menu closes its open siblings at the same level (Dashboards vs
+                // Reports, or Biometric / Production / Quality), so the sidebar stays short.
                 function toggleSubmenu(id) {
                     var el = document.getElementById(id);
-                    if (el.style.display === 'none') {
-                        el.style.display = 'block';
-                    } else {
+                    if (el.style.display !== 'none') {
                         el.style.display = 'none';
+                        return;
                     }
+                    var siblings = el.parentElement.classList.contains('nav-group')
+                        ? el.closest('nav').querySelectorAll(':scope > .nav-group > .sub-menu')
+                        : el.parentElement.querySelectorAll(':scope > .sub-menu');
+                    siblings.forEach(function (m) { if (m !== el) m.style.display = 'none'; });
+                    el.style.display = 'block';
                 }
 
                 function applySidebarState(expanded) {
@@ -179,6 +243,10 @@
                     </select>
                 </div>
                 <div class="header-actions">
+                    <div class="mqtt-indicator unknown" id="mqttIndicator" title="Checking MQTT status...">
+                        <span class="mqtt-indicator-dot"></span>
+                        <span class="mqtt-indicator-text" id="mqttIndicatorText">MQTT</span>
+                    </div>
                     <select id="themeSelector" onchange="changeTheme()" class="select-royal"
                         style="margin-right: 15px; padding: 4px 8px; font-size: 13px; height: auto;">
                         <option value="dark">Dark Theme</option>
@@ -192,175 +260,6 @@
             </header>
 
             <!-- Global Dashboard Filter REMOVED -->
-
-            <!-- New Inspection Tab -->
-            <div id="tab-new" class="tab-pane" style="display:none;">
-                <div class="scan-section">
-                    <div class="input-group large">
-                        <input type="text" id="absInput" placeholder="Scan ABS Number" autofocus
-                            onkeydown="handleEnter(event)">
-                        <span id="scanMessage" class="scan-message"></span>
-                    </div>
-
-                    <!-- Link to History Tile -->
-                    <div id="alreadyCompletedLink" class="history-link-tile" style="display: none;"
-                        onclick="navigateToHistory()">
-                        <div class="link-content">
-                            <span class="material-symbols-outlined icon">history</span>
-                            <div class="text-group">
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    <span class="title">Inspection Completed</span>
-                                    <span id="linkBadge"></span>
-                                </div>
-                                <span class="subtitle">Click to view details for <strong id="linkAbs"></strong></span>
-                            </div>
-                            <span class="material-symbols-outlined arrow">arrow_forward</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="inspection-area" class="inspection-area" style="display: none;">
-                    <div class="info-card">
-                        <div class="info-item">
-                            <span class="label">ABS Modulator:</span>
-                            <span class="value" id="displayAbs"></span>
-                        </div>
-                        <div class="info-item">
-                            <span class="label">Model:</span>
-                            <span class="value" id="displayModel"></span>
-                        </div>
-                        <div class="info-item">
-                            <span class="label">ABS Kit No:</span>
-                            <span class="value" id="displayKit"></span>
-                        </div>
-                        <div class="info-item">
-                            <span class="label">TESTED DATETIME:</span>
-                            <span class="value" id="displayDate"></span>
-                        </div>
-                    </div>
-
-                    <div class="checklist-scroll-container">
-                        <div class="table-container">
-                            <table id="checklistTable">
-                                <thead>
-                                    <tr>
-                                        <th style="width: 50px;">S.No</th>
-                                        <th>Issue Desc</th>
-                                        <th>Specification</th>
-                                        <th style="width: 140px;">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="checklistBody">
-                                    <!-- Rows injected here -->
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <!-- Rework History Container -->
-                        <div id="reworkHistoryContainer"></div>
-
-                    </div>
-
-                    <div class="action-bar">
-                        <span id="submitMessage" class="submit-message"></span>
-                        <button class="btn btn-primary btn-large" onclick="submitPdi()">Submit</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Rework Tab -->
-            <div id="tab-rework" class="tab-pane">
-                <!-- Rework Filter -->
-                <div class="filter-controls"
-                    style="padding: 10px; gap:10px; align-items:center; background:#1e1e1e; border-radius: 8px; margin-bottom: 15px; border: 1px solid #333; display:flex; flex-wrap: wrap; row-gap: 10px;">
-                    <label style="color:#888; font-size:13px;">Rework Filter:</label>
-                    <input type="text" id="reworkStart" class="filter-input" placeholder="Start"
-                        style="background:#333; border:none; color:#fff; padding:5px; border-radius:4px; max-width: 130px;">
-                    <span style="color:#666;">to</span>
-                    <input type="text" id="reworkEnd" class="filter-input" placeholder="End"
-                        style="background:#333; border:none; color:#fff; padding:5px; border-radius:4px; max-width: 130px;">
-                    <button id="reworkApplyBtn" class="btn-primary"
-                        style="padding:6px 12px; height:auto; font-size:12px;">Apply</button>
-
-                    <button onclick="resetFilter('rework')" title="Reset Date"
-                        style="background:none; border:none; color: #ef4444; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 4px;">
-                        <span class="material-symbols-outlined" style="font-size: 20px;">refresh</span>
-                    </button>
-
-                    <!-- Scoped Search -->
-                    <!-- Scoped Search -->
-                    <div style="flex-basis: 100%; height: 0;"></div>
-                    <div class="search-wrapper" style="margin-top: 5px; display: flex; align-items: center; gap: 4px;">
-                        <input type="text" id="reworkSearch" placeholder="Search ABS..."
-                            style="background:#333; border:none; color:#fff; padding:6px; border-radius:4px; width: 180px;">
-                        <button class="clear-btn" onclick="clearSearch('rework')" id="reworkClearBtn"
-                            title="Clear Search"
-                            style="background:none; border:none; color: #ef4444; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 4px;">
-                            <span class="material-symbols-outlined" style="font-size: 20px;">refresh</span>
-                        </button>
-                    </div>
-                </div>
-
-                <div id="rework-list-container">
-                    <div class="empty-state">
-                        <span class="material-symbols-outlined icon">build_circle</span>
-                        <h3>No items in Rework</h3>
-                    </div>
-                </div>
-                <!-- Load More Rework -->
-                <div id="loadMoreRework" class="load-more-container"
-                    style="text-align:center; padding:10px; display:none;">
-                    <button class="btn-secondary" style="font-size:12px;" onclick="loadMore('rework')">Load
-                        More</button>
-                </div>
-            </div>
-
-            <!-- Completed Tab -->
-            <div id="tab-completed" class="tab-pane">
-                <!-- Completed Filter -->
-                <div class="filter-controls"
-                    style="padding: 10px; gap:10px; align-items:center; background:#1e1e1e; border-radius: 8px; margin-bottom: 15px; border: 1px solid #333; display:flex; flex-wrap: wrap; row-gap: 10px;">
-                    <label style="color:#888; font-size:13px;">Completed Filter:</label>
-                    <input type="text" id="completedStart" class="filter-input" placeholder="Start"
-                        style="background:#333; border:none; color:#fff; padding:5px; border-radius:4px; max-width: 130px;">
-                    <span style="color:#666;">to</span>
-                    <input type="text" id="completedEnd" class="filter-input" placeholder="End"
-                        style="background:#333; border:none; color:#fff; padding:5px; border-radius:4px; max-width: 130px;">
-                    <button id="completedApplyBtn" class="btn-primary"
-                        style="padding:6px 12px; height:auto; font-size:12px;">Apply</button>
-
-                    <button onclick="resetFilter('completed')" title="Reset Date"
-                        style="background:none; border:none; color: #ef4444; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 4px;">
-                        <span class="material-symbols-outlined" style="font-size: 20px;">refresh</span>
-                    </button>
-
-                    <!-- Scoped Search -->
-                    <!-- Scoped Search -->
-                    <div style="flex-basis: 100%; height: 0;"></div>
-                    <div class="search-wrapper" style="margin-top: 5px; display: flex; align-items: center; gap: 4px;">
-                        <input type="text" id="completedSearch" placeholder="Search ABS..."
-                            style="background:#333; border:none; color:#fff; padding:6px; border-radius:4px; width: 180px;">
-                        <button class="clear-btn" onclick="clearSearch('completed')" id="completedClearBtn"
-                            title="Clear Search"
-                            style="background:none; border:none; color: #ef4444; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 4px;">
-                            <span class="material-symbols-outlined" style="font-size: 20px;">refresh</span>
-                        </button>
-                    </div>
-                </div>
-
-                <div id="completed-list-container">
-                    <div class="empty-state">
-                        <span class="material-symbols-outlined icon">check_circle</span>
-                        <h3>No items in Completed</h3>
-                    </div>
-                </div>
-                <!-- Load More Completed -->
-                <div id="loadMoreCompleted" class="load-more-container"
-                    style="text-align:center; padding:10px; display:none;">
-                    <button class="btn-secondary" style="font-size:12px;" onclick="loadMore('completed')">Load
-                        More</button>
-                </div>
-            </div>
 
             <!-- Reports Tab -->
             <div id="tab-reports" class="tab-pane">
@@ -388,7 +287,7 @@
                     </button>
 
                     <!-- Export Button -->
-                    <button onclick="exportToExcel()" class="btn-export-royal" title="Export to Excel"
+                    <button onclick="exportBiometricToExcel()" class="btn-export-royal" title="Export to Excel"
                         style="margin-left: 10px;">
                         <span class="material-symbols-outlined">table_view</span> Excel Export
                     </button>
@@ -421,19 +320,6 @@
                         <div id="reportsEmpty" class="empty-state" style="display:none; padding: 20px;">
                             <span class="material-symbols-outlined icon">search_off</span>
                             <h3>No records found</h3>
-                        </div>
-                    </div>
-
-                    <!-- Pagination for Reports (Fixed at Bottom of Card) -->
-                    <div id="reportsPagination" class="pagination-container"
-                        style="display:none; justify-content: space-between; align-items: center; gap: 12px; padding: 10px; border-top: 1px solid #333; background: #1e1e1e;">
-                        <span id="reportsTotalCount" class="total-count-badge">Total Count: 0</span>
-                        <div style="display:flex; align-items: center; gap: 12px;">
-                            <button class="btn-pagination-modern" onclick="changeReportPage(-1)"
-                                id="btnPrevReport">Previous</button>
-                            <span id="reportsPageLabel" style="color: #cccccc; font-size: 13px;">Page 1</span>
-                            <button class="btn-pagination-modern" onclick="changeReportPage(1)"
-                                id="btnNextReport">Next</button>
                         </div>
                     </div>
                 </div>
@@ -902,6 +788,550 @@
                             <span id="pokeYokeSummaryPageLabel" style="color: #cccccc; font-size: 13px;">Page 1</span>
                             <button class="btn-pagination-modern" onclick="changePokeYokeSummaryPage(1)" id="btnNextPokeYokeSummary">Next</button>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Engine QHold Report Tab -->
+            <div id="tab-qhold" class="tab-pane" style="zoom: 0.8;">
+                <div style="display:flex; gap:12px; align-items:stretch; flex-wrap: wrap; margin-bottom: 10px;">
+                    <!-- Filters Card -->
+                    <div style="flex: 1; min-width: 320px; padding: 8px 12px; background:#1e1e1e; border-radius: 8px; border: 1px solid #333;">
+                        <div style="display:flex; flex-wrap: wrap; gap:8px 14px; align-items:center; margin-bottom: 6px;">
+                            <span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+                                <label style="color:#888; font-size:12px;">AssemblyLine</label>
+                                <select id="qHoldLine" class="select-royal" style="padding:5px 24px 5px 8px; font-size:12px;">
+                                    <option value="EA02">EA02</option>
+                                </select>
+                            </span>
+                            <span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+                                <label style="color:#888; font-size:12px;">From</label>
+                                <input type="text" id="qHoldStart" class="filter-input" placeholder="Start"
+                                    style="background:#333; border:none; color:#fff; padding:5px; border-radius:4px; width: 150px;">
+                            </span>
+                            <span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+                                <label style="color:#888; font-size:12px;">To</label>
+                                <input type="text" id="qHoldEnd" class="filter-input" placeholder="End"
+                                    style="background:#333; border:none; color:#fff; padding:5px; border-radius:4px; width: 150px;">
+                            </span>
+                            <span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+                                <label style="color:#888; font-size:12px;">Model</label>
+                                <select id="qHoldModel" class="select-royal" style="padding:5px 24px 5px 8px; font-size:12px; width: 110px;">
+                                    <option value="ALL">ALL</option>
+                                </select>
+                            </span>
+                            <span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+                                <label style="color:#888; font-size:12px;">Engine Number</label>
+                                <select id="qHoldEngineNumber" class="select-royal" style="padding:5px 24px 5px 8px; font-size:12px; width: 150px;">
+                                    <option value="ALL">ALL</option>
+                                </select>
+                            </span>
+                        </div>
+                        <div style="display:flex; flex-wrap: wrap; gap:8px 14px; align-items:center; margin-bottom: 6px;">
+                            <span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+                                <label style="color:#888; font-size:12px;">Rejection Details</label>
+                                <select id="qHoldRejectionDetails" class="select-royal" style="padding:5px 24px 5px 8px; font-size:12px; width: 130px;">
+                                    <option value="ALL">ALL</option>
+                                </select>
+                            </span>
+                            <span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+                                <label style="color:#888; font-size:12px;">Rework Details</label>
+                                <select id="qHoldReworkDetails" class="select-royal" style="padding:5px 24px 5px 8px; font-size:12px; width: 130px;">
+                                    <option value="ALL">ALL</option>
+                                </select>
+                            </span>
+                            <span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+                                <label style="color:#888; font-size:12px;">Category</label>
+                                <select id="qHoldCategory" class="select-royal" style="padding:5px 24px 5px 8px; font-size:12px; width: 110px;">
+                                    <option value="ALL">ALL</option>
+                                </select>
+                            </span>
+                            <span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+                                <label style="color:#888; font-size:12px;">Qhold Result</label>
+                                <select id="qHoldResult" class="select-royal" style="padding:5px 24px 5px 8px; font-size:12px; width: 110px;">
+                                    <option value="ALL">ALL</option>
+                                </select>
+                            </span>
+                            <span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+                                <label style="color:#888; font-size:12px;">Qhold Station</label>
+                                <select id="qHoldStation" class="select-royal" style="padding:5px 24px 5px 8px; font-size:12px; width: 110px;">
+                                    <option value="ALL">ALL</option>
+                                </select>
+                            </span>
+                            <span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+                                <label style="color:#888; font-size:12px;">Shift</label>
+                                <select id="qHoldShift" class="select-royal" style="padding:5px 24px 5px 8px; font-size:12px; width: 80px;">
+                                    <option value="ALL">ALL</option>
+                                </select>
+                            </span>
+                        </div>
+                        <div style="display:flex; flex-wrap: wrap; gap:8px; align-items:center;">
+                            <button id="qHoldOverallBtn" class="btn-primary" style="padding:5px 10px; height:auto; font-size:12px;" onclick="fetchQHoldReport('Overall')">Overall</button>
+                            <button id="qHoldDistinctBtn" class="btn-primary" style="padding:5px 10px; height:auto; font-size:12px;" onclick="fetchQHoldReport('Distinct')">Distinct Engine Numbers</button>
+                            <button id="qHoldDuplicateBtn" class="btn-primary" style="padding:5px 10px; height:auto; font-size:12px;" onclick="fetchQHoldReport('Duplicate')">Duplicate Engine Numbers</button>
+                            <button onclick="clearQHoldFilters()" class="btn-primary" style="padding:5px 10px; height:auto; font-size:12px; background:#555;">Clear Filters</button>
+                            <button onclick="exportQHoldToExcel()" class="btn-export-royal" title="Export to Excel">
+                                <span class="material-symbols-outlined">table_view</span> Export Excel
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Donut Card -->
+                    <div style="width: 220px; padding: 8px 12px; background:#1e1e1e; border-radius: 8px; border: 1px solid #333; display:flex; flex-direction:column; align-items:center;">
+                        <div style="color:#ccc; font-size:12px; margin-bottom: 4px;">Qhold Station Status</div>
+                        <div style="width: 120px; height: 120px;">
+                            <canvas id="qHoldStatusChart"></canvas>
+                        </div>
+                        <div id="qHoldStatusLegend" style="display:flex; gap:10px; margin-top: 6px; font-size: 11px; color:#ccc; flex-wrap: wrap; justify-content:center;"></div>
+                    </div>
+                </div>
+
+                <!-- Wrapper for Flex Layout -->
+                <div style="flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; background: #1e1e1e; border-radius: 8px; border: 1px solid #333;">
+                    <div class="table-container" style="flex: 1; min-height: 0; overflow-y: auto; margin:0; border:none; border-radius: 0; box-shadow:none;">
+                        <table id="qHoldTable" style="width: 100%; border-collapse: collapse;">
+                            <thead style="position: sticky; top: 0; z-index: 10; background: #1f1f1f;">
+                                <tr style="color: #888; text-align: left; border-bottom: 1px solid #333;">
+                                    <th style="padding: 10px; width: 40px;">S.No</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Date</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Shift</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Engine Number</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Model Code</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Qhold Station</th>
+                                    <th style="padding: 10px; white-space: nowrap;">User ID</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Qhold Result</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Rejection Details</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Root Cause</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Rework Details</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Category</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Supplier</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Rework Date</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Recheck Status</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Reworked By</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Verified By</th>
+                                    <th style="padding: 10px; white-space: nowrap;">Barcode 1</th>
+                                </tr>
+                            </thead>
+                            <tbody id="qHoldBody">
+                                <!-- Rows injected via JS -->
+                            </tbody>
+                        </table>
+
+                        <div id="qHoldEmpty" class="empty-state" style="display:none; padding: 20px;">
+                            <span class="material-symbols-outlined icon">search_off</span>
+                            <h3>No records found</h3>
+                        </div>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div id="qHoldPagination" class="pagination-container"
+                        style="display:none; justify-content: space-between; align-items: center; gap: 12px; padding: 10px; border-top: 1px solid #333; background: #1e1e1e;">
+                        <span id="qHoldTotalCount" class="total-count-badge">Total Count: 0</span>
+                        <div style="display:flex; align-items: center; gap: 12px;">
+                            <button class="btn-pagination-modern" onclick="changeQHoldPage(-1)" id="btnPrevQHold">Previous</button>
+                            <span id="qHoldPageLabel" style="color: #cccccc; font-size: 13px;">Page 1</span>
+                            <button class="btn-pagination-modern" onclick="changeQHoldPage(1)" id="btnNextQHold">Next</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cylinder Head Leak Rejection Report Tab -->
+            <div id="tab-cylinder-head-leak" class="tab-pane" style="zoom: 0.85;">
+                <!-- Filters Card -->
+                <div style="padding: 8px 12px; background:#1e1e1e; border-radius: 8px; border: 1px solid #333; margin-bottom: 10px;">
+                    <div style="display:flex; flex-wrap: wrap; gap:8px 14px; align-items:center; margin-bottom: 8px;">
+                        <span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+                            <label style="color:#888; font-size:12px;">Plant</label>
+                            <select id="cylinderHeadPlant" class="select-royal" style="padding:5px 24px 5px 8px; font-size:12px;">
+                                <option value="ALL">All</option>
+                                <option value="ORAGADAM">ORAGADAM</option>
+                                <option value="VALLAM">VALLAM</option>
+                            </select>
+                        </span>
+                        <span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+                            <label style="color:#888; font-size:12px;">Assembly Line</label>
+                            <select id="cylinderHeadLine" class="select-royal" style="padding:5px 24px 5px 8px; font-size:12px;">
+                                <option value="ALL">All</option>
+                                <option value="EA1">EA1</option>
+                                <option value="EA2">EA2</option>
+                                <option value="EA3">EA3</option>
+                            </select>
+                        </span>
+                        <span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+                            <label style="color:#888; font-size:12px;">Shift</label>
+                            <select id="cylinderHeadShift" class="select-royal" style="padding:5px 24px 5px 8px; font-size:12px;">
+                                <option value="ALL">All</option>
+                                <option value="A">A</option>
+                                <option value="B">B</option>
+                                <option value="C">C</option>
+                            </select>
+                        </span>
+                        <span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+                            <label style="color:#888; font-size:12px;">From</label>
+                            <input type="text" id="cylinderHeadStart" class="filter-input" placeholder="Start"
+                                style="background:#333; border:none; color:#fff; padding:5px; border-radius:4px; width: 150px;">
+                        </span>
+                        <span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+                            <label style="color:#888; font-size:12px;">To</label>
+                            <input type="text" id="cylinderHeadEnd" class="filter-input" placeholder="End"
+                                style="background:#333; border:none; color:#fff; padding:5px; border-radius:4px; width: 150px;">
+                        </span>
+                        <button onclick="clearCylinderHeadFilters()" class="btn-primary" style="padding:5px 10px; height:auto; font-size:12px; background:#555;">Clear Filters</button>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <button id="cylinderHeadSummaryBtn" class="btn-primary" style="padding:5px 12px; height:auto; font-size:12px;" onclick="switchCylinderHeadView('summary')">Summary</button>
+                        <button id="cylinderHeadTrendBtn" class="btn-primary" style="padding:5px 12px; height:auto; font-size:12px; background:#555;" onclick="switchCylinderHeadView('trend')">Cellwise rej trend</button>
+                    </div>
+                </div>
+
+                <!-- Loading Indicator -->
+                <div id="cylinderHeadLoading" style="display:none; align-items:center; gap:8px; color:#ccc; font-size:13px; padding: 10px 4px;">
+                    <span class="material-symbols-outlined" style="font-size:18px; animation: spin 1s linear infinite;">progress_activity</span>
+                    Loading Cylinder Head Leak Rejection report...
+                </div>
+
+                <!-- KPI Cards Row -->
+                <div id="cylinderHeadCards" style="display:flex; gap:12px; flex-wrap: wrap; margin-bottom: 10px;"></div>
+
+                <!-- Summary Pivot Table View -->
+                <div id="cylinderHeadSummaryView" style="flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; background: #1e1e1e; border-radius: 8px; border: 1px solid #333;">
+                    <div class="table-container" style="flex: 1; min-height: 0; overflow: auto; margin:0; border:none; border-radius: 0; box-shadow:none;">
+                        <table id="cylinderHeadTable" style="width: 100%; border-collapse: collapse;">
+                            <thead id="cylinderHeadTableHead" style="position: sticky; top: 0; z-index: 10; background: #1f1f1f;"></thead>
+                            <tbody id="cylinderHeadTableBody"><!-- Rows injected via JS --></tbody>
+                        </table>
+                        <div id="cylinderHeadEmpty" class="empty-state" style="display:none; padding: 20px;">
+                            <span class="material-symbols-outlined icon">search_off</span>
+                            <h3>No records found</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cellwise Rejection Trend View -->
+                <div id="cylinderHeadTrendView" style="display:none; background: #1e1e1e; border-radius: 8px; border: 1px solid #333; padding: 12px;">
+                    <div style="color:#ccc; font-size:13px; font-weight:600; margin-bottom: 8px;">Cylinder Head Leak Rejection % - Cellwise Trend</div>
+                    <div style="position:relative; height: 460px;">
+                        <canvas id="cylinderHeadTrendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Categorywise Rework Report (Leak / PDI / Testing) -->
+            <div id="tab-categorywise-rework" class="tab-pane">
+                <div class="cwr">
+                    <div class="cwr-header">
+                        <div class="cwr-title">
+                            <h2 id="cwrTitle">EA01 Categorywise Rework Report</h2>
+                        </div>
+                        <div class="cwr-stations" id="cwrStations">
+                            <button class="cwr-station-btn active" data-station="Leak" onclick="setCwrStation('Leak')">
+                                <span class="material-symbols-outlined">water_drop</span>Leak <span class="cwr-badge" data-badge="Leak">0</span>
+                            </button>
+                            <button class="cwr-station-btn" data-station="PDI" onclick="setCwrStation('PDI')">
+                                <span class="material-symbols-outlined">fact_check</span>PDI <span class="cwr-badge" data-badge="PDI">0</span>
+                            </button>
+                            <button class="cwr-station-btn" data-station="Testing" onclick="setCwrStation('Testing')">
+                                <span class="material-symbols-outlined">speed</span>Testing <span class="cwr-badge" data-badge="Testing">0</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="cwr-filters">
+                        <div class="cwr-field cwr-field-line">
+                            <label for="cwrLine">Line</label>
+                            <select id="cwrLine" class="select-royal" onchange="setCwrLine()">
+                                <option value="EA01">EA01</option>
+                                <option value="EA02">EA02</option>
+                            </select>
+                        </div>
+                        <div class="cwr-field cwr-field-date">
+                            <label for="cwrStart">From</label>
+                            <input type="text" id="cwrStart" class="cwr-input" placeholder="From date">
+                        </div>
+                        <div class="cwr-field cwr-field-date">
+                            <label for="cwrEnd">To</label>
+                            <input type="text" id="cwrEnd" class="cwr-input" placeholder="To date">
+                        </div>
+                        <div class="cwr-field">
+                            <label for="cwrShift">Shift</label>
+                            <select id="cwrShift" class="select-royal" data-cwr-filter="shift"><option value="ALL">All</option></select>
+                        </div>
+                        <div class="cwr-field">
+                            <label for="cwrEngine">Engine Number</label>
+                            <input type="text" id="cwrEngine" class="cwr-input" list="cwrEngineList" placeholder="All" autocomplete="off">
+                            <datalist id="cwrEngineList"></datalist>
+                        </div>
+                        <div class="cwr-field">
+                            <label for="cwrModel">Model Code</label>
+                            <select id="cwrModel" class="select-royal" data-cwr-filter="model"><option value="ALL">All</option></select>
+                        </div>
+                        <div class="cwr-field">
+                            <label for="cwrDefect">Defect</label>
+                            <select id="cwrDefect" class="select-royal" data-cwr-filter="description"><option value="ALL">All</option></select>
+                        </div>
+                        <div class="cwr-field">
+                            <label for="cwrCategory">Category</label>
+                            <select id="cwrCategory" class="select-royal" data-cwr-filter="category"><option value="ALL">All</option></select>
+                        </div>
+                        <div class="cwr-field">
+                            <label for="cwrCorrection">Correction</label>
+                            <select id="cwrCorrection" class="select-royal" data-cwr-filter="correction"><option value="ALL">All</option></select>
+                        </div>
+                        <div class="cwr-actions">
+                            <button class="cwr-btn" onclick="clearCwrFilters()">
+                                <span class="material-symbols-outlined">filter_alt_off</span>Clear
+                            </button>
+                            <button class="cwr-btn" onclick="exportCwrToExcel()">
+                                <span class="material-symbols-outlined">download</span>Excel
+                            </button>
+                        </div>
+                    </div>
+
+                    <section class="cwr-card">
+                        <div class="cwr-card-head">
+                            <div class="cwr-card-title" id="cwrMatrixTitle">NOK Qty - Defect vs Category<small>Day &amp; shiftwise</small></div>
+                            <div class="cwr-toolbar">
+                                <span class="cwr-seg-label">Rows</span>
+                                <div class="cwr-seg" id="cwrRowsSeg">
+                                    <button class="active" data-value="defect-category" onclick="setCwrRows('defect-category')">Defect &amp; Category</button>
+                                    <button data-value="defect" onclick="setCwrRows('defect')">Defect</button>
+                                    <button data-value="category" onclick="setCwrRows('category')">Category</button>
+                                </div>
+                                <span class="cwr-seg-label">Columns</span>
+                                <div class="cwr-seg" id="cwrColsSeg">
+                                    <button class="active" data-value="shift" onclick="setCwrCols('shift')">Day + Shift</button>
+                                    <button data-value="day" onclick="setCwrCols('day')">Day</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="cwrLoading" class="cwr-loading" style="padding: 12px 14px;" hidden>
+                            <span class="material-symbols-outlined">progress_activity</span>Loading rework data...
+                        </div>
+                        <div class="cwr-table-wrap">
+                            <table class="cwr-table" id="cwrTable"></table>
+                            <div class="cwr-empty" id="cwrEmpty" hidden>
+                                <span class="material-symbols-outlined">search_off</span>
+                                No rework records for the selected filters
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="cwr-card">
+                        <div class="cwr-card-head">
+                            <div class="cwr-card-title" id="cwrParetoTitle">Rejection Pareto<small>Click a bar to filter</small></div>
+                            <div class="cwr-toolbar">
+                                <div class="cwr-seg" id="cwrParetoSeg">
+                                    <button class="active" data-value="description" onclick="setCwrParetoBy('description')">Defect wise</button>
+                                    <button data-value="category" onclick="setCwrParetoBy('category')">Category wise</button>
+                                </div>
+                                <div class="cwr-seg" id="cwrTopSeg">
+                                    <button class="active" data-value="20" onclick="setCwrTop(20)">Top 20</button>
+                                    <button data-value="0" onclick="setCwrTop(0)">All</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="cwr-pareto-scroll">
+                            <div class="cwr-pareto-box" id="cwrParetoBox">
+                                <canvas id="cwrParetoChart"></canvas>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- Summary Report (EA01 / EA02 - Leak, PDI, Testing) -->
+            <div id="tab-summary-report" class="tab-pane">
+                <div class="sr" id="sr">
+                    <div class="sr-banner" role="banner">
+                        <img src="assets/royal_enfield_text.png" alt="Royal Enfield" class="sr-logo">
+                        <div class="sr-banner-title">
+                            <h2 id="srTitle">EA01 Quality Summary</h2>
+                            <span id="srSubtitle">Leak test · ML-47</span>
+                        </div>
+                        <div class="sr-banner-meta">
+                            <span class="sr-refreshed" id="srRefreshed" title="Last refreshed">Not loaded yet</span>
+                            <label class="sr-switch" title="Reload every 60 seconds">
+                                <input type="checkbox" id="srAutoRefresh" onchange="setSrAutoRefresh(this.checked)">
+                                <span class="sr-switch-track"></span>Auto-refresh
+                            </label>
+                            <button class="sr-icon-btn" onclick="refreshSr()" title="Refresh now" aria-label="Refresh now">
+                                <span class="material-symbols-outlined">refresh</span>
+                            </button>
+                            <button class="sr-icon-btn" onclick="toggleSrKiosk()" title="TV mode - full screen, rotates Leak / PDI / Testing (Esc to exit)" aria-label="TV mode">
+                                <span class="material-symbols-outlined">tv</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="sr-kiosk-progress" id="srKioskProgress" hidden></div>
+
+                    <!-- Step 1: filters (applied when a stage button is clicked, like the Categorywise Rework report) -->
+                    <section class="sr-filters" aria-label="Filters">
+                        <div class="sr-step"><span>1</span>Choose filters</div>
+                        <div class="sr-filter-grid">
+                            <div class="sr-field">
+                                <label>Line</label>
+                                <div class="sr-seg sr-seg-fill" id="srLineSeg">
+                                    <button class="active" data-value="EA01" onclick="setSrLine('EA01')">EA01</button>
+                                    <button data-value="EA02" onclick="setSrLine('EA02')">EA02</button>
+                                    <button data-value="BOTH" onclick="setSrLine('BOTH')">Both</button>
+                                </div>
+                            </div>
+                            <div class="sr-field">
+                                <label for="srStart">From</label>
+                                <input type="text" id="srStart" class="sr-input" placeholder="From date">
+                            </div>
+                            <div class="sr-field">
+                                <label for="srEnd">To</label>
+                                <input type="text" id="srEnd" class="sr-input" placeholder="To date">
+                            </div>
+                            <div class="sr-field sr-field-wide">
+                                <label>Quick range</label>
+                                <div class="sr-seg sr-seg-fill" id="srPresetSeg">
+                                    <button data-value="today" onclick="setSrPreset('today')">Today</button>
+                                    <button data-value="yesterday" onclick="setSrPreset('yesterday')">Yesterday</button>
+                                    <button data-value="month" onclick="setSrPreset('month')">This month</button>
+                                    <button data-value="lastMonth" onclick="setSrPreset('lastMonth')">Last month</button>
+                                </div>
+                            </div>
+                            <div class="sr-field">
+                                <label for="srShift">Shift</label>
+                                <select id="srShift" class="select-royal" onchange="setSrFilter('shift', this.value)">
+                                    <option value="">All shifts</option>
+                                    <option value="A">A (00:15 - 07:15)</option>
+                                    <option value="B">B (07:15 - 15:45)</option>
+                                    <option value="C">C (15:45 - 00:15)</option>
+                                </select>
+                            </div>
+                            <div class="sr-field">
+                                <label for="srModelBtn">Model</label>
+                                <div class="sr-multi" id="srModel">
+                                    <button type="button" class="sr-multi-btn" id="srModelBtn" onclick="toggleSrModelMenu()" aria-haspopup="listbox">
+                                        <span id="srModelLabel">All models</span>
+                                        <span class="material-symbols-outlined">expand_more</span>
+                                    </button>
+                                    <div class="sr-multi-menu" id="srModelMenu" hidden>
+                                        <input type="text" class="sr-input" id="srModelSearch" placeholder="Search model..." oninput="renderSrModelOptions()">
+                                        <div class="sr-multi-actions">
+                                            <button type="button" onclick="setSrModels([])">All models</button>
+                                        </div>
+                                        <div class="sr-multi-list" id="srModelList" role="listbox"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="sr-field">
+                                <label for="srMachine">Machine <small>Leak</small></label>
+                                <select id="srMachine" class="select-royal" onchange="setSrFilter('machine', this.value)">
+                                    <option value="">All machines</option>
+                                    <option value="M1">M1</option>
+                                    <option value="M2">M2</option>
+                                </select>
+                            </div>
+                            <div class="sr-field">
+                                <label title="Applies to PDI and Testing">Basis <small>PDI / Testing</small></label>
+                                <div class="sr-seg sr-seg-fill" id="srBasisSeg">
+                                    <button class="active" data-value="latest" onclick="setSrFilter('basis', 'latest')" title="One result per engine per day - OK if it passed at least once">Latest</button>
+                                    <button data-value="all" onclick="setSrFilter('basis', 'all')" title="Every attempt - a retested engine can count as both OK and NOK">All attempts</button>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Step 2: the stage buttons apply the filters and load that stage -->
+                    <section class="sr-bar">
+                        <div class="sr-step"><span>2</span>Choose report</div>
+                        <div class="sr-stages" id="srStages">
+                            <button class="sr-stage active" data-stage="Leak" onclick="setSrStage('Leak')">
+                                <span class="material-symbols-outlined">water_drop</span>
+                                <span class="sr-stage-text">Leak<small>Data summary</small></span>
+                            </button>
+                            <button class="sr-stage" data-stage="PDI" onclick="setSrStage('PDI')">
+                                <span class="material-symbols-outlined">fact_check</span>
+                                <span class="sr-stage-text">PDI<small>Data summary</small></span>
+                            </button>
+                            <button class="sr-stage" data-stage="Testing" onclick="setSrStage('Testing')">
+                                <span class="material-symbols-outlined">speed</span>
+                                <span class="sr-stage-text">Testing<small>Data summary</small></span>
+                            </button>
+                        </div>
+                        <div class="sr-pending" id="srPending" hidden>
+                            <span class="material-symbols-outlined">touch_app</span>Filters changed - click Leak, PDI or Testing to apply
+                        </div>
+                        <div class="sr-actions">
+                            <button class="sr-btn" onclick="clearSrFilters()">
+                                <span class="material-symbols-outlined">filter_alt_off</span>Clear
+                            </button>
+                            <button class="sr-btn" onclick="exportSrToExcel()">
+                                <span class="material-symbols-outlined">download</span>Excel
+                            </button>
+                        </div>
+                    </section>
+
+                    <div class="sr-notice" id="srNotice" hidden></div>
+
+                    <section class="sr-kpis" id="srKpis" aria-live="polite"></section>
+
+                    <div class="sr-grid sr-grid-trend">
+                        <section class="sr-card">
+                            <div class="sr-card-head">
+                                <div class="sr-card-title" id="srTrendTitle">Production trend<small>OK vs NOK engines</small></div>
+                                <div class="sr-seg" id="srTrendSeg">
+                                    <button class="active" data-value="day" onclick="setSrTrend('day')">Day</button>
+                                    <button data-value="shift" onclick="setSrTrend('shift')">Shift</button>
+                                    <button data-value="hour" onclick="setSrTrend('hour')">Hour</button>
+                                </div>
+                            </div>
+                            <div class="sr-chart-box sr-chart-main"><canvas id="srTrendChart"></canvas></div>
+                            <div class="sr-chart-sub-title">PPM (NOK per million)</div>
+                            <div class="sr-chart-box sr-chart-ppm"><canvas id="srPpmChart"></canvas></div>
+                        </section>
+                        <section class="sr-card">
+                            <div class="sr-card-head">
+                                <div class="sr-card-title">OK vs NOK<small id="srDonutSub">Selected range</small></div>
+                            </div>
+                            <div class="sr-donuts" id="srDonuts"></div>
+                        </section>
+                    </div>
+
+                    <section class="sr-card">
+                        <div class="sr-card-head">
+                            <div class="sr-card-title" id="srMatrixTitle">Day × Shift<small>Cell colour = rejection %</small></div>
+                            <div class="sr-seg" id="srMatrixSeg">
+                                <button class="active" data-value="count" onclick="setSrMatrixMetric('count')">Count</button>
+                                <button data-value="ppm" onclick="setSrMatrixMetric('ppm')">PPM</button>
+                                <button data-value="pct" onclick="setSrMatrixMetric('pct')">Rejection %</button>
+                            </div>
+                        </div>
+                        <div class="sr-table-wrap"><table class="sr-table" id="srMatrix"></table></div>
+                    </section>
+
+                    <section class="sr-card">
+                        <div class="sr-card-head">
+                            <div class="sr-card-title">Hourwise<small id="srHourSub">Total engines per hour · NOK in red</small></div>
+                            <div class="sr-seg" id="srHourSeg">
+                                <button class="active" data-value="count" onclick="setSrHourMetric('count')">Count</button>
+                                <button data-value="ppm" onclick="setSrHourMetric('ppm')">PPM</button>
+                                <button data-value="pct" onclick="setSrHourMetric('pct')">Rejection %</button>
+                            </div>
+                        </div>
+                        <div class="sr-table-wrap sr-table-tall"><table class="sr-table" id="srHourly"></table></div>
+                    </section>
+
+                    <div class="sr-grid sr-grid-leak" id="srLeakPanels">
+                        <section class="sr-card">
+                            <div class="sr-card-head">
+                                <div class="sr-card-title">Leak status<small>OK · NOK · Bypassed · NA · Empty - only OK and NOK count in Total</small></div>
+                            </div>
+                            <div class="sr-chart-box sr-chart-status"><canvas id="srStatusChart"></canvas></div>
+                            <div class="sr-table-wrap"><table class="sr-table" id="srStatusTable"></table></div>
+                        </section>
+                        <section class="sr-card">
+                            <div class="sr-card-head">
+                                <div class="sr-card-title">Leak rework<small>Rework total = Leak OK + Rework qty · machine filter not applied</small></div>
+                            </div>
+                            <div class="sr-rework-kpis" id="srReworkKpis"></div>
+                            <div class="sr-table-wrap"><table class="sr-table" id="srReworkTable"></table></div>
+                        </section>
                     </div>
                 </div>
             </div>
@@ -1420,6 +1850,7 @@
                     <div class="ems-topbar">
                         <div class="ems-topbar-title">Vallam - Renewable Energy Source</div>
                         <div class="ems-topbar-right">
+                            <button class="ems-othersource-btn" onclick="openEmsOtherSourceModal()">Other Source</button>
                             <span class="ems-date-badge">31/03/2026</span>
                             <span class="material-symbols-outlined">calendar_month</span>
                             <span class="material-symbols-outlined">notifications</span>
@@ -1442,10 +1873,10 @@
                                             <div class="ems-stat-label">CO2 Reduction :</div>
                                             <div class="ems-stat-value" id="emsCo2"></div>
                                         </div>
-                                    </div>
-                                    <div class="ems-total-bar">
-                                        <div id="emsTotalGreen"></div>
-                                        <div id="emsTotalUnits"></div>
+                                        <div class="ems-total-bar">
+                                            <div id="emsTotalGreen"></div>
+                                            <div id="emsTotalUnits"></div>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="ems-green-body">
@@ -1514,11 +1945,76 @@
                 </div>
             </div>
 
+            <!-- EMS Other Source popup: Green Power Contribution / VOC / Other Power inputs -->
+            <div id="emsOtherSourceModal" class="modal-overlay ems-os-modal">
+                <div class="modal-content ems-os-content">
+                    <div class="modal-header">
+                        <h2>Other Source</h2>
+                        <button class="close-modal" onclick="closeEmsOtherSourceModal()">&times;</button>
+                    </div>
+                    <div class="ems-os-tabs">
+                        <button class="ems-os-tab active" data-emstab="green" onclick="switchEmsOtherSourceTab('green')">Other Power Source</button>
+                        <button class="ems-os-tab" data-emstab="voc" onclick="switchEmsOtherSourceTab('voc')">VOC Inputs</button>
+                        <button class="ems-os-tab" data-emstab="other" onclick="switchEmsOtherSourceTab('other')">Green Power Contribution Input</button>
+                    </div>
+                    <div class="ems-os-body">
+                        <div id="emsOsPaneGreen" class="ems-os-pane active">
+                            <div class="ems-os-toprow">
+                                <input type="month" id="emsOsGreenMonth" class="ems-os-month">
+                                <button class="ems-os-update-btn" onclick="emsSaveGreenPower()">Update</button>
+                            </div>
+                            <div class="ems-os-field-grid">
+                                <div class="ems-os-field"><label>Third Party Wind</label><input type="number" id="emsOsThirdPartyWind"></div>
+                                <div class="ems-os-field"><label>Solar</label><input type="number" id="emsOsSolar"></div>
+                                <div class="ems-os-field"><label>Third Party Solar</label><input type="number" id="emsOsThirdPartySolar"></div>
+                                <div class="ems-os-field"><label>GCP Solar</label><input type="number" id="emsOsGcpSolar"></div>
+                                <div class="ems-os-field"><label>TNEB</label><input type="number" id="emsOsTneb"></div>
+                                <div class="ems-os-field"><label>IEX Renewable</label><input type="number" id="emsOsIexRenewable"></div>
+                                <div class="ems-os-field"><label>DG</label><input type="number" id="emsOsDg"></div>
+                                <div class="ems-os-field"><label>IEX Non-Renewable</label><input type="number" id="emsOsIexNonRenewable"></div>
+                            </div>
+                            <table class="ems-os-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th><th>Third Party Wind</th><th>Third Party Solar</th><th>TNEB</th>
+                                        <th>DG</th><th>Solar</th><th>GCP Solar</th><th>IEX Renewable</th><th>IEX Non-Renewable</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="emsOsGreenTbody"></tbody>
+                            </table>
+                            <div id="emsOsGreenEmpty" class="ems-os-empty">No data yet.</div>
+                        </div>
+                        <div id="emsOsPaneVoc" class="ems-os-pane">
+                            <div class="ems-os-toprow">
+                                <button class="ems-os-update-btn" onclick="emsSaveVoc()">Update</button>
+                            </div>
+                            <div class="ems-os-field-grid ems-os-field-grid-3">
+                                <div class="ems-os-field"><label>Total Station</label><input type="number" id="emsOsVocTotalStation"></div>
+                                <div class="ems-os-field"><label>Live Station</label><input type="number" id="emsOsVocLiveStation"></div>
+                                <div class="ems-os-field"><label>Actual Status</label><input type="number" id="emsOsVocActualStatus"></div>
+                            </div>
+                            <div class="ems-os-field-grid ems-os-field-grid-4" id="emsOsVocStagGrid"></div>
+                        </div>
+                        <div id="emsOsPaneOther" class="ems-os-pane">
+                            <div class="ems-os-toprow">
+                                <input type="month" id="emsOsOtherMonth" class="ems-os-month">
+                                <button class="ems-os-update-btn" onclick="emsSaveOtherPower()">Update</button>
+                            </div>
+                            <div class="ems-os-field-grid ems-os-field-grid-1">
+                                <div class="ems-os-field"><label>Graph Val 1</label><input type="number" id="emsOsGraphVal1"></div>
+                                <div class="ems-os-field"><label>Graph Val 2</label><input type="number" id="emsOsGraphVal2"></div>
+                                <div class="ems-os-field"><label>Graph Val 3</label><input type="number" id="emsOsGraphVal3"></div>
+                                <div class="ems-os-field"><label>Max Demand</label><input type="number" id="emsOsMaxDemand"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- EB Real Time Monitoring Dashboard -->
             <div id="tab-eb-rtm" class="tab-pane">
                 <div class="eb-dashboard">
                     <div class="eb-sidebar">
-                        <table class="eb-phase-table" id="ebPhaseTable"></table>
                         <div class="eb-side-block">
                             <div class="eb-side-label">Max Demand (kVA)</div>
                             <div class="eb-side-value neon" id="ebMaxDemand"></div>
@@ -1536,103 +2032,59 @@
                             <div class="eb-side-sublabel">Count</div>
                             <div class="eb-side-value red" id="ebPfCount"></div>
                         </div>
+                        <div class="eb-side-block">
+                            <div class="eb-side-label">Energy Consumption (kWh)</div>
+                            <table class="eb-energy-table" id="ebEnergyTable">
+                                <thead>
+                                    <tr>
+                                        <th>Shift</th>
+                                        <th>Current Day</th>
+                                        <th>Previous Day</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ebEnergyTableBody"></tbody>
+                            </table>
+                        </div>
                     </div>
                     <div class="eb-main">
                         <div class="eb-topbar">
                             <div class="eb-title">Vallam Real Time Monitoring - <span>33KV EB Incomer|Source_7</span></div>
                             <div class="eb-topbar-right">
-                                <span class="eb-date-badge">07/09/2026</span>
-                                <span class="material-symbols-outlined">calendar_month</span>
+                                <input type="text" class="eb-date-badge" id="ebDateInput" readonly>
+                                <span class="material-symbols-outlined eb-date-icon" onclick="ebOpenDatePicker()" title="Select date">calendar_month</span>
                                 <span class="material-symbols-outlined">notifications</span>
                             </div>
                         </div>
                         <div class="eb-filterbar" id="ebFilterBar"></div>
-                        <div class="eb-gauge-row" id="ebGaugeRow"></div>
-                        <div class="eb-chart-grid">
-                            <div class="eb-chart-card">
-                                <div class="eb-chart-title">Voltage (V)</div>
-                                <div class="eb-chart-canvas-wrap"><canvas id="ebChartVoltage"></canvas></div>
+                        <div class="eb-all-view" id="ebAllView">
+                            <div class="eb-gauge-row" id="ebGaugeRow"></div>
+                            <div class="eb-chart-grid">
+                                <div class="eb-chart-card">
+                                    <div class="eb-chart-title">Voltage (V)</div>
+                                    <div class="eb-chart-canvas-wrap"><canvas id="ebChartVoltage"></canvas></div>
+                                </div>
+                                <div class="eb-chart-card">
+                                    <div class="eb-chart-title">Frequency (Hz)</div>
+                                    <div class="eb-chart-canvas-wrap"><canvas id="ebChartFrequency"></canvas></div>
+                                </div>
+                                <div class="eb-chart-card">
+                                    <div class="eb-chart-title">Power Factor (PF)</div>
+                                    <div class="eb-chart-canvas-wrap"><canvas id="ebChartPf"></canvas></div>
+                                </div>
+                                <div class="eb-chart-card">
+                                    <div class="eb-chart-title">Current (A)</div>
+                                    <div class="eb-chart-canvas-wrap"><canvas id="ebChartCurrent"></canvas></div>
+                                </div>
                             </div>
-                            <div class="eb-chart-card">
-                                <div class="eb-chart-title">Frequency (Hz)</div>
-                                <div class="eb-chart-canvas-wrap"><canvas id="ebChartFrequency"></canvas></div>
-                            </div>
-                            <div class="eb-chart-card">
-                                <div class="eb-chart-title">Power Factor (PF)</div>
-                                <div class="eb-chart-canvas-wrap"><canvas id="ebChartPf"></canvas></div>
-                            </div>
-                            <div class="eb-chart-card">
-                                <div class="eb-chart-title">Current (A)</div>
-                                <div class="eb-chart-canvas-wrap"><canvas id="ebChartCurrent"></canvas></div>
-                            </div>
+                        </div>
+                        <!-- Single large chart shown for every filter tab except ALL (see ebSelectFilter) -->
+                        <div class="eb-detail-view" id="ebDetailView" style="display:none;">
+                            <div class="eb-detail-title" id="ebDetailTitle"></div>
+                            <div class="eb-detail-canvas-wrap"><canvas id="ebDetailChart"></canvas></div>
                         </div>
                     </div>
                 </div>
-            </div>            <!-- Read Only Modal -->
-        <div id="readOnlyModal" class="modal-overlay">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2>Inspection Details <span id="modalAbsBadge"></span></h2>
-                    <div class="header-controls">
-                        <button class="icon-btn" onclick="downloadPdf()" title="Download PDF">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512" width="24" height="24"
-                                fill="#F40F02">
-                                <path
-                                    d="M181.9 256.1c-5-16-4.9-46.9-2-46.9 8.4 0 7.6 36.9 2 46.9zm-1.7 47.2c-7.7 20.2-17.3 43.3-28.4 62.7 18.3-7 39-17.2 62.9-21.9-12.7-9.6-24.9-23.4-34.5-40.8zM86.1 428.1c0 .8 13.2-5.4 34.9-40.2-6.7 6.3-29.1 24.5-34.9 40.2zM248 160h136v328c0 13.3-10.7 24-24 24H24c-13.3 0-24-10.7-24-24V24c0-13.3 10.7-24 24-24h184v160zm-33.1 160c-31.3-17.7-62.1-41.9-91.4-71.7-26.4-14.3-54.6-46-54.6-104.7 0-3.6 0-10.9 .3-22C73.2 132 95.2 139.8 116 139.8c43.6 0 78.4-32.9 85.6-48.3 19.4 17.5 45.4 75.6 59.8 141.5 28.5 7.9 66.8 17.7 78.4 16.8 2.5 0 8.5-.6 8.5-4.4 0-19.1-84.1-15.4-86.4-15.3-7.5-6.7-18-24.1-23.7-44.1 4.3-17.4 7-38.3 7-56.1 0-27.4-18.7-27.4-21-27.4-26.6 0-36.2 38.6-26 73.6 6.5 22.3 15.6 44.4 26.8 65.6-32.4 43.1-66.2 80-100.2 107.5-12.8 10.3-30.8 20.9-44.5 30.6-18.4 13.1-41 33.6-41 53 0 16.4 14.5 26.4 28 26.4 20.6 0 54.3-30 83.9-66.1 28.4 8.2 60.1 12.3 84.6 12.3 32.8 0 56.6-9.1 56.6-21.5 0-10-8.9-16.7-16.4-16.7-15.3 0-46.3 4.1-83.9-8.4z" />
-                            </svg>
-                        </button>
-                        <button class="close-modal" onclick="closeModal()">×</button>
-                    </div>
-                </div>
-
-                <div class="modal-info-grid">
-                    <div class="info-group">
-                        <label>ABS Modulator</label>
-                        <span id="modalAbs"></span>
-                    </div>
-                    <div class="info-group">
-                        <label>Model</label>
-                        <span id="modalModel"></span>
-                    </div>
-                    <div class="info-group">
-                        <label>Kit Number</label>
-                        <span id="modalKit"></span>
-                    </div>
-                    <div class="info-group">
-                        <label>PDI Completion Date</label>
-                        <span id="modalDate"></span>
-                    </div>
-                </div>
-
-                <div class="modal-table-wrapper">
-                    <table class="read-only-table">
-                        <thead>
-                            <tr>
-                                <th>S.No</th>
-                                <th>Description</th>
-                                <th>Specification</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody id="modalBody">
-                            <!-- Rows injected via JS -->
-                        </tbody>
-                    </table>
-                </div>
             </div>
-        </div>
-
-        <!-- Success Popup -->
-        <div id="successPopup" class="success-popup">
-            <div class="popup-content">
-                <div class="icon-pulse">
-                    <span class="material-symbols-outlined">check_circle</span>
-                </div>
-                <h2 id="popupTitle">Success!</h2>
-                <div id="popupBadgeContainer"></div>
-            </div>
-        </div>
-
         <!-- Flatpickr (Rich Date Picker) -->
         <link rel="stylesheet" href="lib/flatpickr/flatpickr.min.css">
         <link rel="stylesheet" href="lib/flatpickr/dark.css">
@@ -1677,7 +2129,19 @@
         </div>
 
         <script src="lib/chart.min.js"></script>
-        <script src="js/app.js"></script>
+        <!-- App scripts: shared shell first, then one file per module -->
+        <script src="js/core.js?v=2"></script>
+        <script src="js/dashboards/fire-hydrant.js?v=1"></script>
+        <script src="js/dashboards/gas-leak.js?v=1"></script>
+        <script src="js/dashboards/ems-renewable.js?v=2"></script>
+        <script src="js/dashboards/eb-rtm.js?v=1"></script>
+        <script src="js/reports/biometric.js?v=1"></script>
+        <script src="js/reports/main-line.js?v=1"></script>
+        <script src="js/reports/poke-yoke.js?v=1"></script>
+        <script src="js/reports/qhold.js?v=1"></script>
+        <script src="js/reports/cylinder-head-leak.js?v=1"></script>
+        <script src="js/reports/categorywise-rework.js?v=1"></script>
+        <script src="js/reports/summary-report.js?v=1"></script>
 </body>
 
 </html>
