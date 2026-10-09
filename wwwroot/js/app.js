@@ -1296,12 +1296,14 @@ async function fetchEmsSolarStatus() {
         EMS_SOLAR.live = data.live;
         EMS_SOLAR.today = data.today;
         EMS_SOLAR.yesterday = data.yesterday;
+        EMS_SOLAR.mtd = data.mtd;
         const liveEl = document.getElementById('emsLive');
         if (!liveEl) return;
         liveEl.textContent = EMS_SOLAR.live;
         liveEl.className = 'ems-stat-value ' + emsValClass(EMS_SOLAR.live);
         document.getElementById('emsToday').textContent = EMS_SOLAR.today;
         document.getElementById('emsYesterday').textContent = EMS_SOLAR.yesterday;
+        document.getElementById('emsMtd').textContent = EMS_SOLAR.mtd;
     } catch (e) {
         // API/broker unreachable - keep showing the last known values.
     }
@@ -1309,6 +1311,18 @@ async function fetchEmsSolarStatus() {
 
 function emsValClass(v) {
     return (v > 0) ? 'neon' : 'muted';
+}
+
+// Indian fiscal year (Apr-Mar) label for the given date, e.g. Oct 2026 -> "FY 26-27".
+function emsFiscalYearLabel(date) {
+    const startYear = date.getMonth() >= 3 ? date.getFullYear() : date.getFullYear() - 1;
+    const yy = n => String(n % 100).padStart(2, '0');
+    return `FY ${yy(startYear)}-${yy(startYear + 1)}`;
+}
+
+// e.g. Oct 2026 -> "Oct - 2026".
+function emsShortMonthLabel(date) {
+    return `${date.toLocaleString('en-US', { month: 'short' })} - ${date.getFullYear()}`;
 }
 
 // EMS Other Source popup - Green Power Contribution / VOC / Other Power manual inputs.
@@ -1439,6 +1453,8 @@ async function fetchEmsOtherSourceSummary() {
             s.curr = data.current[valKey];
             s.currPct = data.current[pctKey];
         });
+        EMS_CONTRIB.values[2] = EMS_SOURCES.reduce((sum, s) => sum + s.prevPct, 0);
+        EMS_CONTRIB.values[3] = EMS_SOURCES.reduce((sum, s) => sum + s.currPct, 0);
         if (document.getElementById('emsSourceTableBody')) renderEmsRenewable();
     } catch (e) {
         // API unreachable - keep showing the last known values.
@@ -1464,6 +1480,10 @@ function emsSaveOtherPower() {
         maxDemand: document.getElementById('emsOsMaxDemand').value
     };
     console.log('Green Power Contribution Input (backend pending):', payload);
+
+    EMS_CONTRIB.values[0] = parseFloat(payload.graphVal1) || 0;
+    EMS_CONTRIB.values[1] = parseFloat(payload.graphVal2) || 0;
+    if (document.getElementById('emsContribChart')) renderEmsRenewable();
 }
 
 function emsIconSvg(kind) {
@@ -1576,6 +1596,14 @@ function renderEmsRenewable() {
     document.getElementById('emsToday').textContent = EMS_SOLAR.today;
     document.getElementById('emsYesterday').textContent = EMS_SOLAR.yesterday;
     document.getElementById('emsMtd').textContent = EMS_SOLAR.mtd;
+
+    const now = new Date();
+    const prevFYDate = new Date(now.getFullYear() - 1, now.getMonth(), 1);
+    const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    EMS_CONTRIB.labels = [
+        emsFiscalYearLabel(prevFYDate), emsFiscalYearLabel(now),
+        emsShortMonthLabel(prevMonthDate), emsShortMonthLabel(now)
+    ];
 
     emsRenderCharts();
 }

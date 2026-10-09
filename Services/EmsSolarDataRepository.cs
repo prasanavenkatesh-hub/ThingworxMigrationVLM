@@ -26,6 +26,19 @@ public class EmsSolarDataRepository
         return await conn.QuerySingleOrDefaultAsync<double?>(sql, new { Date = date.Date });
     }
 
+    // Latest baseline row strictly before the given date - used for MTD, where "previous
+    // month's last day 00:15 RealEnergy" is whichever row last landed before this month started
+    // (avoids assuming the previous month's last calendar day actually got a row inserted).
+    public async Task<double?> GetLatestRealEnergyBeforeAsync(DateTime beforeDate)
+    {
+        const string sql = @"
+            SELECT TOP 1 [RealEnergy] FROM [ControlTowerVLM].[dbo].[SolarData]
+            WHERE [TimeStamp] < @BeforeDate
+            ORDER BY [TimeStamp] DESC";
+        using var conn = new SqlConnection(_connectionString);
+        return await conn.QuerySingleOrDefaultAsync<double?>(sql, new { BeforeDate = beforeDate.Date });
+    }
+
     public async Task InsertAsync(DateTime timestamp, double liveSolar, double realEnergy)
     {
         const string sql = @"

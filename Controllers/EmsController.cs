@@ -31,13 +31,19 @@ public class EmsController : ControllerBase
         double baseline0 = todayBaseline ?? await _repo.GetRealEnergyForDateAsync(baseDate) ?? 0;
         double baseline1 = await _repo.GetRealEnergyForDateAsync(baseDate.AddDays(-1)) ?? 0;
 
+        // MTD: current day's 00:15 baseline (baseline0) minus the previous month's last
+        // recorded 00:15 baseline.
+        var firstOfThisMonth = new DateTime(now.Year, now.Month, 1);
+        double prevMonthLastDay = await _repo.GetLatestRealEnergyBeforeAsync(firstOfThisMonth) ?? 0;
+
         return Ok(new
         {
             connected = _store.Connected,
             lastUpdated = _store.LastUpdated,
             live = _store.LiveKw,
             today = Math.Round((_store.RealEnergySum - baseline0) / 1000.0, 2),
-            yesterday = Math.Round((baseline0 - baseline1) / 1000.0, 2)
+            yesterday = Math.Round((baseline0 - baseline1) / 1000.0, 2),
+            mtd = Math.Round((baseline0 - prevMonthLastDay) / 1000.0, 2)
         });
     }
 
