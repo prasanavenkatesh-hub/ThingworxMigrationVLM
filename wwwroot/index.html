@@ -1420,6 +1420,7 @@
                     <div class="ems-topbar">
                         <div class="ems-topbar-title">Vallam - Renewable Energy Source</div>
                         <div class="ems-topbar-right">
+                            <button class="ems-othersource-btn" onclick="openEmsOtherSourceModal()">Other Source</button>
                             <span class="ems-date-badge">31/03/2026</span>
                             <span class="material-symbols-outlined">calendar_month</span>
                             <span class="material-symbols-outlined">notifications</span>
@@ -1442,10 +1443,10 @@
                                             <div class="ems-stat-label">CO2 Reduction :</div>
                                             <div class="ems-stat-value" id="emsCo2"></div>
                                         </div>
-                                    </div>
-                                    <div class="ems-total-bar">
-                                        <div id="emsTotalGreen"></div>
-                                        <div id="emsTotalUnits"></div>
+                                        <div class="ems-total-bar">
+                                            <div id="emsTotalGreen"></div>
+                                            <div id="emsTotalUnits"></div>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="ems-green-body">
@@ -1508,6 +1509,72 @@
                             <div class="ems-card">
                                 <div class="ems-card-header"><span class="ems-card-title">Green Power Contributions</span></div>
                                 <div class="ems-contrib-chart"><canvas id="emsContribChart"></canvas></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- EMS Other Source popup: Green Power Contribution / VOC / Other Power inputs -->
+            <div id="emsOtherSourceModal" class="modal-overlay ems-os-modal">
+                <div class="modal-content ems-os-content">
+                    <div class="modal-header">
+                        <h2>Other Source</h2>
+                        <button class="close-modal" onclick="closeEmsOtherSourceModal()">&times;</button>
+                    </div>
+                    <div class="ems-os-tabs">
+                        <button class="ems-os-tab active" data-emstab="green" onclick="switchEmsOtherSourceTab('green')">Other Power Source</button>
+                        <button class="ems-os-tab" data-emstab="voc" onclick="switchEmsOtherSourceTab('voc')">VOC Inputs</button>
+                        <button class="ems-os-tab" data-emstab="other" onclick="switchEmsOtherSourceTab('other')">Green Power Contribution Input</button>
+                    </div>
+                    <div class="ems-os-body">
+                        <div id="emsOsPaneGreen" class="ems-os-pane active">
+                            <div class="ems-os-toprow">
+                                <input type="month" id="emsOsGreenMonth" class="ems-os-month">
+                                <button class="ems-os-update-btn" onclick="emsSaveGreenPower()">Update</button>
+                            </div>
+                            <div class="ems-os-field-grid">
+                                <div class="ems-os-field"><label>Third Party Wind</label><input type="number" id="emsOsThirdPartyWind"></div>
+                                <div class="ems-os-field"><label>Solar</label><input type="number" id="emsOsSolar"></div>
+                                <div class="ems-os-field"><label>Third Party Solar</label><input type="number" id="emsOsThirdPartySolar"></div>
+                                <div class="ems-os-field"><label>GCP Solar</label><input type="number" id="emsOsGcpSolar"></div>
+                                <div class="ems-os-field"><label>TNEB</label><input type="number" id="emsOsTneb"></div>
+                                <div class="ems-os-field"><label>IEX Renewable</label><input type="number" id="emsOsIexRenewable"></div>
+                                <div class="ems-os-field"><label>DG</label><input type="number" id="emsOsDg"></div>
+                                <div class="ems-os-field"><label>IEX Non-Renewable</label><input type="number" id="emsOsIexNonRenewable"></div>
+                            </div>
+                            <table class="ems-os-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th><th>Third Party Wind</th><th>Third Party Solar</th><th>TNEB</th>
+                                        <th>DG</th><th>Solar</th><th>GCP Solar</th><th>IEX Renewable</th><th>IEX Non-Renewable</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="emsOsGreenTbody"></tbody>
+                            </table>
+                            <div id="emsOsGreenEmpty" class="ems-os-empty">No data yet.</div>
+                        </div>
+                        <div id="emsOsPaneVoc" class="ems-os-pane">
+                            <div class="ems-os-toprow">
+                                <button class="ems-os-update-btn" onclick="emsSaveVoc()">Update</button>
+                            </div>
+                            <div class="ems-os-field-grid ems-os-field-grid-3">
+                                <div class="ems-os-field"><label>Total Station</label><input type="number" id="emsOsVocTotalStation"></div>
+                                <div class="ems-os-field"><label>Live Station</label><input type="number" id="emsOsVocLiveStation"></div>
+                                <div class="ems-os-field"><label>Actual Status</label><input type="number" id="emsOsVocActualStatus"></div>
+                            </div>
+                            <div class="ems-os-field-grid ems-os-field-grid-4" id="emsOsVocStagGrid"></div>
+                        </div>
+                        <div id="emsOsPaneOther" class="ems-os-pane">
+                            <div class="ems-os-toprow">
+                                <input type="month" id="emsOsOtherMonth" class="ems-os-month">
+                                <button class="ems-os-update-btn" onclick="emsSaveOtherPower()">Update</button>
+                            </div>
+                            <div class="ems-os-field-grid ems-os-field-grid-1">
+                                <div class="ems-os-field"><label>Graph Val 1</label><input type="number" id="emsOsGraphVal1"></div>
+                                <div class="ems-os-field"><label>Graph Val 2</label><input type="number" id="emsOsGraphVal2"></div>
+                                <div class="ems-os-field"><label>Graph Val 3</label><input type="number" id="emsOsGraphVal3"></div>
+                                <div class="ems-os-field"><label>Max Demand</label><input type="number" id="emsOsMaxDemand"></div>
                             </div>
                         </div>
                     </div>

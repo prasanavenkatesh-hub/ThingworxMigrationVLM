@@ -58,6 +58,7 @@ function switchTab(tabId) {
     // Fire Hydrant / Gas Leak live polling only runs while their own tab is active.
     stopFireHydrantPolling();
     stopGasLeakPolling();
+    stopEmsSolarPolling();
 
     // Fetch data if switching to Rework or Completed or Reports
     if (tabId === 'rework' || tabId === 'completed') {
@@ -71,6 +72,8 @@ function switchTab(tabId) {
         startGasLeakPolling();
     } else if (tabId === 'ems-renewable') {
         renderEmsRenewable();
+        startEmsSolarPolling();
+        fetchEmsOtherSourceSummary();
     } else if (tabId === 'eb-rtm') {
         renderEbRtm();
     }
@@ -1217,7 +1220,7 @@ function downloadGasLeakReportCsv() {
 // ---------------------------------------------
 // EMS Renewable Dashboard (UI mock-up - sample data; backend wiring TBD)
 // ---------------------------------------------
-const EMS_GREEN = { pctGreen: 94, co2: 1074, co2Prev: 0, totalGreenPrev: 15.00, totalGreenCurr: 0, totalUnitsPrev: 15.84, totalUnitsCurr: 0, monthPrev: 'February - 2026', monthCurr: 'March - 2026' };
+const EMS_GREEN = { pctGreen: 94, co2Prev: 0, co2Curr: 0, totalGreenPrev: 15.00, totalGreenCurr: 0, totalUnitsPrev: 15.84, totalUnitsCurr: 0, monthPrev: 'February - 2026', monthCurr: 'March - 2026' };
 const EMS_SOURCES = [
     { name: 'GCP Solar', icon: 'solar', prev: 2.89, prevPct: 19, curr: 0, currPct: 0 },
     { name: '3rd party Solar', icon: 'solar', prev: 5.17, prevPct: 34, curr: 0, currPct: 0 },
@@ -1239,9 +1242,228 @@ const EMS_SOLAR = {
 const EMS_CONTRIB = { labels: ['FY 25-26', 'FY 26-27', 'Jul - 2026', 'Aug - 2026'], values: [54, 87, 94, 0] };
 
 let emsCharts = {};
+let emsSolarPollTimer = null;
+
+let emsSolarGraphPollTimer = null;
+let emsSolarGraphDate = null; // tracks the calendar day the chart currently shows, so a
+                               // midnight rollover is detected and the chart resets to empty
+
+function startEmsSolarPolling() {
+    fetchEmsSolarStatus();
+    fetchEmsSolarGraph();
+    stopEmsSolarPolling();
+    emsSolarPollTimer = setInterval(fetchEmsSolarStatus, 5000);
+    emsSolarGraphPollTimer = setInterval(fetchEmsSolarGraph, 60000);
+}
+
+function stopEmsSolarPolling() {
+    if (emsSolarPollTimer) {
+        clearInterval(emsSolarPollTimer);
+        emsSolarPollTimer = null;
+    }
+    if (emsSolarGraphPollTimer) {
+        clearInterval(emsSolarGraphPollTimer);
+        emsSolarGraphPollTimer = null;
+    }
+}
+
+async function fetchEmsSolarGraph() {
+    try {
+        const res = await fetch('/api/ems/solar/graph');
+        if (!res.ok) return;
+        const points = await res.json();
+        const today = new Date().toDateString();
+        if (emsSolarGraphDate !== today) {
+            emsSolarGraphDate = today; // new day - chart shows only today's points, per spec
+        }
+        EMS_SOLAR.labels = points.map(p => new Date(p.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }));
+        EMS_SOLAR.values = points.map(p => p.solar);
+        if (emsCharts.solar) {
+            emsCharts.solar.data.labels = EMS_SOLAR.labels;
+            emsCharts.solar.data.datasets[0].data = EMS_SOLAR.values;
+            emsCharts.solar.update();
+        }
+    } catch (e) {
+        // API unreachable - keep showing the last known chart.
+    }
+}
+
+async function fetchEmsSolarStatus() {
+    try {
+        const res = await fetch('/api/ems/solar/status');
+        if (!res.ok) return;
+        const data = await res.json();
+        EMS_SOLAR.live = data.live;
+        EMS_SOLAR.today = data.today;
+        EMS_SOLAR.yesterday = data.yesterday;
+        const liveEl = document.getElementById('emsLive');
+        if (!liveEl) return;
+        liveEl.textContent = EMS_SOLAR.live;
+        liveEl.className = 'ems-stat-value ' + emsValClass(EMS_SOLAR.live);
+        document.getElementById('emsToday').textContent = EMS_SOLAR.today;
+        document.getElementById('emsYesterday').textContent = EMS_SOLAR.yesterday;
+    } catch (e) {
+        // API/broker unreachable - keep showing the last known values.
+    }
+}
 
 function emsValClass(v) {
     return (v > 0) ? 'neon' : 'muted';
+}
+
+// EMS Other Source popup - Green Power Contribution / VOC / Other Power manual inputs.
+// Green Power Contribution Input tab is backed by OtherPowerSource; VOC/Other Power tabs
+// have no backend yet, so their Update just logs the payload for now.
+function openEmsOtherSourceModal() {
+    const modal = document.getElementById('emsOtherSourceModal');
+    if (!modal) return;
+    if (!document.getElementById('emsOsVocStagGrid').children.length) emsBuildVocStagFields();
+    fetchEmsOtherSourceHistory();
+    modal.classList.add('active');
+}
+
+function closeEmsOtherSourceModal() {
+    const modal = document.getElementById('emsOtherSourceModal');
+    if (modal) modal.classList.remove('active');
+}
+
+function switchEmsOtherSourceTab(tab) {
+    document.querySelectorAll('.ems-os-tab').forEach(el => el.classList.toggle('active', el.dataset.emstab === tab));
+    document.querySelectorAll('.ems-os-pane').forEach(el => el.classList.remove('active'));
+    const paneId = { green: 'emsOsPaneGreen', voc: 'emsOsPaneVoc', other: 'emsOsPaneOther' }[tab];
+    const pane = document.getElementById(paneId);
+    if (pane) pane.classList.add('active');
+}
+
+function emsBuildVocStagFields() {
+    const grid = document.getElementById('emsOsVocStagGrid');
+    let html = '';
+    for (let i = 1; i <= 12; i++) {
+        html += `<div class="ems-os-field"><label>Stag ${i}</label><input type="number" id="emsOsVocStag${i}"></div>`;
+    }
+    grid.innerHTML = html;
+}
+
+async function emsSaveGreenPower() {
+    const month = document.getElementById('emsOsGreenMonth').value;
+    if (!month) { alert('Select a month first.'); return; }
+    const payload = {
+        month: month,
+        thirdPartyWind: document.getElementById('emsOsThirdPartyWind').value || 0,
+        thirdPartySolar: document.getElementById('emsOsThirdPartySolar').value || 0,
+        tneb: document.getElementById('emsOsTneb').value || 0,
+        dg: document.getElementById('emsOsDg').value || 0,
+        solar: document.getElementById('emsOsSolar').value || 0,
+        gcpSolar: document.getElementById('emsOsGcpSolar').value || 0,
+        iexRenewable: document.getElementById('emsOsIexRenewable').value || 0,
+        iexNonRenewable: document.getElementById('emsOsIexNonRenewable').value || 0
+    };
+    try {
+        const res = await fetch('/api/ems/othersource', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error('save failed');
+        fetchEmsOtherSourceSummary();
+        fetchEmsOtherSourceHistory();
+        closeEmsOtherSourceModal();
+    } catch (e) {
+        alert('Failed to save Other Power Source data.');
+    }
+}
+
+// History grid on the Green Power Contribution Input pane (the popup tab currently labeled
+// "Other Power Source"), newest entry first.
+async function fetchEmsOtherSourceHistory() {
+    const tbody = document.getElementById('emsOsGreenTbody');
+    const empty = document.getElementById('emsOsGreenEmpty');
+    if (!tbody) return;
+    try {
+        const res = await fetch('/api/ems/othersource/history');
+        if (!res.ok) return;
+        const rows = await res.json();
+        if (!rows.length) {
+            tbody.innerHTML = '';
+            empty.style.display = '';
+            return;
+        }
+        empty.style.display = 'none';
+        tbody.innerHTML = rows.map(r => `
+            <tr>
+                <td>${new Date(r.timestamp).toLocaleDateString('en-GB', { month: '2-digit', year: 'numeric' })}</td>
+                <td>${r.thirdPartyWind}</td>
+                <td>${r.thirdPartySolar}</td>
+                <td>${r.tneb}</td>
+                <td>${r.dg}</td>
+                <td>${r.solar}</td>
+                <td>${r.gcpSolar}</td>
+                <td>${r.iexRenewable}</td>
+                <td>${r.iexNonRenewable}</td>
+            </tr>
+        `).join('');
+    } catch (e) {
+        // API unreachable - keep showing the last known rows.
+    }
+}
+
+// Previous/current month values for the 5 "Other Sources" (GCP Solar, 3rd party Solar,
+// 3rd party Wind, IEX Renewable, Roof Top Solar -> OtherPowerSource.Solar), with each
+// source's % share of that month's total, rendered into ems-source-table.
+async function fetchEmsOtherSourceSummary() {
+    try {
+        const res = await fetch('/api/ems/othersource/summary');
+        if (!res.ok) return;
+        const data = await res.json();
+        EMS_GREEN.monthPrev = data.previous.month;
+        EMS_GREEN.monthCurr = data.current.month;
+        EMS_GREEN.co2Prev = data.previous.co2;
+        EMS_GREEN.co2Curr = data.current.co2;
+        EMS_GREEN.totalGreenPrev = data.previous.totalGreen;
+        EMS_GREEN.totalGreenCurr = data.current.totalGreen;
+        EMS_GREEN.totalUnitsPrev = data.previous.totalUnits;
+        EMS_GREEN.totalUnitsCurr = data.current.totalUnits;
+        EMS_GREEN.pctGreen = data.current.pctGreen;
+        const bySourceKey = {
+            'GCP Solar': ['gcpSolar', 'pctGcpSolar'],
+            '3rd party Solar': ['thirdPartySolar', 'pctThirdPartySolar'],
+            '3rd party Wind': ['thirdPartyWind', 'pctThirdPartyWind'],
+            'IEX Renewable': ['iexRenewable', 'pctIexRenewable'],
+            'Roof Top Solar': ['solar', 'pctSolar']
+        };
+        EMS_SOURCES.forEach(s => {
+            const [valKey, pctKey] = bySourceKey[s.name] || [];
+            if (!valKey) return;
+            s.prev = data.previous[valKey];
+            s.prevPct = data.previous[pctKey];
+            s.curr = data.current[valKey];
+            s.currPct = data.current[pctKey];
+        });
+        if (document.getElementById('emsSourceTableBody')) renderEmsRenewable();
+    } catch (e) {
+        // API unreachable - keep showing the last known values.
+    }
+}
+
+function emsSaveVoc() {
+    const payload = {
+        totalStation: document.getElementById('emsOsVocTotalStation').value,
+        liveStation: document.getElementById('emsOsVocLiveStation').value,
+        actualStatus: document.getElementById('emsOsVocActualStatus').value,
+        stag: Array.from({ length: 12 }, (_, i) => document.getElementById('emsOsVocStag' + (i + 1)).value)
+    };
+    console.log('VOC Inputs (backend pending):', payload);
+}
+
+function emsSaveOtherPower() {
+    const payload = {
+        month: document.getElementById('emsOsOtherMonth').value,
+        graphVal1: document.getElementById('emsOsGraphVal1').value,
+        graphVal2: document.getElementById('emsOsGraphVal2').value,
+        graphVal3: document.getElementById('emsOsGraphVal3').value,
+        maxDemand: document.getElementById('emsOsMaxDemand').value
+    };
+    console.log('Green Power Contribution Input (backend pending):', payload);
 }
 
 function emsIconSvg(kind) {
@@ -1286,12 +1508,47 @@ function emsValueLabelPlugin(color) {
     };
 }
 
+// Draws each donut slice's source name directly on the slice (at its mid-angle/mid-radius),
+// so identifying a slice doesn't require hovering for the tooltip. Skipped for 0%-value
+// slices (no visible arc to label) and for slices too thin to fit the text without
+// overflowing into a neighboring slice.
+function emsDonutLabelPlugin() {
+    return {
+        id: 'emsDonutLabels',
+        afterDatasetsDraw(chart) {
+            const ctx = chart.ctx;
+            const meta = chart.getDatasetMeta(0);
+            const data = chart.data.datasets[0].data;
+            const labels = chart.data.labels;
+            meta.data.forEach((arc, i) => {
+                if (!data[i]) return;
+                const props = arc.getProps(['startAngle', 'endAngle', 'innerRadius', 'outerRadius', 'x', 'y'], true);
+                const sweep = props.endAngle - props.startAngle;
+                const midRadius = (props.innerRadius + props.outerRadius) / 2;
+                if (sweep * midRadius < 24) return; // arc too thin for legible text
+                const midAngle = (props.startAngle + props.endAngle) / 2;
+                const lx = props.x + Math.cos(midAngle) * midRadius;
+                const ly = props.y + Math.sin(midAngle) * midRadius;
+                ctx.save();
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 10px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.shadowColor = 'rgba(0,0,0,0.6)';
+                ctx.shadowBlur = 3;
+                ctx.fillText(labels[i], lx, ly);
+                ctx.restore();
+            });
+        }
+    };
+}
+
 function renderEmsRenewable() {
     document.getElementById('emsMonthToggle').textContent = `${EMS_GREEN.monthPrev} | ${EMS_GREEN.monthCurr}`;
     document.getElementById('emsPctGreen').textContent = EMS_GREEN.pctGreen + '%';
-    document.getElementById('emsCo2').innerHTML = `${EMS_GREEN.co2} <span class="unit">Tons</span> | <span class="${emsValClass(EMS_GREEN.co2Prev)}">${EMS_GREEN.co2Prev}</span> <span class="unit">Tons</span>`;
-    document.getElementById('emsTotalGreen').innerHTML = `Total Green Power : <b>${EMS_GREEN.totalGreenPrev.toFixed(2)} Lakhs kWh</b> | <b class="${emsValClass(EMS_GREEN.totalGreenCurr)}">${EMS_GREEN.totalGreenCurr} kWh</b>`;
-    document.getElementById('emsTotalUnits').innerHTML = `Total Units : <b>${EMS_GREEN.totalUnitsPrev.toFixed(2)} Lakhs kWh</b> | <b class="${emsValClass(EMS_GREEN.totalUnitsCurr)}">${EMS_GREEN.totalUnitsCurr} kWh</b>`;
+    document.getElementById('emsCo2').innerHTML = `${EMS_GREEN.co2Prev} <span class="unit">Tons</span> | <span class="${emsValClass(EMS_GREEN.co2Curr)}">${EMS_GREEN.co2Curr}</span> <span class="unit">Tons</span>`;
+    document.getElementById('emsTotalGreen').innerHTML = `Total Green Power : <b>${EMS_GREEN.totalGreenPrev.toFixed(2)} Lakhs kWh</b> | <b class="${emsValClass(EMS_GREEN.totalGreenCurr)}">${EMS_GREEN.totalGreenCurr.toFixed(2)} Lakhs kWh</b>`;
+    document.getElementById('emsTotalUnits').innerHTML = `Total Units : <b>${EMS_GREEN.totalUnitsPrev.toFixed(2)} Lakhs kWh</b> | <b class="${emsValClass(EMS_GREEN.totalUnitsCurr)}">${EMS_GREEN.totalUnitsCurr.toFixed(2)} Lakhs kWh</b>`;
 
     document.getElementById('emsSourceTableBody').innerHTML = EMS_SOURCES.map(s => `
         <tr>
@@ -1303,8 +1560,9 @@ function renderEmsRenewable() {
         </tr>
     `).join('');
     const footerPct = document.getElementById('emsSourceFooterPct');
-    footerPct.textContent = '0 %';
-    footerPct.className = emsValClass(0);
+    const totalCurrPct = EMS_SOURCES.reduce((sum, s) => sum + s.currPct, 0);
+    footerPct.textContent = totalCurrPct + ' %';
+    footerPct.className = emsValClass(totalCurrPct);
 
     document.getElementById('emsTotalStation').textContent = EMS_VOC.totalStation;
     document.getElementById('emsLiveStation').textContent = EMS_VOC.liveStation;
@@ -1331,12 +1589,14 @@ function emsRenderCharts() {
     const gridColor = isLightMode ? '#e5e5ea' : '#1a1a1a';
     const labelColor = isLightMode ? '#1d1d1f' : '#e5e7eb';
 
+    const emsDonutColors = { 'GCP Solar': '#a855f7', '3rd party Solar': '#3b82f6', '3rd party Wind': '#60a5fa', 'IEX Renewable': '#1e3a8a', 'Roof Top Solar': '#22c55e' };
     emsCharts.donut = new Chart(document.getElementById('emsDonutChart'), {
         type: 'doughnut',
         data: {
-            labels: ['GCP Solar', '3rd party Solar', 'IEX Renewable', 'Roof Top Solar'],
-            datasets: [{ data: [19, 34, 44, 3], backgroundColor: ['#a855f7', '#3b82f6', '#1e3a8a', '#22c55e'], borderWidth: 0 }]
+            labels: EMS_SOURCES.map(s => s.name),
+            datasets: [{ data: EMS_SOURCES.map(s => s.currPct), backgroundColor: EMS_SOURCES.map(s => emsDonutColors[s.name]), borderWidth: 0 }]
         },
+        plugins: [emsDonutLabelPlugin()],
         options: {
             cutout: '55%',
             maintainAspectRatio: false,

@@ -28,6 +28,12 @@ builder.Services.AddSingleton<GasLeakAlertMonitor>();
 builder.Services.AddSingleton<GasLeakMqttBackgroundService>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<GasLeakMqttBackgroundService>());
 
+// EMS Renewable - solar live/today/yesterday panel
+builder.Services.AddSingleton<EmsSolarStateStore>();
+builder.Services.AddSingleton<EmsSolarDataRepository>();
+builder.Services.AddHostedService<EmsSolarMqttBackgroundService>();
+builder.Services.AddSingleton<EmsOtherPowerSourceRepository>();
+
 // Enable CORS
 builder.Services.AddCors(options =>
 {
