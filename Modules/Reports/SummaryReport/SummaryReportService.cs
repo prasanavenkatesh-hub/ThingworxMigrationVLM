@@ -37,7 +37,7 @@ public class SummaryReportService
 
         // Shop-floor data changes every few seconds; a short cache stops auto-refreshing TVs and
         // several viewers from each re-running the same month-long query.
-        var cacheKey = $"summary:{line}:{stage}:{startDate:yyyyMMdd}:{endDate:yyyyMMdd}";
+        var cacheKey = $"summary:{line}:{stage}:{startDate:yyyyMMddHHmm}:{endDate:yyyyMMddHHmm}";
         if (_cache.TryGetValue(cacheKey, out SummaryReportData? cached) && cached != null)
         {
             return cached;
@@ -47,11 +47,11 @@ public class SummaryReportService
 
         using (var connection = new SqlConnection(_configuration.GetConnectionString($"Summary{line}Connection") ?? ""))
         {
-            // Production days, inclusive; the proc turns them into the 00:15 -> 00:15 window.
+            // Date-time range: the proc reads rows with ts > @StartDate and ts <= @EndDate.
             var parameters = new DynamicParameters();
             parameters.Add("@Stage", stage);
-            parameters.Add("@StartDate", startDate.Date, DbType.Date);
-            parameters.Add("@EndDate", endDate.Date, DbType.Date);
+            parameters.Add("@StartDate", startDate, DbType.DateTime);
+            parameters.Add("@EndDate", endDate, DbType.DateTime);
 
             using var grid = await connection.QueryMultipleAsync(
                 "dbo.usp_GetSummaryReport",

@@ -8,14 +8,14 @@
     <link rel="stylesheet" href="css/fonts.css">
     <link rel="icon" type="image/png" href="assets/logo-small.png">
     <!-- Shared shell styles, then one stylesheet per module (css/dashboards, css/reports) -->
-    <link rel="stylesheet" href="css/style.v2.css?v=4">
+    <link rel="stylesheet" href="css/style.v2.css?v=5">
     <link rel="stylesheet" href="css/extra_styles.css?v=1.1">
     <link rel="stylesheet" href="css/dashboards/fire-hydrant.css?v=1">
     <link rel="stylesheet" href="css/dashboards/gas-leak.css?v=1">
     <link rel="stylesheet" href="css/dashboards/ems-renewable.css?v=2">
     <link rel="stylesheet" href="css/dashboards/eb-rtm.css?v=1">
     <link rel="stylesheet" href="css/reports/categorywise-rework.css?v=1">
-    <link rel="stylesheet" href="css/reports/summary-report.css?v=1">
+    <link rel="stylesheet" href="css/reports/summary-report.css?v=2">
     <script src="lib/exceljs.min.js"></script>
     <script>
         function applyTheme(theme) {
@@ -1143,119 +1143,92 @@
             <!-- Summary Report (EA01 / EA02 - Leak, PDI, Testing) -->
             <div id="tab-summary-report" class="tab-pane">
                 <div class="sr" id="sr">
-                    <div class="sr-banner" role="banner">
-                        <img src="assets/royal_enfield_text.png" alt="Royal Enfield" class="sr-logo">
-                        <div class="sr-banner-title">
-                            <h2 id="srTitle">EA01 Quality Summary</h2>
-                            <span id="srSubtitle">Leak test · ML-47</span>
+                    <!-- Header like the Categorywise Rework report: title left, stage buttons right.
+                         The stage buttons apply the filters below and load that stage. -->
+                    <div class="sr-header">
+                        <div class="sr-title">
+                            <h2 id="srTitle">EA01 Summary Report</h2>
                         </div>
-                        <div class="sr-banner-meta">
-                            <span class="sr-refreshed" id="srRefreshed" title="Last refreshed">Not loaded yet</span>
-                            <label class="sr-switch" title="Reload every 60 seconds">
-                                <input type="checkbox" id="srAutoRefresh" onchange="setSrAutoRefresh(this.checked)">
-                                <span class="sr-switch-track"></span>Auto-refresh
-                            </label>
-                            <button class="sr-icon-btn" onclick="refreshSr()" title="Refresh now" aria-label="Refresh now">
-                                <span class="material-symbols-outlined">refresh</span>
-                            </button>
-                            <button class="sr-icon-btn" onclick="toggleSrKiosk()" title="TV mode - full screen, rotates Leak / PDI / Testing (Esc to exit)" aria-label="TV mode">
-                                <span class="material-symbols-outlined">tv</span>
-                            </button>
+                        <div class="sr-header-right">
+                            <div class="sr-meta">
+                                <span class="sr-refreshed" id="srRefreshed" title="Last refreshed">Not loaded yet</span>
+                                <label class="sr-switch" title="Reload every 60 seconds">
+                                    <input type="checkbox" id="srAutoRefresh" onchange="setSrAutoRefresh(this.checked)">
+                                    <span class="sr-switch-track"></span>Auto-refresh
+                                </label>
+                                <button class="sr-icon-btn" onclick="refreshSr()" title="Refresh now" aria-label="Refresh now">
+                                    <span class="material-symbols-outlined">refresh</span>
+                                </button>
+                                <button class="sr-icon-btn" onclick="toggleSrKiosk()" title="TV mode - full screen, rotates Leak / PDI / Testing (Esc to exit)" aria-label="TV mode">
+                                    <span class="material-symbols-outlined">tv</span>
+                                </button>
+                            </div>
+                            <div class="sr-stations" id="srStages">
+                                <button class="sr-station-btn active" data-stage="Leak" onclick="setSrStage('Leak')">
+                                    <span class="material-symbols-outlined">water_drop</span>Leak
+                                </button>
+                                <button class="sr-station-btn" data-stage="PDI" onclick="setSrStage('PDI')">
+                                    <span class="material-symbols-outlined">fact_check</span>PDI
+                                </button>
+                                <button class="sr-station-btn" data-stage="Testing" onclick="setSrStage('Testing')">
+                                    <span class="material-symbols-outlined">speed</span>Testing
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <div class="sr-kiosk-progress" id="srKioskProgress" hidden></div>
+                    <div class="sr-pending" id="srPending" hidden>
+                        <span class="material-symbols-outlined">touch_app</span>Filters changed - click Leak, PDI or Testing to apply
+                    </div>
 
-                    <!-- Step 1: filters (applied when a stage button is clicked, like the Categorywise Rework report) -->
-                    <section class="sr-filters" aria-label="Filters">
-                        <div class="sr-step"><span>1</span>Choose filters</div>
-                        <div class="sr-filter-grid">
-                            <div class="sr-field">
-                                <label>Line</label>
-                                <div class="sr-seg sr-seg-fill" id="srLineSeg">
-                                    <button class="active" data-value="EA01" onclick="setSrLine('EA01')">EA01</button>
-                                    <button data-value="EA02" onclick="setSrLine('EA02')">EA02</button>
-                                    <button data-value="BOTH" onclick="setSrLine('BOTH')">Both</button>
-                                </div>
-                            </div>
-                            <div class="sr-field">
-                                <label for="srStart">From</label>
-                                <input type="text" id="srStart" class="sr-input" placeholder="From date">
-                            </div>
-                            <div class="sr-field">
-                                <label for="srEnd">To</label>
-                                <input type="text" id="srEnd" class="sr-input" placeholder="To date">
-                            </div>
-                            <div class="sr-field sr-field-wide">
-                                <label>Quick range</label>
-                                <div class="sr-seg sr-seg-fill" id="srPresetSeg">
-                                    <button data-value="today" onclick="setSrPreset('today')">Today</button>
-                                    <button data-value="yesterday" onclick="setSrPreset('yesterday')">Yesterday</button>
-                                    <button data-value="month" onclick="setSrPreset('month')">This month</button>
-                                    <button data-value="lastMonth" onclick="setSrPreset('lastMonth')">Last month</button>
-                                </div>
-                            </div>
-                            <div class="sr-field">
-                                <label for="srShift">Shift</label>
-                                <select id="srShift" class="select-royal" onchange="setSrFilter('shift', this.value)">
-                                    <option value="">All shifts</option>
-                                    <option value="A">A (00:15 - 07:15)</option>
-                                    <option value="B">B (07:15 - 15:45)</option>
-                                    <option value="C">C (15:45 - 00:15)</option>
-                                </select>
-                            </div>
-                            <div class="sr-field">
-                                <label for="srModelBtn">Model</label>
-                                <div class="sr-multi" id="srModel">
-                                    <button type="button" class="sr-multi-btn" id="srModelBtn" onclick="toggleSrModelMenu()" aria-haspopup="listbox">
-                                        <span id="srModelLabel">All models</span>
-                                        <span class="material-symbols-outlined">expand_more</span>
-                                    </button>
-                                    <div class="sr-multi-menu" id="srModelMenu" hidden>
-                                        <input type="text" class="sr-input" id="srModelSearch" placeholder="Search model..." oninput="renderSrModelOptions()">
-                                        <div class="sr-multi-actions">
-                                            <button type="button" onclick="setSrModels([])">All models</button>
-                                        </div>
-                                        <div class="sr-multi-list" id="srModelList" role="listbox"></div>
+                    <div class="sr-filters">
+                        <div class="sr-field sr-field-line">
+                            <label for="srLine">Line</label>
+                            <select id="srLine" class="select-royal" onchange="setSrLine(this.value)">
+                                <option value="EA01" selected>EA01</option>
+                                <option value="EA02">EA02</option>
+                            </select>
+                        </div>
+                        <div class="sr-field sr-field-date">
+                            <label for="srStart">From</label>
+                            <input type="text" id="srStart" class="sr-input" placeholder="From date">
+                        </div>
+                        <div class="sr-field sr-field-date">
+                            <label for="srEnd">To</label>
+                            <input type="text" id="srEnd" class="sr-input" placeholder="To date">
+                        </div>
+                        <div class="sr-field">
+                            <label for="srShift">Shift</label>
+                            <select id="srShift" class="select-royal" onchange="setSrFilter('shift', this.value)">
+                                <option value="">All</option>
+                                <option value="A">A (00:15 - 07:15)</option>
+                                <option value="B">B (07:15 - 15:45)</option>
+                                <option value="C">C (15:45 - 00:15)</option>
+                            </select>
+                        </div>
+                        <div class="sr-field">
+                            <label for="srModelBtn">Model</label>
+                            <div class="sr-multi" id="srModel">
+                                <button type="button" class="sr-multi-btn" id="srModelBtn" onclick="toggleSrModelMenu()" aria-haspopup="listbox">
+                                    <span id="srModelLabel">All</span>
+                                    <span class="material-symbols-outlined">expand_more</span>
+                                </button>
+                                <div class="sr-multi-menu" id="srModelMenu" hidden>
+                                    <input type="text" class="sr-input" id="srModelSearch" placeholder="Search model..." oninput="renderSrModelOptions()">
+                                    <div class="sr-multi-actions">
+                                        <button type="button" onclick="setSrModels([])">All models</button>
                                     </div>
-                                </div>
-                            </div>
-                            <div class="sr-field">
-                                <label for="srMachine">Machine <small>Leak</small></label>
-                                <select id="srMachine" class="select-royal" onchange="setSrFilter('machine', this.value)">
-                                    <option value="">All machines</option>
-                                    <option value="M1">M1</option>
-                                    <option value="M2">M2</option>
-                                </select>
-                            </div>
-                            <div class="sr-field">
-                                <label title="Applies to PDI and Testing">Basis <small>PDI / Testing</small></label>
-                                <div class="sr-seg sr-seg-fill" id="srBasisSeg">
-                                    <button class="active" data-value="latest" onclick="setSrFilter('basis', 'latest')" title="One result per engine per day - OK if it passed at least once">Latest</button>
-                                    <button data-value="all" onclick="setSrFilter('basis', 'all')" title="Every attempt - a retested engine can count as both OK and NOK">All attempts</button>
+                                    <div class="sr-multi-list" id="srModelList" role="listbox"></div>
                                 </div>
                             </div>
                         </div>
-                    </section>
-
-                    <!-- Step 2: the stage buttons apply the filters and load that stage -->
-                    <section class="sr-bar">
-                        <div class="sr-step"><span>2</span>Choose report</div>
-                        <div class="sr-stages" id="srStages">
-                            <button class="sr-stage active" data-stage="Leak" onclick="setSrStage('Leak')">
-                                <span class="material-symbols-outlined">water_drop</span>
-                                <span class="sr-stage-text">Leak<small>Data summary</small></span>
-                            </button>
-                            <button class="sr-stage" data-stage="PDI" onclick="setSrStage('PDI')">
-                                <span class="material-symbols-outlined">fact_check</span>
-                                <span class="sr-stage-text">PDI<small>Data summary</small></span>
-                            </button>
-                            <button class="sr-stage" data-stage="Testing" onclick="setSrStage('Testing')">
-                                <span class="material-symbols-outlined">speed</span>
-                                <span class="sr-stage-text">Testing<small>Data summary</small></span>
-                            </button>
-                        </div>
-                        <div class="sr-pending" id="srPending" hidden>
-                            <span class="material-symbols-outlined">touch_app</span>Filters changed - click Leak, PDI or Testing to apply
+                        <div class="sr-field">
+                            <label for="srMachine">Machine</label>
+                            <select id="srMachine" class="select-royal" onchange="setSrFilter('machine', this.value)" title="Leak only">
+                                <option value="">All</option>
+                                <option value="M1">M1</option>
+                                <option value="M2">M2</option>
+                            </select>
                         </div>
                         <div class="sr-actions">
                             <button class="sr-btn" onclick="clearSrFilters()">
@@ -1265,7 +1238,7 @@
                                 <span class="material-symbols-outlined">download</span>Excel
                             </button>
                         </div>
-                    </section>
+                    </div>
 
                     <div class="sr-notice" id="srNotice" hidden></div>
 
@@ -2141,7 +2114,7 @@
         <script src="js/reports/qhold.js?v=1"></script>
         <script src="js/reports/cylinder-head-leak.js?v=1"></script>
         <script src="js/reports/categorywise-rework.js?v=1"></script>
-        <script src="js/reports/summary-report.js?v=1"></script>
+        <script src="js/reports/summary-report.js?v=2"></script>
 </body>
 
 </html>

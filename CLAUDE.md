@@ -74,6 +74,7 @@ Frontend:
 ## Merging a teammate's copy of the project
 Teammates sometimes develop in a full copy of the repo (e.g. `D:\RE\PowerBI_Reports`, `D:\RE\EMS_Renewable`). Merge with this procedure:
 1. Diff their copy against the **commit it was based on** (usually `HEAD`) — not against the working tree — to isolate exactly what they changed. Expect old monolithic paths (`Controllers/`, `Services/`, `Models/`, `wwwroot/js/app.js`).
+   For a **follow-up version** of a copy you already merged (e.g. `D:\RE\PowerBI_Reports_v2` after `D:\RE\PowerBI_Reports`), diff **v2 against v1**: that isolates just the new changes. Then confirm our merged files still equal v1 apart from our own later edits (e.g. the `downloadWorkbook()` helper) before replacing them, and re-apply those edits.
 2. Take **only their additions**; never copy whole shared files over ours (their `index.html`/`app.js` contain stale versions of other modules).
 3. Map their code into the module layout (folder, `<Name>Module.cs`, own JS/CSS file, config section, `SharedDataConnection`, `[{_database}]`), check for global JS name clashes, and keep their API routes unchanged.
 4. Verify: every config key/value from both sides is retained (renamed keys mapped), every config key the code reads exists, `dotnet build` passes, all screens open.

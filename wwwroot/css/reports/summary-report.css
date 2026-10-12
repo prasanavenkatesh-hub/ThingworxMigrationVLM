@@ -58,33 +58,18 @@ body.light-mode #tab-summary-report .sr-table th {
     padding-right: 4px;
 }
 
-/* ---- Banner (mirrors the Power BI "EA1 QUALITY REPORTS" header) ---- */
-.sr-banner {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    flex-wrap: wrap;
-    background: var(--sr-charcoal);
-    border-top: 3px solid var(--sr-gold);
-    border-bottom: 3px solid var(--sr-gold);
-    border-radius: 10px;
-    padding: 10px 16px;
-    color: #fff;
-}
+/* ---- Header: title + stage buttons, same look as the Categorywise Rework report ---- */
+.sr-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.sr-title h2 { margin: 0; font-size: 20px; font-weight: 700; color: var(--dark); letter-spacing: 0.2px; cursor: default; }
+.sr-header-right { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
 
-.sr-logo { height: 26px; width: auto; }
+.sr-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; color: var(--gray); }
+.sr-refreshed { font-variant-numeric: tabular-nums; }
 
-.sr-banner-title { flex: 1; min-width: 200px; }
-.sr-banner-title h2 { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: 0.6px; text-transform: uppercase; }
-.sr-banner-title span { font-size: 12px; color: rgba(255, 255, 255, 0.72); }
-
-.sr-banner-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
-.sr-refreshed { color: rgba(255, 255, 255, 0.8); font-variant-numeric: tabular-nums; }
-
-.sr-switch { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
+.sr-switch { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; color: var(--dark); }
 .sr-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
 .sr-switch-track {
-    width: 30px; height: 16px; border-radius: 999px; background: rgba(255, 255, 255, 0.25);
+    width: 30px; height: 16px; border-radius: 999px; background: var(--neutral);
     position: relative; transition: background 0.15s;
 }
 .sr-switch-track::after {
@@ -93,48 +78,54 @@ body.light-mode #tab-summary-report .sr-table th {
 }
 .sr-switch input:checked + .sr-switch-track { background: var(--sr-gold); }
 .sr-switch input:checked + .sr-switch-track::after { transform: translateX(14px); }
-.sr-switch input:focus-visible + .sr-switch-track { outline: 2px solid #fff; outline-offset: 2px; }
+.sr-switch input:focus-visible + .sr-switch-track { outline: 2px solid var(--sr-gold); outline-offset: 2px; }
 
 .sr-icon-btn {
     display: inline-flex; align-items: center; justify-content: center;
     width: 32px; height: 32px; border-radius: 7px; cursor: pointer;
-    border: 1px solid rgba(255, 255, 255, 0.25); background: transparent; color: #fff;
+    border: 1px solid var(--neutral); background: var(--white); color: var(--dark);
 }
-.sr-icon-btn:hover { border-color: var(--sr-gold); color: var(--sr-gold); }
+.sr-icon-btn:hover { border-color: var(--sr-gold); color: var(--sr-gold-text); }
 .sr-icon-btn .material-symbols-outlined { font-size: 19px; }
 
-/* ---- Step labels ("1 Choose filters", "2 Choose report") ---- */
-.sr-step {
-    display: flex; align-items: center; gap: 8px; flex: 0 0 auto;
-    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--gray);
+.sr-stations {
+    display: inline-flex; gap: 4px; padding: 4px; flex-wrap: wrap;
+    background: var(--white); border: 1px solid var(--neutral); border-radius: 10px;
 }
-.sr-step span {
-    display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%;
-    background: var(--sr-gold-soft); color: var(--sr-gold-text); font-size: 11px;
+.sr-station-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    border: none; background: transparent; color: var(--gray);
+    font: inherit; font-size: 13px; font-weight: 600;
+    padding: 7px 14px; border-radius: 7px; cursor: pointer;
+    transition: background 0.15s, color 0.15s;
 }
+.sr-station-btn .material-symbols-outlined { font-size: 18px; }
+.sr-station-btn:hover { color: var(--dark); background: var(--sr-gold-soft); }
+.sr-station-btn.active { background: var(--sr-gold); color: #1a1a1a; }
+/* Unapplied filter changes: pulse the stage buttons until one is clicked. */
+.sr-stations.is-pending { animation: sr-pulse 1.6s ease-in-out infinite; }
+@keyframes sr-pulse { 50% { box-shadow: 0 0 0 4px var(--sr-gold-soft); } }
 
-/* ---- Filter card: one row on wide screens, wraps to a tidy grid below ---- */
+.sr-pending { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--sr-gold-text); justify-content: flex-end; }
+.sr-pending .material-symbols-outlined { font-size: 18px; }
+
+/* ---- Filter bar: one row of labelled fields, like the Categorywise Rework report ---- */
 .sr-filters {
-    display: flex; flex-direction: column; gap: 10px;
+    display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 12px;
     background: var(--white); border: 1px solid var(--neutral); border-radius: 10px; padding: 12px 14px;
 }
-.sr-filter-grid {
-    display: grid; gap: 10px 12px; align-items: end;
-    grid-template-columns: repeat(auto-fill, minmax(136px, 1fr));
-}
-.sr-filter-grid .sr-field-wide { grid-column: span 2; }
-.sr-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.sr-field { display: flex; flex-direction: column; gap: 4px; min-width: 120px; flex: 1 1 130px; max-width: 210px; }
+.sr-field.sr-field-line { flex: 0 0 110px; min-width: 110px; }
+.sr-field.sr-field-date { flex: 0 1 185px; min-width: 170px; max-width: 200px; }
 .sr-field label {
     font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--gray);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.sr-field label small { text-transform: none; letter-spacing: 0; font-weight: 500; opacity: 0.75; margin-left: 4px; }
 
 .sr-field select,
 .sr-field input.sr-input,
 .sr-multi-btn {
-    width: 100%; min-width: 0; box-sizing: border-box; height: 36px;
-    padding: 6px 28px 6px 10px; font-size: 13px; border-radius: 7px;
+    width: 100%; min-width: 0; box-sizing: border-box; height: 34px;
+    padding: 6px 28px 6px 10px; font-size: 13px; border-radius: 6px;
 }
 .sr input.sr-input {
     background: var(--background); color: var(--dark); border: 1px solid var(--neutral); padding-right: 10px; outline: none;
@@ -145,8 +136,8 @@ body.light-mode #tab-summary-report .sr-table th {
 .sr-field.is-filtered select,
 .sr-field.is-filtered .sr-multi-btn { border-color: var(--sr-gold); }
 
-/* ---- Segmented controls ---- */
-.sr-seg { display: inline-flex; border: 1px solid var(--neutral); border-radius: 7px; overflow: hidden; background: var(--background); }
+/* ---- Segmented controls (chart / table view toggles) ---- */
+.sr-seg { display: inline-flex; border: 1px solid var(--neutral); border-radius: 7px; overflow: hidden; background: var(--white); }
 .sr-seg button {
     border: none; background: transparent; color: var(--gray);
     font: inherit; font-size: 12px; font-weight: 600; padding: 6px 11px; cursor: pointer; white-space: nowrap;
@@ -154,36 +145,6 @@ body.light-mode #tab-summary-report .sr-table th {
 .sr-seg button + button { border-left: 1px solid var(--neutral); }
 .sr-seg button:hover { color: var(--dark); }
 .sr-seg button.active { background: var(--sr-gold-soft); color: var(--sr-gold-text); }
-.sr-card-head .sr-seg { background: var(--white); }
-.sr-seg-fill { display: flex; height: 36px; }
-.sr-seg-fill button { flex: 1; padding: 0 8px; }
-
-/* ---- Stage row: the stage buttons apply the filters ---- */
-.sr-bar {
-    display: flex; align-items: center; gap: 12px 16px; flex-wrap: wrap;
-    background: var(--white); border: 1px solid var(--neutral); border-radius: 10px; padding: 10px 14px;
-}
-.sr-stages { display: flex; gap: 8px; flex-wrap: wrap; }
-.sr-stage {
-    display: inline-flex; align-items: center; gap: 10px;
-    min-width: 160px; padding: 9px 18px;
-    border-radius: 9px; border: 1px solid var(--neutral);
-    background: var(--background); color: var(--dark);
-    font: inherit; cursor: pointer; text-align: left;
-    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
-}
-.sr-stage .material-symbols-outlined { font-size: 22px; color: var(--gray); }
-.sr-stage-text { display: flex; flex-direction: column; font-size: 15px; font-weight: 800; letter-spacing: 0.3px; }
-.sr-stage-text small { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--gray); }
-.sr-stage:hover { border-color: var(--sr-gold); }
-.sr-stage.active { background: var(--sr-gold); border-color: var(--sr-gold); color: #1a1a1a; }
-.sr-stage.active .material-symbols-outlined,
-.sr-stage.active small { color: rgba(0, 0, 0, 0.62); }
-.sr-stages.is-pending .sr-stage { box-shadow: 0 0 0 2px var(--sr-gold-soft); animation: sr-pulse 1.6s ease-in-out infinite; }
-@keyframes sr-pulse { 50% { box-shadow: 0 0 0 4px var(--sr-gold-soft); } }
-
-.sr-pending { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--sr-gold-text); }
-.sr-pending .material-symbols-outlined { font-size: 18px; }
 
 .sr-actions { display: flex; gap: 8px; margin-left: auto; flex-wrap: wrap; }
 
@@ -354,7 +315,7 @@ body.sr-kiosk .sr-kiosk-progress { animation: sr-progress var(--sr-rotate, 30s) 
     #tab-summary-report { padding: 12px; }
     .sr-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .sr-kpi-value { font-size: 22px; }
-    .sr-stage { min-width: 0; flex: 1; }
+    .sr-station-btn { flex: 1; justify-content: center; }
     .sr-actions { margin-left: 0; }
     .sr-field { max-width: none; }
 }

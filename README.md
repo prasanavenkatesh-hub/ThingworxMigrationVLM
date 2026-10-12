@@ -42,7 +42,7 @@ wwwroot/
   js/core.js                       switchTab, logout, header (version, MQTT pill, line dropdown), shared helpers - loaded first
   js/dashboards/                   fire-hydrant.js, gas-leak.js, ems-renewable.js, eb-rtm.js
   js/reports/                      biometric.js, main-line.js, poke-yoke.js, qhold.js, cylinder-head-leak.js, categorywise-rework.js, summary-report.js
-  css/style.v2.css                 Shared shell styles (also used by login.html)
+  css/style.v2.css                 Shared shell styles (also used by login.html); `color-scheme` on body follows the theme so native dropdown lists / pickers aren’t white in dark mode
   css/dashboards/, css/reports/    One stylesheet per module
 ```
 
@@ -186,8 +186,8 @@ Four reports were ported from Power BI by a separate team member and merged in a
 * **Summary Report** (`#tab-summary-report`, `summary-report.js`, `Modules/Reports/SummaryReport/`):
    * `dbo.usp_GetSummaryReport` (stage passed as `@Stage` = Leak / PDI / Testing) in each line's database: `REJILINE` (`SummaryEA01Connection`) and `RE_Vallam_J1EA2_Mainline_DB` (`SummaryEA02Connection`). Returns several result sets (Daily, Hourly, Latest, Rework, Range); EA02 has no monthly Range set.
    * Web port of the EA-1 / EA-2 Summary Report Power BI files: every quantity is `COUNT(DISTINCT engine)` within its group and the page sums groups like the DAX measures. Total = OK + NOK; Bypassed / NA / Empty appear only in the Leak status panel. Hours are 27 buckets in production order, split at the 00:15 day change and the 07:15 / 15:45 shift changes.
-   * Filters (apply on change and are kept in the page URL, so a view can be shared as a link, e.g. `?report=summary&...`): Line (EA01 / EA02 / Both), From/To with quick ranges (Today, Yesterday, This month, Last month), Shift, Model (multi-select), Machine (Leak), Basis for PDI / Testing (**Latest** = one row per engine per day, OK wins; or **All attempts**). Charts: production trend (Day / Shift / Hour), PPM, OK vs NOK, hourly matrix. Excel export.
-   * Range limited to **93 days** (API and page). Server caches each result for **60 s** (`IMemoryCache`) so auto-refreshing screens don't re-run the query; the page can auto-refresh every 60 s and has a full-screen **kiosk** mode that rotates views every 30 s (for shop-floor TVs). `?sample=1` previews with generated data. If the procedure is missing in a line's database the API returns **503** with a clear message.
+   * Layout (v2, same style as the Categorywise Rework report): title "EA01 Summary Report" on the left (hover shows the stage and range); Leak / PDI / Testing stage buttons on the right. Filters: **Line** dropdown (EA01 / EA02), **From / To date-times** (flatpickr with time, default = current production day 00:15 -> 00:15; the procedure reads rows **after From up to and including To**, and the table/chart columns are the production days that range covers - a record at or before 00:15 belongs to the previous day), Shift, Model (multi-select), Machine (Leak). Changing a filter shows "Filters changed - click Leak, PDI or Testing to apply"; clicking a stage button applies them and loads that stage. PDI / Testing always use the latest result per engine per day (OK wins). Applied filters are kept in the page URL so a view can be shared as a link (`?report=summary&line=...&from=yyyy-mm-ddTHH:mm&to=...`; older links with plain `yyyy-mm-dd` days still open, read as 00:15 on the first day to 00:15 after the last). Charts: production trend (Day / Shift / Hour), PPM, OK vs NOK, hourly matrix. KPI deltas compare with the same length of time immediately before From. Excel export.
+   * Range limited to **93 days** (API and page); From must be before To. Server caches each result for **60 s** (`IMemoryCache`) so auto-refreshing screens don't re-run the query; the page can auto-refresh every 60 s and has a full-screen **kiosk** mode that rotates views every 30 s (for shop-floor TVs). `?sample=1` previews with generated data. If the procedure is missing in a line's database the API returns **503** with a clear message.
    * Note: the header comment in `summary-report.js` mentions `usp_GetSummaryReportLeak / PDI / Testing`; the backend actually calls the single `dbo.usp_GetSummaryReport` with `@Stage`.
 
 ---
@@ -247,7 +247,7 @@ All read-only `GET`s; each calls one stored procedure (see "Reports ported from 
 * `GET /api/reports/qhold/data?mode=Overall|Distinct|Duplicate&startDate=&endDate=&model=&engineNumber=&qHoldStation=&result=&category=&rejectionDetails=&reworkDetails=&shift=` — `QHoldReportController`
 * `GET /api/reports/cylinder-head-leak/data?startDate=&endDate=&plant=&assemblyLine=&shift=` — `CylinderHeadLeakReportController`
 * `GET /api/reports/categorywise-rework/data?line=EA01|EA02&startDate=&endDate=&station=` — `CategorywiseReworkReportController` (`400` for any other line)
-* `GET /api/reports/summary/data?line=EA01|EA02&stage=Leak|PDI|Testing&startDate=yyyy-MM-dd&endDate=yyyy-MM-dd` — `SummaryReportController` (`400` for bad line/stage/dates or a range over 93 days; `503` if the procedure doesn't exist yet)
+* `GET /api/reports/summary/data?line=EA01|EA02&stage=Leak|PDI|Testing&startDate=<date-time>&endDate=<date-time>` (From exclusive, To inclusive; passed to the proc as `DateTime`) — `SummaryReportController` (`400` for bad line/stage/date-times, From not before To, or a range over 93 days; `503` if the procedure doesn't exist yet)
 
 ### `EmsController.cs` (`/api/ems`)
 * `GET /api/ems/solar/status` — Live kW (MQTT) and Today / Yesterday / MTD kWh (against the daily 00:15 rows in `SolarData`).

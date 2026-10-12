@@ -57,7 +57,7 @@ const srState = {
 };
 // Filter controls edit srDraft; clicking Leak / PDI / Testing copies it into srState and loads
 // (same flow as the Categorywise Rework report). View toggles (Day/Shift/Hour, metrics) apply at once.
-const SR_FILTER_KEYS = ['line', 'start', 'end', 'shift', 'models', 'machine', 'basis'];
+const SR_FILTER_KEYS = ['line', 'start', 'end', 'shift', 'models', 'machine'];
 const srDraft = {};
 const srCopyFilters = src => Object.fromEntries(SR_FILTER_KEYS.map(k => [k, Array.isArray(src[k]) ? [...src[k]] : src[k]]));
 const srCache = new Map();  // `${source}|${line}|${stage}|${start}|${end}` -> { data, at }
@@ -86,17 +86,43 @@ function srAddDays(iso, n) {
     return srIso(d);
 }
 
-// Production day now: anything up to 00:15 still belongs to yesterday.
-function srProdToday() {
-    const now = new Date();
-    const cut = new Date(now);
-    cut.setHours(0, 15, 0, 0);
-    return srIso(now <= cut ? new Date(now.getTime() - 24 * 60 * 60 * 1000) : now);
+// The From / To filters are date-times ('yyyy-mm-ddTHH:mm', local), like the Categorywise Rework
+// report; the proc returns rows from > From up to <= To, grouped by production day.
+function srDateTime(d) {
+    return `${srIso(d)}T${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
+function srParseDateTime(value) {
+    const [date, time = '00:00'] = value.split('T');
+    const [y, m, d] = date.split('-').map(Number);
+    const [hh, mm] = time.split(':').map(Number);
+    return new Date(y, m - 1, d, hh, mm);
+}
+
+// Current production day: 00:15 today (or yesterday before 00:15) to 00:15 the next day.
+function srDefaultRange() {
+    const now = new Date();
+    const start = new Date(now);
+    start.setHours(0, 15, 0, 0);
+    if (now <= start) start.setDate(start.getDate() - 1);
+    return { start: srDateTime(start), end: srDateTime(new Date(start.getTime() + 24 * 60 * 60 * 1000)) };
+}
+
+// Production day of a moment: a record at or before 00:15 belongs to the previous day.
+// The range start is exclusive, so a From of exactly 00:15 starts that same day.
+function srProdDay(value, isStart) {
+    const d = srParseDateTime(value);
+    const minutes = d.getHours() * 60 + d.getMinutes();
+    if (isStart ? minutes < 15 : minutes <= 15) d.setDate(d.getDate() - 1);
+    return srIso(d);
+}
+
+// Production days covered by the From / To range (the table and chart columns).
 function srDays(start = srState.start, end = srState.end) {
     const days = [];
-    for (let d = start; d && d <= end && days.length <= SR_MAX_DAYS; d = srAddDays(d, 1)) days.push(d);
+    if (!start || !end || start >= end) return days;
+    const last = srProdDay(end, false);
+    for (let d = srProdDay(start, true); d <= last && days.length <= SR_MAX_DAYS; d = srAddDays(d, 1)) days.push(d);
     return days;
 }
 
@@ -105,26 +131,19 @@ function srDayLabel(iso) {
 }
 
 function srRangeLabel(start = srState.start, end = srState.end) {
-    const fmt = iso => srParse(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-    return start === end ? fmt(start) : `${fmt(start)} - ${fmt(end)}`;
+    const fmt = v => srParseDateTime(v).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
+    return `${fmt(start)} - ${fmt(end)}`;
 }
 
-function srPresetRange(preset) {
-    const today = srProdToday();
-    const t = srParse(today);
-    if (preset === 'today') return { start: today, end: today };
-    if (preset === 'yesterday') { const y = srAddDays(today, -1); return { start: y, end: y }; }
-    if (preset === 'lastMonth') {
-        return { start: srIso(new Date(t.getFullYear(), t.getMonth() - 1, 1)), end: srIso(new Date(t.getFullYear(), t.getMonth(), 0)) };
-    }
-    return { start: srIso(new Date(t.getFullYear(), t.getMonth(), 1)), end: today };   // 'month'
+function srRangeHours(start = srState.start, end = srState.end) {
+    return (srParseDateTime(end) - srParseDateTime(start)) / 3600000;
 }
 
-// Same number of days, immediately before the selected range (for KPI deltas).
+// Same length of time, immediately before the selected range (for KPI deltas).
 function srPrevRange() {
-    const n = srDays().length;
-    const end = srAddDays(srState.start, -1);
-    return { start: srAddDays(end, -(n - 1)), end };
+    const start = srParseDateTime(srState.start);
+    const length = srParseDateTime(srState.end) - start;
+    return { start: srDateTime(new Date(start.getTime() - length)), end: srState.start };
 }
 
 // ---- Numbers ----
@@ -318,32 +337,22 @@ function leaveSrTab() {
 
 function initSr() {
     srInitialised = true;
-    const range = srPresetRange('month');
-    srState.start = range.start;
-    srState.end = range.end;
+    Object.assign(srState, srDefaultRange());
     srReadUrl();
     Object.assign(srDraft, srCopyFilters(srState));
     try { srAutoRefresh = localStorage.getItem('srAutoRefresh') === '1'; } catch (e) { srAutoRefresh = false; }
 
     if (typeof flatpickr !== 'undefined') {
-        const config = { dateFormat: 'Y-m-d', altInput: true, altFormat: 'd M Y', allowInput: false };
-        flatpickr(document.getElementById('srStart'), {
-            ...config, defaultDate: srDraft.start,
-            onChange: (dates, str) => { if (str) srSetRange(str, srDraft.end < str ? str : srDraft.end); }
-        });
-        flatpickr(document.getElementById('srEnd'), {
-            ...config, defaultDate: srDraft.end,
-            onChange: (dates, str) => { if (str) srSetRange(srDraft.start > str ? str : srDraft.start, str); }
-        });
+        // Same picker setup as the Categorywise Rework / QHold reports.
+        const config = { enableTime: true, dateFormat: 'Y-m-d\\TH:i', altInput: true, altFormat: 'd M Y, h:i K', time_24hr: false };
+        flatpickr(document.getElementById('srStart'), { ...config, defaultDate: srDraft.start, onChange: (_, str) => { if (str) srSetDraft({ start: str }); } });
+        flatpickr(document.getElementById('srEnd'), { ...config, defaultDate: srDraft.end, onChange: (_, str) => { if (str) srSetDraft({ end: str }); } });
     } else {
-        // No date picker library: plain date inputs still work.
+        // No date picker library: plain date-time inputs still work.
         ['srStart', 'srEnd'].forEach(id => {
             const input = document.getElementById(id);
-            input.type = 'date';
-            input.addEventListener('change', () => {
-                const s = document.getElementById('srStart').value, e = document.getElementById('srEnd').value;
-                if (s && e) srSetRange(s <= e ? s : e, s <= e ? e : s);
-            });
+            input.type = 'datetime-local';
+            input.addEventListener('change', () => { if (input.value) srSetDraft({ [id === 'srStart' ? 'start' : 'end']: input.value }); });
         });
     }
 
@@ -363,16 +372,19 @@ function initSr() {
 function srReadUrl() {
     const p = new URLSearchParams(window.location.search);
     if (p.get('report') !== 'summary') return;
-    const iso = /^\d{4}-\d{2}-\d{2}$/;
-    if (['EA01', 'EA02', 'BOTH'].includes(p.get('line'))) srState.line = p.get('line');
+    if (SR_LINES.includes(p.get('line'))) srState.line = p.get('line');
     if (SR_STAGES.includes(p.get('stage'))) srState.stage = p.get('stage');
-    if (iso.test(p.get('from') || '') && iso.test(p.get('to') || '') && p.get('from') <= p.get('to')) {
-        srState.start = p.get('from');
-        srState.end = p.get('to');
+    // from/to are date-times; older links carried production days (yyyy-mm-dd) - read those as
+    // 00:15 on the first day to 00:15 after the last day.
+    const dateTime = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/, dateOnly = /^\d{4}-\d{2}-\d{2}$/;
+    let from = p.get('from') || '', to = p.get('to') || '';
+    if (dateOnly.test(from) && dateOnly.test(to)) { from = `${from}T00:15`; to = `${srAddDays(to, 1)}T00:15`; }
+    if (dateTime.test(from) && dateTime.test(to) && from < to) {
+        srState.start = from;
+        srState.end = to;
     }
     if (SR_SHIFTS.includes(p.get('shift'))) srState.shift = p.get('shift');
     if (['M1', 'M2'].includes(p.get('machine'))) srState.machine = p.get('machine');
-    if (p.get('basis') === 'all') srState.basis = 'all';
     if (p.get('models')) srState.models = p.get('models').split(',').filter(Boolean);
     if (p.get('sample') === '1') srSample = true;
 }
@@ -383,7 +395,6 @@ function srWriteUrl() {
     if (srState.shift) p.set('shift', srState.shift);
     if (srState.models.length) p.set('models', srState.models.join(','));
     if (srState.machine) p.set('machine', srState.machine);
-    if (srState.basis !== 'latest') p.set('basis', srState.basis);
     history.replaceState(null, '', `${window.location.pathname}?${p.toString()}`);
 }
 
@@ -391,18 +402,12 @@ function srWriteUrl() {
 // toggles and panels show srState (what is on screen).
 function srSyncControls() {
     const setSeg = (id, value) => document.querySelectorAll(`#${id} button`).forEach(b => b.classList.toggle('active', b.dataset.value === value));
-    setSeg('srLineSeg', srDraft.line);
-    setSeg('srBasisSeg', srDraft.basis);
+    document.getElementById('srLine').value = srDraft.line;
     setSeg('srTrendSeg', srState.trend);
     setSeg('srMatrixSeg', srState.matrixMetric);
     setSeg('srHourSeg', srState.hourMetric);
-    const preset = ['today', 'yesterday', 'month', 'lastMonth'].find(k => {
-        const r = srPresetRange(k);
-        return r.start === srDraft.start && r.end === srDraft.end;
-    });
-    setSeg('srPresetSeg', preset || '');
 
-    document.querySelectorAll('#srStages .sr-stage').forEach(b => {
+    document.querySelectorAll('#srStages .sr-station-btn').forEach(b => {
         b.classList.toggle('active', b.dataset.stage === srState.stage);
     });
 
@@ -439,7 +444,11 @@ function srNotice(kind, html) {
 
 async function loadSr(force = false) {
     if (!srState.start || !srState.end) return;
-    if (srDays().length > SR_MAX_DAYS) {
+    if (srState.start >= srState.end) {
+        srNotice('error', 'From must be before To.');
+        return;
+    }
+    if (srRangeHours() > SR_MAX_DAYS * 24) {
         srNotice('error', `Please choose ${SR_MAX_DAYS} days or fewer.`);
         return;
     }
@@ -504,8 +513,6 @@ function srSetDraft(changes) {
 }
 
 function setSrLine(line) { srSetDraft({ line }); }
-function srSetRange(start, end) { srSetDraft({ start, end }); }
-function setSrPreset(preset) { srSetDraft(srPresetRange(preset)); }
 function setSrFilter(key, value) { srSetDraft({ [key]: value }); }
 
 function setSrTrend(mode) { srState.trend = mode; srSyncControls(); renderSr(); }
@@ -525,8 +532,7 @@ function setSrSample(on) {
 
 // Clear resets the filters (keeping the line) and reloads the current stage, like the Rework report.
 function clearSrFilters() {
-    const r = srPresetRange('month');
-    Object.assign(srDraft, { start: r.start, end: r.end, shift: '', models: [], machine: '', basis: 'latest' });
+    Object.assign(srDraft, srDefaultRange(), { shift: '', models: [], machine: '' });
     setSrStage(srState.stage);
 }
 
@@ -595,7 +601,7 @@ function renderSrModelLabel(models) {
     const label = document.getElementById('srModelLabel');
     const btn = document.getElementById('srModelBtn');
     const selected = srDraft.models || [];
-    label.textContent = !selected.length ? 'All models'
+    label.textContent = !selected.length ? 'All'
         : selected.length === 1 ? selected[0] : `${selected.length} models`;
     btn.title = models.length && models.every(m => !m.data.hasModels) ? 'This stage has no model data (EA01 PDI)' : '';
     btn.closest('.sr-field').classList.toggle('is-filtered', selected.length > 0);
@@ -610,10 +616,10 @@ function renderSr() {
     }).filter(Boolean);
     srLastModels = models;
 
-    const lineText = srState.line === 'BOTH' ? 'EA01 + EA02' : srState.line;
-    document.getElementById('srTitle').textContent = `${lineText} Quality Summary`;
-    document.getElementById('srSubtitle').textContent =
-        `${SR_STAGE_LABELS[srState.stage][srState.line === 'BOTH' ? 'EA02' : srState.line]} · ${srRangeLabel()}`;
+    // Same title style as the Categorywise Rework report; the stage and range show on hover.
+    const title = document.getElementById('srTitle');
+    title.textContent = `${srState.line} Summary Report`;
+    title.title = `${SR_STAGE_LABELS[srState.stage][srState.line]} · ${srRangeLabel()}`;
     const stamps = models.map(m => m.data.generatedAt).filter(Boolean).sort();
     document.getElementById('srRefreshed').textContent = srSample ? 'Sample data'
         : stamps.length ? `Updated ${new Date(stamps[0]).toLocaleTimeString('en-GB')}` : 'Not loaded yet';
@@ -670,7 +676,7 @@ function renderSrKpis(models) {
         else text = srFmtPpm(Math.abs(diff));
         const arrow = Math.abs(diff) < 1e-9 ? '=' : diff > 0 ? '▲' : '▼';
         const tone = !card.better || Math.abs(diff) < 1e-9 ? '' : (diff * card.better > 0 ? ' is-good' : ' is-bad');
-        const tip = `Previous ${srDays(prev.start, prev.end).length} days (${srRangeLabel(prev.start, prev.end)}): ${card.fmt(before)}`;
+        const tip = `Previous period (${srRangeLabel(prev.start, prev.end)}): ${card.fmt(before)}`;
         return `<div class="sr-kpi-delta${tone}" title="${cwrEsc(tip)}">${arrow} ${text} vs previous period</div>`;
     };
 
@@ -1126,10 +1132,10 @@ async function exportSrToExcel() {
         const filterText = [
             `Line: ${srState.line === 'BOTH' ? 'EA01 + EA02' : srState.line}`,
             `Stage: ${srState.stage}`,
-            `Production days: ${srRangeLabel()}`,
+            `Range: ${srRangeLabel()}`,
             `Shift: ${srState.shift ? SR_SHIFT_LABELS[srState.shift] : 'All'}`,
             `Model: ${srState.models.length ? srState.models.join(', ') : 'All'}`,
-            ...(srState.stage === 'Leak' ? [`Machine: ${srState.machine || 'All'}`] : [`Basis: ${srState.basis === 'all' ? 'All attempts' : 'Latest result'}`]),
+            ...(srState.stage === 'Leak' ? [`Machine: ${srState.machine || 'All'}`] : ['Basis: Latest result per engine per day']),
             ...(srSample ? ['SAMPLE DATA - not from the database'] : [])
         ].join('   |   ');
 
@@ -1196,7 +1202,7 @@ async function exportSrToExcel() {
             addSheet('Leak Rework', ['Line', 'Production Date', 'Leak OK', 'Rework Qty', 'Rework Total', 'Rework PPM', 'Rework %'], reworkRows, [8, 16, 11, 12, 13, 12, 11]);
         }
 
-        await downloadWorkbook(workbook, `Summary_Report_${srState.line}_${srState.stage}_${srState.start}_${srState.end}.xlsx`);
+        await downloadWorkbook(workbook, `Summary_Report_${srState.line}_${srState.stage}_${srDays()[0] || ''}_${srDays().slice(-1)[0] || ''}.xlsx`);
     } catch (err) {
         console.error('Error generating excel:', err);
         alert('Error generating Excel file');

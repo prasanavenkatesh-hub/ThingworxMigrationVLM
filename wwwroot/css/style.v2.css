@@ -28,6 +28,10 @@ body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
     color: var(--dark);
     background-color: var(--background);
+    /* Native dropdown lists, date pickers and scrollbars follow the app theme. Without this the
+       browser paints the dropdown list's own background white, which shows as a white block
+       below the (dark) options - most visibly when the browser is zoomed. */
+    color-scheme: dark;
     height: 100vh;
     height: 100vh;
     overflow: hidden;
@@ -2642,6 +2646,17 @@ body.light-mode .pokeYokeSummaryStationCb {
     to { transform: rotate(360deg); }
 }
 
+
+/* Light theme: light native dropdown list with light options, so no dark or white block shows
+   in or under an open dropdown (pairs with color-scheme: dark on body for the dark theme). */
+body.light-mode {
+    color-scheme: light;
+}
+
+body.light-mode select option {
+    background: #ffffff;
+    color: #1d1d1f;
+}
 /* =========================================
    Sidebar navigation: compact spacing + scrollable menu
    With Dashboards, Reports and Reports' sub-groups all open, the menu is taller than the

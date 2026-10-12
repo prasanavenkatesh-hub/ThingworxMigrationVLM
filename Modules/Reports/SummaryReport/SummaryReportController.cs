@@ -15,7 +15,7 @@ public class SummaryReportController : ControllerBase
         _service = service;
     }
 
-    // startDate / endDate are production days (yyyy-MM-dd), inclusive.
+    // startDate / endDate are date-times (From exclusive, To inclusive), like the Categorywise Rework report.
     [HttpGet("summary/data")]
     public async Task<ActionResult<SummaryReportData>> GetSummaryReport(
         [FromQuery] string? line,
@@ -27,11 +27,11 @@ public class SummaryReportController : ControllerBase
         {
             return BadRequest("line must be EA01 or EA02 and stage must be Leak, PDI or Testing.");
         }
-        if (!DateTime.TryParse(startDate, out var sd) || !DateTime.TryParse(endDate, out var ed) || sd.Date > ed.Date)
+        if (!DateTime.TryParse(startDate, out var sd) || !DateTime.TryParse(endDate, out var ed) || sd >= ed)
         {
-            return BadRequest("startDate and endDate must be valid dates with startDate <= endDate.");
+            return BadRequest("startDate and endDate must be valid date-times with startDate before endDate.");
         }
-        if ((ed.Date - sd.Date).TotalDays > SummaryReportService.MaxRangeDays - 1)
+        if ((ed - sd).TotalDays > SummaryReportService.MaxRangeDays)
         {
             return BadRequest($"Date range is limited to {SummaryReportService.MaxRangeDays} days.");
         }
