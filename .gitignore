@@ -10,5 +10,9 @@ obj/
 # Claude Code session data
 .claude/
 
+# Personal local-only notes (not the shared CLAUDE.md) and prompt log
+CLAUDE.local.md
+PROMPTS.md
+
 # Report export scratch output (not part of the application)
 data (*).csv

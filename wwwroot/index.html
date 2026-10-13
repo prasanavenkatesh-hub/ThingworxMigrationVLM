@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="css/extra_styles.css?v=1.1">
     <link rel="stylesheet" href="css/dashboards/fire-hydrant.css?v=1">
     <link rel="stylesheet" href="css/dashboards/gas-leak.css?v=1">
-    <link rel="stylesheet" href="css/dashboards/ems-renewable.css?v=2">
+    <link rel="stylesheet" href="css/dashboards/ems-renewable.css?v=3">
     <link rel="stylesheet" href="css/dashboards/eb-rtm.css?v=1">
     <link rel="stylesheet" href="css/reports/categorywise-rework.css?v=1">
     <link rel="stylesheet" href="css/reports/summary-report.css?v=2">
@@ -1824,7 +1824,7 @@
                         <div class="ems-topbar-title">Vallam - Renewable Energy Source</div>
                         <div class="ems-topbar-right">
                             <button class="ems-othersource-btn" onclick="openEmsOtherSourceModal()">Other Source</button>
-                            <span class="ems-date-badge">31/03/2026</span>
+                            <input type="month" id="emsDateBadge" class="ems-date-badge" onchange="fetchEmsOtherSourceSummary()">
                             <span class="material-symbols-outlined">calendar_month</span>
                             <span class="material-symbols-outlined">notifications</span>
                         </div>
@@ -1899,7 +1899,7 @@
                             <div class="ems-card">
                                 <div class="ems-card-header">
                                     <span class="ems-card-title">In-House Roof Top Solar - 1 MWp</span>
-                                    <span class="ems-month-toggle">March - 2026</span>
+                                    <span class="ems-month-toggle" id="emsSolarMonthToggle"></span>
                                 </div>
                                 <div class="ems-solar-stats">
                                     <div class="ems-stat-block"><div class="ems-stat-label">Live (kW)</div><div class="ems-stat-value" id="emsLive"></div></div>
@@ -2106,7 +2106,7 @@
         <script src="js/core.js?v=2"></script>
         <script src="js/dashboards/fire-hydrant.js?v=1"></script>
         <script src="js/dashboards/gas-leak.js?v=1"></script>
-        <script src="js/dashboards/ems-renewable.js?v=2"></script>
+        <script src="js/dashboards/ems-renewable.js?v=3"></script>
         <script src="js/dashboards/eb-rtm.js?v=1"></script>
         <script src="js/reports/biometric.js?v=1"></script>
         <script src="js/reports/main-line.js?v=1"></script>

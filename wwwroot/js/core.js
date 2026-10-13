@@ -63,6 +63,7 @@ function switchTab(tabId) {
         renderEmsRenewable();
         startEmsSolarPolling();
         fetchEmsOtherSourceSummary();
+        fetchEmsContribBars();
     } else if (tabId === 'eb-rtm') {
         startEbRtmPolling();
     } else if (tabId === 'qhold') {
