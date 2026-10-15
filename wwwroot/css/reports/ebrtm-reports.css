@@ -1,0 +1,187 @@
+/* EB-RTM Reports (Reports > Energy) - port of the ThingWorx RE_EMSRTMReports_MU mashup.
+   Colours follow the mashup: orange (#f29c1c) meter / date controls and selected tab, grey tabs,
+   yellow (#F8D057) grid headers, cyan meter name. All classes are prefixed .ebr- */
+
+.ebr {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    height: 100%;
+    min-height: 0;
+    font-family: 'Inter', sans-serif;
+    color: var(--dark);
+}
+
+.ebr-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding: 4px 0;
+}
+
+.ebr-meter select {
+    min-width: 250px;
+    background: #f29c1c;
+    color: #000;
+    border: 1px solid #171a1f;
+    font-weight: 600;
+}
+
+.ebr-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--dark);
+    text-align: center;
+    flex: 1;
+}
+
+.ebr-title span {
+    color: #00ffff;
+    font-style: italic;
+}
+
+body.light-mode .ebr-title span {
+    color: #0891b2;
+}
+
+.ebr-dates {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--gray);
+}
+
+.ebr-dates input {
+    width: 110px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    border: 1px solid #171a1f;
+    background: #f29c1c;
+    color: #000;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    text-align: center;
+    cursor: pointer;
+}
+
+.ebr-tabbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.ebr-tab {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    padding: 7px 14px;
+    border: none;
+    border-radius: 8px;
+    background: rgb(49, 56, 66);
+    color: #fff;
+    cursor: pointer;
+}
+
+.ebr-tab:hover,
+.ebr-tab.active {
+    background: #f29c1c;
+    color: #000;
+}
+
+.ebr-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    border: 1px solid var(--neutral);
+    border-radius: 6px;
+    padding: 8px;
+}
+
+.ebr-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.ebr-status {
+    font-size: 12px;
+    color: var(--gray);
+}
+
+.ebr-download {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 16px;
+    border-radius: 14px;
+    border: none;
+    background: #f29c1c;
+    color: #000;
+    cursor: pointer;
+}
+
+.ebr-download:hover {
+    filter: brightness(1.1);
+}
+
+.ebr-table-wrap {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+}
+
+.ebr-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.ebr-table th {
+    position: sticky;
+    top: 0;
+    background: #f8d057;
+    color: #000;
+    text-align: left;
+    font-weight: 600;
+    padding: 9px 10px;
+    white-space: nowrap;
+}
+
+.ebr-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--neutral);
+    white-space: nowrap;
+}
+
+.ebr-table td.num {
+    font-variant-numeric: tabular-nums;
+}
+
+.ebr-table tbody tr:hover td {
+    background: rgba(242, 156, 28, 0.08);
+}
+
+.ebr-empty {
+    text-align: center;
+    color: var(--gray);
+    padding: 24px !important;
+}
+
+/* Energy Consumption values that cover only part of their shift / day (marked "*", tooltip = span). */
+.ebr-table td.partial {
+    color: #f59e0b;
+    cursor: help;
+}
+
+/* Alerts tab: long Title / Description cells wrap instead of widening the table. */
+.ebr-table td.wrap { white-space: normal; min-width: 220px; }
+
+/* Alerts tab: Priority column (derived from the ThingWorx Type, as in its alert e-mails). */
+.ebr-pri-high { color: #e53935; font-weight: 700; }
+.ebr-pri-medium { color: #f59e0b; font-weight: 700; }
+.ebr-pri-low { color: #10b981; font-weight: 700; }

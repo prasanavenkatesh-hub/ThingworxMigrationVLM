@@ -39,14 +39,16 @@ Modules/
   Reports/ReportsModule.cs    registers all report services
   Reports/LineReports/        Biometric, Main Line Cycle Time, Poke Yoke (shared ReportsService)
   Reports/QHold/ CylinderHeadLeak/ CategorywiseRework/ SummaryReport/   Power BI ports (1 stored proc each)
+  Reports/EbRtmReports/       EB-RTM Reports (ThingWorx RE_EMSRTMReports_MU port) - reads the EB-RTM logging tables
 wwwroot/
   index.html                  shell: header, sidebar, one <div id="tab-<name>" class="tab-pane"> per screen
   js/core.js                  switchTab(), logout, header (version, MQTT pill, line dropdown), shared helpers
   js/dashboards/*.js          fire-hydrant, gas-leak, ems-renewable, eb-rtm
   js/reports/*.js             biometric, main-line, poke-yoke, qhold, cylinder-head-leak,
-                              categorywise-rework, summary-report
+                              categorywise-rework, summary-report, ebrtm-reports
+  js/pokayoke/*.js            pokayoke.js (shared plant-layout renderer) + one layout file per screen (jea1-line.js)
   css/style.v2.css            shared shell styles (also used by login.html)
-  css/dashboards/*.css, css/reports/*.css   one stylesheet per module
+  css/dashboards/*.css, css/reports/*.css, css/pokayoke/*.css   one stylesheet per module
 ```
 C# namespaces are **flat and unchanged** regardless of folder: `ControlTower.Controllers`, `ControlTower.Services`, `ControlTower.Models`. Folders only group files.
 
@@ -69,7 +71,7 @@ Frontend:
 ## Adding a report
 - Backend `Modules/Reports/<Name>/`: model, `<Name>ReportService` (one stored procedure or parameterised SELECT; read-only), `<Name>ReportController` with `[Route("api/reports")]` + `[HttpGet("<name>/data")]`. Register in `ReportsModule.cs`. Connection string named `<Name>Connection`.
 - Keep the stored procedure's `CREATE` script with the project (ask the author) — today's procs exist only in their databases.
-- Frontend: pane + sidebar entry under the right Reports sub-group (Biometric / Production / Quality), `js/reports/<name>.js`, `css/reports/<name>.css`, `switchTab()` hook. Use `currentProductionDayRange()` (00:15 → 00:15) for default dates and `downloadWorkbook(workbook, filename)` for Excel export (both in `core.js`).
+- Frontend: pane + sidebar entry under the right Reports sub-group (Biometric / Production / Quality / Energy), `js/reports/<name>.js`, `css/reports/<name>.css`, `switchTab()` hook. Use `currentProductionDayRange()` (00:15 → 00:15) for default dates and `downloadWorkbook(workbook, filename)` for Excel export (both in `core.js`).
 
 ## Merging a teammate's copy of the project
 Teammates sometimes develop in a full copy of the repo (e.g. `D:\RE\PowerBI_Reports`, `D:\RE\EMS_Renewable`). Merge with this procedure:
@@ -85,7 +87,7 @@ Teammates sometimes develop in a full copy of the repo (e.g. `D:\RE\PowerBI_Repo
 |---|---|---|
 | Fire Hydrant | `[FireHydrant].dbo.Alerts`, `PumpRunningCount`, `Duration` | alert open/close/snooze, pump count change, pump run start/stop |
 | Gas Leak | `[LPGGasLeak].dbo.GasLeakAlerts`; MQTT valve command topics | alert band change/snooze; Lot 1/2 valve button |
-| EB-RTM | `[ControlTowerVLM].dbo.EbCMonitoring`, `EbCPowerFailureEvents` | one snapshot per `EbRtm:LogIntervalMinutes` slot; failure start/end |
+| EB-RTM | `[ControlTowerVLM].dbo.EbCMonitoring`, `EbCPowerFailureEvents`, `EbCAlerts` | one snapshot per `EbRtm:LogIntervalMinutes` slot; failure start/end; alert transitions (`EbRtmAlertMonitor`) |
 | EMS | `[ControlTowerVLM].dbo.SolarData`, `SolarLiveGraph`, `OtherPowerSource` | daily 00:15 baseline, hourly :15 point, "Other Source" Update |
 
 ## Open items / known issues (keep this list current)
@@ -95,6 +97,10 @@ Teammates sometimes develop in a full copy of the repo (e.g. `D:\RE\PowerBI_Repo
 - **EB-RTM gauge low limits** for Current (<20 / 20-40 A) and Active Power (<900 / 900-1800 kW) are provisional placeholders.
 - **Stored procedures** for QHold, Cylinder Head Leak, Categorywise Rework and Summary Report are not in the repo. `summary-report.js`'s header comment names `usp_GetSummaryReportLeak/PDI/Testing`, but the API calls `dbo.usp_GetSummaryReport` with `@Stage` — confirm which exists.
 - **Dashboards > Overview** (`dashboard-1`) has no page yet.
+- **PokaYoke** (prefix `pky`): JEA1 Line UI is built with **sample counts** - live data source still to be connected; JEA2 Line and JEA1 Crankshaft are placeholders (add a layout file like `jea1-line.js` and reuse `pokayoke.js`). The donut centre shows `wwwroot/assets/pky-bike.png`. Not to be confused with the existing Reports > Quality > Poke Yoke reports (the MI buttons open those).
+- **EB-RTM, multiple meters**: `EbRtm:Meters` drives the EB-RTM Reports dropdown, but the dashboard still hardcodes Source_7's tags (`EbRtmStateStore`) and `EbCMonitoring` / `EbCPowerFailureEvents` have no meter column. Adding a meter needs: a `MeterId` column in both tables, per-meter state/logging, `?meter=` on the dashboard API, and a dropdown on the dashboard.
+- **EB-RTM alerts** (`EbRtmAlertMonitor`, ported from the ThingWorx `RE_EnergyMeterRealTimeMonitoring_TS` subscriptions) need the table `[ControlTowerVLM].dbo.EbCAlerts` - script `Modules/EbRtm/Sql/EbCAlerts.sql`, to be created by the developer. The ThingWorx alert/report e-mails are not ported. Every running copy of the app on the plant network writes alerts (and the other loggers' rows): set `EbRtm:Alerts:Enabled: false` on developer machines.
+- **EB-RTM dashboard energy table** (`EbRtmEnergyCalculator`) still uses the reading at-or-before each boundary however old it is, so energy used during a logging gap lands in one shift (e.g. "A=0, B=0, C=464781"). The EB-RTM Reports only use a boundary reading logged near the boundary (otherwise the first reading inside the window) and mark incomplete values as partial; port that rule to the dashboard.
 - **Credentials** are plain text in `appsettings.json` (`factreread`, `Test`); move to user-secrets/environment variables before production.
 - `css/style.v2.css` contains two older, overlapping `@media (min-width: 769px)` sidebar blocks; the "Sidebar navigation: compact spacing + scrollable menu" block at the end of the file must stay last (it overrides their `!important` rules).
 - The four MQTT background services (Fire Hydrant, Gas Leak, EB-RTM, EMS) share near-identical connect/reconnect code; a common base class would remove the duplication.

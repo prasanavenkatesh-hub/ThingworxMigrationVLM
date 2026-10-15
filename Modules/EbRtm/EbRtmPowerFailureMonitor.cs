@@ -11,6 +11,7 @@ public class EbRtmPowerFailureMonitor
 {
     private readonly EbRtmPowerFailureRepository _repo;
     private readonly EbRtmStateStore _store;
+    private readonly EbRtmAlertMonitor _alerts;
     private readonly ILogger<EbRtmPowerFailureMonitor> _logger;
     private readonly SemaphoreSlim _gate = new(1, 1);
 
@@ -20,10 +21,11 @@ public class EbRtmPowerFailureMonitor
     private DateTime _countDate = DateTime.MinValue;
     private int _countToday;
 
-    public EbRtmPowerFailureMonitor(EbRtmPowerFailureRepository repo, EbRtmStateStore store, ILogger<EbRtmPowerFailureMonitor> logger)
+    public EbRtmPowerFailureMonitor(EbRtmPowerFailureRepository repo, EbRtmStateStore store, EbRtmAlertMonitor alerts, ILogger<EbRtmPowerFailureMonitor> logger)
     {
         _repo = repo;
         _store = store;
+        _alerts = alerts;
         _logger = logger;
     }
 
@@ -47,14 +49,17 @@ public class EbRtmPowerFailureMonitor
                 _countToday = await CountTodaySafe(now);
             }
 
+            // Each transition also raises the "EB Power Failure" / "EB Power Returns" alert (EbCAlerts).
             if (active && !_lastActive)
             {
                 await StartAsync(now);
                 _countToday++;
+                await _alerts.RaisePowerFailureAsync(true);
             }
             else if (!active && _lastActive)
             {
                 await EndAsync(now);
+                await _alerts.RaisePowerFailureAsync(false);
             }
             _lastActive = active;
 

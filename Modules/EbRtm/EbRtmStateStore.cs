@@ -29,6 +29,16 @@ public class EbRtmStateStore
         get { lock (_lock) { return _lastReceivedUtc; } }
     }
 
+    // Quality of the AvgVoltage tag in the latest payload that carried it (false = q:false or an
+    // unparseable value such as "v":""); null until it has been received. EbRtmAlertMonitor
+    // raises the "Kepware Tag Quality Lost / Retained" alerts from it (ThingWorx checkTagQuality).
+    private bool? _avgVoltageQualityGood;
+
+    public bool? AvgVoltageQualityGood
+    {
+        get { lock (_lock) { return _avgVoltageQualityGood; } }
+    }
+
     public EbRtmStateStore(IConfiguration config)
     {
         _status = new EbRtmStatus
@@ -90,8 +100,9 @@ public class EbRtmStateStore
 
             foreach (var tag in payload.Values)
             {
-                if (!tag.Q) continue;
-                if (!KepwareValueParser.TryParseDouble(tag.V, out var value)) continue;
+                var parsed = KepwareValueParser.TryParseDouble(tag.V, out var value);
+                if (tag.Id == TagAvgVoltage) _avgVoltageQualityGood = tag.Q && parsed;
+                if (!tag.Q || !parsed) continue;
 
                 // Voltage/Active Power/Max Demand/Present Demand tags publish in base units
                 // (V/W/VA) rather than the kV/kW/kVA the dashboard labels/gauges use - confirmed

@@ -6,6 +6,8 @@ namespace ControlTower.Services;
 //   QHold, CylinderHeadLeak, CategorywiseRework, SummaryReport
 //                      - ported from Power BI; each a thin wrapper over its own stored procedure
 //                        (connection strings: QHold, CylinderHeadLeak, Rework{Line}, Summary{Line})
+//   EbRtmReports       - EB-RTM Reports (port of ThingWorx RE_EMSRTMReports_MU); reads the EB-RTM
+//                        logging tables (SharedDataConnection + EbRtm:Database, meters from EbRtm:Meters)
 public static class ReportsModule
 {
     public static IServiceCollection AddReportsModule(this IServiceCollection services)
@@ -17,6 +19,7 @@ public static class ReportsModule
         services.AddScoped<CylinderHeadLeakReportService>();
         services.AddScoped<CategorywiseReworkReportService>();
         services.AddScoped<SummaryReportService>();
+        services.AddScoped<EbRtmReportService>();
         return services;
     }
 }

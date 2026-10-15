@@ -73,6 +73,10 @@ function switchTab(tabId) {
         loadCwrDefaultView();
     } else if (tabId === 'summary-report') {
         loadSrDefaultView();
+    } else if (tabId === 'ebrtm-reports') {
+        loadEbrDefaultView();
+    } else if (tabId === 'pky-jea1-line') {
+        pkyJea1Show();
     }
 }
 
