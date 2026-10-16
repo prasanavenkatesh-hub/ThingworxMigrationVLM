@@ -37,12 +37,13 @@ Modules/
     CylinderHeadLeak/              Cylinder Head Leak Rejection    -> dbo.usp_GetCylinderHeadLeakRejectionReport
     CategorywiseRework/            Categorywise Rework (EA01/EA02) -> dbo.usp_GetCategorywiseReworkReport
     SummaryReport/                 Summary Report (Leak/PDI/Testing, EA01/EA02) -> dbo.usp_GetSummaryReport
+    RejectionSummary/              Rejection Summary (Main Line / Sub Assembly) -> dbo.usp_GetRejectionSummaryReport
     EbRtmReports/                  EB-RTM Reports (energy, power failure, min/max/avg, alerts) -> EB-RTM logging tables
 wwwroot/
   index.html                       Shell: sidebar (Dashboards, PokaYoke, then Reports > Biometric / Production / Quality / Energy), one tab-pane per screen
   js/core.js                       switchTab, logout, header (version, MQTT pill, line dropdown), shared helpers - loaded first
   js/dashboards/                   fire-hydrant.js, gas-leak.js, ems-renewable.js, eb-rtm.js
-  js/reports/                      biometric.js, main-line.js, poke-yoke.js, qhold.js, cylinder-head-leak.js, categorywise-rework.js, summary-report.js, ebrtm-reports.js
+  js/reports/                      biometric.js, main-line.js, poke-yoke.js, qhold.js, cylinder-head-leak.js, categorywise-rework.js, summary-report.js, rejection-summary.js, ebrtm-reports.js
   js/pokayoke/                     pokayoke.js (shared plant-layout renderer), jea1-line.js
   css/style.v2.css                 Shared shell styles (also used by login.html); `color-scheme` on body follows the theme so native dropdown lists / pickers aren’t white in dark mode
   css/dashboards/, css/reports/    One stylesheet per module
@@ -195,6 +196,11 @@ Four reports were ported from Power BI by a separate team member and merged in a
    * Layout (v2, same style as the Categorywise Rework report): title "EA01 Summary Report" on the left (hover shows the stage and range); Leak / PDI / Testing stage buttons on the right. Filters: **Line** dropdown (EA01 / EA02), **From / To date-times** (flatpickr with time, default = current production day 00:15 -> 00:15; the procedure reads rows **after From up to and including To**, and the table/chart columns are the production days that range covers - a record at or before 00:15 belongs to the previous day), Shift, Model (multi-select), Machine (Leak). Changing a filter shows "Filters changed - click Leak, PDI or Testing to apply"; clicking a stage button applies them and loads that stage. PDI / Testing always use the latest result per engine per day (OK wins). Applied filters are kept in the page URL so a view can be shared as a link (`?report=summary&line=...&from=yyyy-mm-ddTHH:mm&to=...`; older links with plain `yyyy-mm-dd` days still open, read as 00:15 on the first day to 00:15 after the last). Charts: production trend (Day / Shift / Hour), PPM, OK vs NOK, hourly matrix. KPI deltas compare with the same length of time immediately before From. Excel export.
    * Range limited to **93 days** (API and page); From must be before To. Server caches each result for **60 s** (`IMemoryCache`) so auto-refreshing screens don't re-run the query; the page can auto-refresh every 60 s and has a full-screen **kiosk** mode that rotates views every 30 s (for shop-floor TVs). `?sample=1` previews with generated data. If the procedure is missing in a line's database the API returns **503** with a clear message.
    * Note: the header comment in `summary-report.js` mentions `usp_GetSummaryReportLeak / PDI / Testing`; the backend actually calls the single `dbo.usp_GetSummaryReport` with `@Stage`.
+* **Rejection Summary Report** (`#tab-rejection-summary`, `rejection-summary.js`, `rejection-summary.css`, `Modules/Reports/RejectionSummary/`, sidebar Reports > Quality):
+   * Port of the "ML-Rejection Summary Report EA L2" and "EA2 SA-Rejection Summary Report" Power BI files. `dbo.usp_GetRejectionSummaryReport @Section, @StartDate, @EndDate` in `RE_Vallam_J1EA2_Mainline_DB` (`RejectionSummaryEA02Connection`, `Test` login - `factreread` has no EXECUTE on it). It reads the base tables, not the old views `dbo.Rejection_Report` / `RE_Vallam_J1EA2_Rework_DB.dbo.SubAssembly_Rework_Report`.
+   * **Main Line** (`@Section = 'ML'`): `STN_data` rows with `Stn_Status = 'REJECTED'`, model from `RE_Vallam_J1EA2_Info_DB.dbo.Model_Code_Description`, rework columns from the matching `ML-Rework` row in `RE_Vallam_J1EA2_Rework_DB.dbo.Rework_DB`; one row per engine, as Power BI's Remove Duplicates on ENGINE NUMBER: the engine's latest rejection, and only if it has no later rejection after To (Power BI de-duplicated the whole table before its date filter). Checked against Power BI for 1-15 Oct 2026: Main Line 1,845 vs 1,844, Sub Assembly 2,102 = 2,102 (Power BI's From/To are whole calendar days, i.e. 00:00 to 23:59). **Sub Assembly** (`'SA'`): every `Rework_DB` row at `SA-Rework` / `CC-Rework`. Shift A/B/C from the time (00:15 / 07:15 / 15:45).
+   * Layout like the Categorywise Rework report: Main Line / Sub Assembly buttons apply Line + From/To (date-times, default current production day; rows after From up to and including To) and load that section. The section's column dropdowns (same set as the Power BI pages; engine / SA serial are type-ahead) filter the loaded rows in the browser and narrow each other. KPI tiles, a donut by rejection station / station, a 50-row paged table and Excel export.
+   * **EA01** has no data source yet: there is no `RejectionSummaryEA01Connection`, so the API returns `available: false` and the page says so. Add the connection string (and the proc in the EA01 database) when the data exists.
 
 
 #### EB-RTM Reports (Reports > Energy)
@@ -272,6 +278,7 @@ All read-only `GET`s; each calls one stored procedure (see "Reports ported from 
 * `GET /api/reports/cylinder-head-leak/data?startDate=&endDate=&plant=&assemblyLine=&shift=` — `CylinderHeadLeakReportController`
 * `GET /api/reports/categorywise-rework/data?line=EA01|EA02&startDate=&endDate=&station=` — `CategorywiseReworkReportController` (`400` for any other line)
 * `GET /api/reports/summary/data?line=EA01|EA02&stage=Leak|PDI|Testing&startDate=<date-time>&endDate=<date-time>` (From exclusive, To inclusive; passed to the proc as `DateTime`) — `SummaryReportController` (`400` for bad line/stage/date-times, From not before To, or a range over 93 days; `503` if the procedure doesn't exist yet)
+* `GET /api/reports/rejection-summary/data?line=EA01|EA02&section=ML|SA&startDate=<date-time>&endDate=<date-time>` — `RejectionSummaryReportController`. Returns `{ line, section, available, rows }`; `available: false` for a line with no connection string (EA01). `400` for bad input or a range over 93 days; `503` if the procedure doesn't exist.
 
 ### `EmsController.cs` (`/api/ems`)
 * `GET /api/ems/solar/status` — Live kW (MQTT) and Today / Yesterday / MTD kWh (against the daily 00:15 rows in `SolarData`).
@@ -333,10 +340,11 @@ A dashboard can use a different broker by adding `Host` / `Port` to its own `Mqt
 | `QHoldConnection`, `CylinderHeadLeakConnection` | Engine QHold, Cylinder Head Leak Rejection |
 | `ReworkEA01Connection`, `ReworkEA02Connection` | Categorywise Rework (one Rework DB per line) |
 | `SummaryEA01Connection`, `SummaryEA02Connection` | Summary Report (one line DB per line) |
+| `RejectionSummaryEA02Connection` | Rejection Summary Report (EA02 Mainline DB; add `RejectionSummaryEA01Connection` when EA01 data exists) |
 
 * **Filter Connections**: Used strictly to read mapping tables like `ehc.Vallam_StationMaster`.
 * **Data Connections**: Because the Data Connections must query dynamically resolved databases (e.g., `[RE_Vallam_J1EA2_Mainline_DB].[dbo].[STN_data]`), the connection string's default `Database` is often set to `master` but requires cross-database query permissions.
-* **Power BI report stored procedures** (`usp_GetQHoldReport`, `usp_GetCylinderHeadLeakRejectionReport`, `usp_GetCategorywiseReworkReport`, `usp_GetSummaryReport`) are created by hand in their databases - they are not part of this repository. The Summary Report returns HTTP 503 with a clear message if its procedure is missing.
+* **Power BI report stored procedures** (`usp_GetQHoldReport`, `usp_GetCylinderHeadLeakRejectionReport`, `usp_GetCategorywiseReworkReport`, `usp_GetSummaryReport`, `usp_GetRejectionSummaryReport`) are created by hand in their databases - they are not part of this repository. The Summary Report returns HTTP 503 with a clear message if its procedure is missing.
 * The broker currently accepts anonymous plain-TCP connections on this network, so no MQTT credentials are configured.
 
 ---

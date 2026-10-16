@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="css/dashboards/eb-rtm.css?v=1">
     <link rel="stylesheet" href="css/reports/categorywise-rework.css?v=1">
     <link rel="stylesheet" href="css/reports/summary-report.css?v=2">
+    <link rel="stylesheet" href="css/reports/rejection-summary.css?v=1">
     <link rel="stylesheet" href="css/reports/ebrtm-reports.css?v=4">
     <link rel="stylesheet" href="css/pokayoke/pokayoke.css?v=9">
     <script src="lib/exceljs.min.js"></script>
@@ -45,6 +46,10 @@
             const srTab = document.getElementById('tab-summary-report');
             if (srTab && srTab.classList.contains('active') && typeof renderSr === 'function') {
                 renderSr();
+            }
+            const rjsTab = document.getElementById('tab-rejection-summary');
+            if (rjsTab && rjsTab.classList.contains('active') && typeof renderRjs === 'function') {
+                renderRjs();
             }
         }
 
@@ -199,6 +204,11 @@
                                 data-tooltip="Categorywise Rework Report" style="font-size: 0.9em; padding: 5px 10px;">
                                 <span class="material-symbols-outlined icon" style="font-size: 18px;">build_circle</span>
                                 <span class="text">Categorywise Rework Report</span>
+                            </button>
+                            <button class="nav-item sub-item" id="nav-rejection-summary" onclick="switchTab('rejection-summary')"
+                                data-tooltip="Rejection Summary Report" style="font-size: 0.9em; padding: 5px 10px;">
+                                <span class="material-symbols-outlined icon" style="font-size: 18px;">assignment_late</span>
+                                <span class="text">Rejection Summary Report</span>
                             </button>
                             <button class="nav-item sub-item" id="nav-poke-yoke" onclick="switchTab('poke-yoke')"
                                 data-tooltip="Poke Yoke- Manual Inspection overall" style="font-size: 0.9em; padding: 5px 10px;">
@@ -1181,6 +1191,84 @@
             </div>
 
             <!-- Summary Report (EA01 / EA02 - Leak, PDI, Testing) -->
+            <!-- Rejection Summary Report (Main Line / Sub Assembly) -->
+            <div id="tab-rejection-summary" class="tab-pane">
+                <div class="rjs">
+                    <div class="rjs-header">
+                        <h2 id="rjsTitle">EA02 Main Line Rejection Summary Report</h2>
+                        <div class="rjs-sections" id="rjsSections">
+                            <button class="rjs-section-btn active" data-section="ML" onclick="setRjsSection('ML')">
+                                <span class="material-symbols-outlined">conveyor_belt</span>Main Line
+                            </button>
+                            <button class="rjs-section-btn" data-section="SA" onclick="setRjsSection('SA')">
+                                <span class="material-symbols-outlined">settings</span>Sub Assembly
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="rjs-filters">
+                        <div class="rjs-field rjs-field-line">
+                            <label for="rjsLine">Line</label>
+                            <select id="rjsLine" class="select-royal">
+                                <option value="EA01">EA01</option>
+                                <option value="EA02" selected>EA02</option>
+                            </select>
+                        </div>
+                        <div class="rjs-field rjs-field-date">
+                            <label for="rjsStart">From</label>
+                            <input type="text" id="rjsStart" class="rjs-input" placeholder="From date">
+                        </div>
+                        <div class="rjs-field rjs-field-date">
+                            <label for="rjsEnd">To</label>
+                            <input type="text" id="rjsEnd" class="rjs-input" placeholder="To date">
+                        </div>
+                        <!-- Section-specific dropdowns, built by rejection-summary.js -->
+                        <div class="rjs-column-filters" id="rjsColumnFilters"></div>
+                        <div class="rjs-actions">
+                            <button class="rjs-btn" onclick="clearRjsFilters()">
+                                <span class="material-symbols-outlined">filter_alt_off</span>Clear
+                            </button>
+                            <button class="rjs-btn" onclick="exportRjsToExcel()">
+                                <span class="material-symbols-outlined">download</span>Excel
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="rjsLoading" class="rjs-loading" hidden>
+                        <span class="material-symbols-outlined">progress_activity</span>Loading rejections...
+                    </div>
+
+                    <div class="rjs-summary">
+                        <div class="rjs-kpis" id="rjsKpis"></div>
+                        <div class="rjs-donut-card">
+                            <div class="rjs-donut-box"><canvas id="rjsDonut"></canvas></div>
+                            <div class="rjs-donut-side">
+                                <div class="rjs-donut-title" id="rjsDonutTitle">Rows by rejection station</div>
+                                <div class="rjs-legend" id="rjsDonutLegend"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <section class="rjs-card">
+                        <div class="rjs-table-wrap">
+                            <table class="rjs-table" id="rjsTable"></table>
+                            <div class="rjs-empty" id="rjsEmpty" hidden>
+                                <span class="material-symbols-outlined">search_off</span>
+                                <span>No rejections for the selected filters</span>
+                            </div>
+                        </div>
+                        <div class="rjs-pagination" id="rjsPagination" hidden>
+                            <span id="rjsTotalCount">Total: 0 rows</span>
+                            <div>
+                                <button class="rjs-btn" id="rjsPrev" onclick="changeRjsPage(-1)">Previous</button>
+                                <span id="rjsPageLabel">Page 1</span>
+                                <button class="rjs-btn" id="rjsNext" onclick="changeRjsPage(1)">Next</button>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
             <div id="tab-summary-report" class="tab-pane">
                 <div class="sr" id="sr">
                     <!-- Header like the Categorywise Rework report: title left, stage buttons right.
@@ -1308,7 +1396,7 @@
 
                     <section class="sr-card">
                         <div class="sr-card-head">
-                            <div class="sr-card-title" id="srMatrixTitle">Day × Shift<small>Cell colour = rejection %</small></div>
+                            <div class="sr-card-title" id="srMatrixTitle">Day Ã— Shift<small>Cell colour = rejection %</small></div>
                             <div class="sr-seg" id="srMatrixSeg">
                                 <button class="active" data-value="count" onclick="setSrMatrixMetric('count')">Count</button>
                                 <button data-value="ppm" onclick="setSrMatrixMetric('ppm')">PPM</button>
@@ -1320,7 +1408,7 @@
 
                     <section class="sr-card">
                         <div class="sr-card-head">
-                            <div class="sr-card-title">Hourwise<small id="srHourSub">Total engines per hour · NOK in red</small></div>
+                            <div class="sr-card-title">Hourwise<small id="srHourSub">Total engines per hour Â· NOK in red</small></div>
                             <div class="sr-seg" id="srHourSeg">
                                 <button class="active" data-value="count" onclick="setSrHourMetric('count')">Count</button>
                                 <button data-value="ppm" onclick="setSrHourMetric('ppm')">PPM</button>
@@ -1333,14 +1421,14 @@
                     <div class="sr-grid sr-grid-leak" id="srLeakPanels">
                         <section class="sr-card">
                             <div class="sr-card-head">
-                                <div class="sr-card-title">Leak status<small>OK · NOK · Bypassed · NA · Empty - only OK and NOK count in Total</small></div>
+                                <div class="sr-card-title">Leak status<small>OK Â· NOK Â· Bypassed Â· NA Â· Empty - only OK and NOK count in Total</small></div>
                             </div>
                             <div class="sr-chart-box sr-chart-status"><canvas id="srStatusChart"></canvas></div>
                             <div class="sr-table-wrap"><table class="sr-table" id="srStatusTable"></table></div>
                         </section>
                         <section class="sr-card">
                             <div class="sr-card-head">
-                                <div class="sr-card-title">Leak rework<small>Rework total = Leak OK + Rework qty · machine filter not applied</small></div>
+                                <div class="sr-card-title">Leak rework<small>Rework total = Leak OK + Rework qty Â· machine filter not applied</small></div>
                             </div>
                             <div class="sr-rework-kpis" id="srReworkKpis"></div>
                             <div class="sr-table-wrap"><table class="sr-table" id="srReworkTable"></table></div>
@@ -2238,7 +2326,7 @@
 
         <script src="lib/chart.min.js"></script>
         <!-- App scripts: shared shell first, then one file per module -->
-        <script src="js/core.js?v=4"></script>
+        <script src="js/core.js?v=5"></script>
         <script src="js/dashboards/fire-hydrant.js?v=1"></script>
         <script src="js/dashboards/gas-leak.js?v=1"></script>
         <script src="js/dashboards/ems-renewable.js?v=2"></script>
@@ -2250,6 +2338,7 @@
         <script src="js/reports/cylinder-head-leak.js?v=1"></script>
         <script src="js/reports/categorywise-rework.js?v=1"></script>
         <script src="js/reports/summary-report.js?v=2"></script>
+        <script src="js/reports/rejection-summary.js?v=1"></script>
         <script src="js/reports/ebrtm-reports.js?v=4"></script>
         <script src="js/pokayoke/pokayoke.js?v=7"></script>
         <script src="js/pokayoke/jea1-line.js?v=9"></script>
