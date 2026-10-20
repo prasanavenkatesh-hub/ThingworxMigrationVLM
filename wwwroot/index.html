@@ -17,6 +17,8 @@
     <link rel="stylesheet" href="css/reports/categorywise-rework.css?v=1">
     <link rel="stylesheet" href="css/reports/summary-report.css?v=2">
     <link rel="stylesheet" href="css/reports/rejection-summary.css?v=1">
+    <link rel="stylesheet" href="css/reports/sub-assembly-report.css?v=2">
+    <link rel="stylesheet" href="css/reports/process-parameter.css?v=1">
     <link rel="stylesheet" href="css/reports/ebrtm-reports.css?v=4">
     <link rel="stylesheet" href="css/pokayoke/pokayoke.css?v=9">
     <script src="lib/exceljs.min.js"></script>
@@ -50,6 +52,10 @@
             const rjsTab = document.getElementById('tab-rejection-summary');
             if (rjsTab && rjsTab.classList.contains('active') && typeof renderRjs === 'function') {
                 renderRjs();
+            }
+            const pprTab = document.getElementById('tab-process-parameter');
+            if (pprTab && pprTab.classList.contains('active') && typeof renderPpr === 'function') {
+                renderPpr();
             }
         }
 
@@ -209,6 +215,16 @@
                                 data-tooltip="Rejection Summary Report" style="font-size: 0.9em; padding: 5px 10px;">
                                 <span class="material-symbols-outlined icon" style="font-size: 18px;">assignment_late</span>
                                 <span class="text">Rejection Summary Report</span>
+                            </button>
+                            <button class="nav-item sub-item" id="nav-sub-assembly-report" onclick="switchTab('sub-assembly-report')"
+                                data-tooltip="StraightPass & Rework Sub Assembly Report" style="font-size: 0.9em; padding: 5px 10px;">
+                                <span class="material-symbols-outlined icon" style="font-size: 18px;">fact_check</span>
+                                <span class="text">StraightPass &amp; Rework Sub Assembly Report</span>
+                            </button>
+                            <button class="nav-item sub-item" id="nav-process-parameter" onclick="switchTab('process-parameter')"
+                                data-tooltip="Process/Product Parameter Report" style="font-size: 0.9em; padding: 5px 10px;">
+                                <span class="material-symbols-outlined icon" style="font-size: 18px;">tune</span>
+                                <span class="text">Process/Product Parameter Report</span>
                             </button>
                             <button class="nav-item sub-item" id="nav-poke-yoke" onclick="switchTab('poke-yoke')"
                                 data-tooltip="Poke Yoke- Manual Inspection overall" style="font-size: 0.9em; padding: 5px 10px;">
@@ -1265,6 +1281,188 @@
                                 <button class="rjs-btn" id="rjsNext" onclick="changeRjsPage(1)">Next</button>
                             </div>
                         </div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- Process/Product Parameter Report EA2 (MainLine / QHold / Duplicate) -->
+            <div id="tab-process-parameter" class="tab-pane">
+                <div class="ppr">
+                    <div class="ppr-header">
+                        <h2>Process/Product Parameter Report EA2</h2>
+                        <div class="ppr-sections" id="pprSections">
+                            <button class="ppr-section-btn active" data-section="ML" onclick="setPprSection('ML')">Vallam - MainLine</button>
+                            <button class="ppr-section-btn" data-section="QH" onclick="setPprSection('QH')">Vallam - QHold</button>
+                            <button class="ppr-section-btn" data-section="DUP" onclick="setPprSection('DUP')">Duplicate of Vallam - MainLine</button>
+                        </div>
+                    </div>
+
+                    <div class="ppr-top">
+                        <div class="ppr-filters">
+                            <div class="ppr-field" id="pprStationField">
+                                <label for="pprStation">Station Number</label>
+                                <select id="pprStation" class="select-royal" onchange="setPprFilter('station', this.value)"><option value="">All</option></select>
+                            </div>
+                            <div class="ppr-field">
+                                <label for="pprShift">Shift</label>
+                                <select id="pprShift" class="select-royal" onchange="setPprFilter('shift', this.value)"><option value="">All</option></select>
+                            </div>
+                            <div class="ppr-field">
+                                <label for="pprTimeRange">Time Range</label>
+                                <select id="pprTimeRange" class="select-royal" onchange="setPprFilter('timeRange', this.value)"><option value="">All</option></select>
+                            </div>
+                            <div class="ppr-field">
+                                <label for="pprEngine">Engine Number</label>
+                                <input type="text" id="pprEngine" class="ppr-input" placeholder="All (type + Enter)" autocomplete="off">
+                            </div>
+                            <div class="ppr-field" id="pprColumnsField">
+                                <label>Dynamic Columns</label>
+                                <button type="button" class="ppr-columns-btn" id="pprColumnsBtn" onclick="togglePprColumns()">All</button>
+                                <div class="ppr-columns-panel" id="pprColumnsPanel" hidden></div>
+                            </div>
+                            <div class="ppr-field">
+                                <label for="pprStatus">Station Status</label>
+                                <select id="pprStatus" class="select-royal" onchange="setPprFilter('status', this.value)"><option value="">All</option></select>
+                            </div>
+                            <div class="ppr-field">
+                                <label for="pprStart">From</label>
+                                <input type="text" id="pprStart" class="ppr-input" placeholder="From date">
+                            </div>
+                            <div class="ppr-field">
+                                <label for="pprEnd">To</label>
+                                <input type="text" id="pprEnd" class="ppr-input" placeholder="To date">
+                            </div>
+                            <div class="ppr-actions">
+                                <button class="ppr-btn ppr-btn-primary" onclick="applyPprFilters()">
+                                    <span class="material-symbols-outlined">check</span>Apply
+                                </button>
+                                <button class="ppr-btn" onclick="clearPprFilters()">
+                                    <span class="material-symbols-outlined">filter_alt_off</span>Clear
+                                </button>
+                                <button class="ppr-btn" onclick="exportPprCsv()">
+                                    <span class="material-symbols-outlined">download</span>Excel
+                                </button>
+                            </div>
+                        </div>
+                        <div class="ppr-summary">
+                            <div class="ppr-rows"><span>Rows</span><b id="pprRows">0</b></div>
+                            <div class="ppr-donut-box"><canvas id="pprDonut"></canvas></div>
+                            <div class="ppr-legend" id="pprDonutLegend"></div>
+                        </div>
+                    </div>
+
+                    <div id="pprLoading" class="ppr-loading" hidden>
+                        <span class="material-symbols-outlined">progress_activity</span>Loading rows...
+                    </div>
+
+                    <section class="ppr-card">
+                        <div class="ppr-table-wrap">
+                            <table class="ppr-table" id="pprTable"></table>
+                            <div class="ppr-empty" id="pprEmpty" hidden>
+                                <span class="material-symbols-outlined">search_off</span>
+                                <span>No rows for the selected filters</span>
+                            </div>
+                        </div>
+                        <div class="ppr-pagination" id="pprPagination" hidden>
+                            <span id="pprTotalCount"></span>
+                            <div>
+                                <button class="ppr-btn" id="pprFirst" onclick="changePprPage('first')">First</button>
+                                <button class="ppr-btn" id="pprPrev" onclick="changePprPage(-1)">Previous</button>
+                                <span id="pprPageLabel">Page 1</span>
+                                <button class="ppr-btn" id="pprNext" onclick="changePprPage(1)">Next</button>
+                                <button class="ppr-btn" id="pprLast" onclick="changePprPage('last')">Last</button>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- StraightPass & Rework Sub Assembly Report (EA2 - 14 sub-assemblies + Crankshaft OP-60) -->
+            <div id="tab-sub-assembly-report" class="tab-pane">
+                <div class="sar">
+                    <div class="sar-header">
+                        <button class="sar-btn" id="sarMenuBtn" onclick="toggleSarMenu()" title="Sub assemblies">
+                            <span class="material-symbols-outlined">menu</span>Sub Assembly
+                        </button>
+                        <div class="sar-menu" id="sarMenu" hidden></div>
+                        <h2 id="sarTitle">EA2 BALANCER SHAFT SUB ASSEMBLY REPORT</h2>
+                        <button class="sar-btn" id="sarOp60Btn" onclick="selectSarSubAssembly('CRANKSHAFT_OP60')" hidden>
+                            <span class="material-symbols-outlined">open_in_new</span>OP-60 Report
+                        </button>
+                        <button class="sar-btn" id="sarBackBtn" onclick="selectSarSubAssembly('CRANKSHAFT')" hidden>
+                            <span class="material-symbols-outlined">arrow_back</span>Crankshaft
+                        </button>
+                    </div>
+
+                    <div class="sar-filters">
+                        <div class="sar-field">
+                            <label for="sarShift">Shift</label>
+                            <select id="sarShift" class="select-royal" onchange="setSarFilter('shift', this.value)">
+                                <option value="">All</option>
+                                <option value="A">A</option>
+                                <option value="B">B</option>
+                                <option value="C">C</option>
+                            </select>
+                        </div>
+                        <div class="sar-field">
+                            <label for="sarStation">Station Number</label>
+                            <select id="sarStation" class="select-royal" onchange="setSarFilter('station', this.value)"></select>
+                        </div>
+                        <div class="sar-field" id="sarSubGroupField" hidden>
+                            <label for="sarSubGroup" id="sarSubGroupLabel">Cell</label>
+                            <select id="sarSubGroup" class="select-royal" onchange="setSarFilter('subGroup', this.value)"></select>
+                        </div>
+                        <div class="sar-field sar-field-date">
+                            <label for="sarStart">From</label>
+                            <input type="text" id="sarStart" class="sar-input" placeholder="From date">
+                        </div>
+                        <div class="sar-field sar-field-date">
+                            <label for="sarEnd">To</label>
+                            <input type="text" id="sarEnd" class="sar-input" placeholder="To date">
+                        </div>
+                        <div class="sar-actions">
+                            <button class="sar-btn sar-btn-primary" id="sarApply" onclick="fetchSarReport()">
+                                <span class="material-symbols-outlined">check</span>Apply
+                            </button>
+                            <button class="sar-btn" onclick="resetSarFilters()">
+                                <span class="material-symbols-outlined">filter_alt_off</span>Clear
+                            </button>
+                            <button class="sar-btn" onclick="exportSarToExcel()">
+                                <span class="material-symbols-outlined">download</span>Excel
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="sarLoading" class="sar-loading" hidden>
+                        <span class="material-symbols-outlined">progress_activity</span>Loading report... (can take up to a minute for long ranges)
+                    </div>
+
+                    <section class="sar-card" data-sar-panel="sp">
+                        <h3>STRAIGHT PASS REPORT</h3>
+                        <div class="sar-table-wrap"><table class="sar-table" id="sarSpTable"></table></div>
+                        <div class="sar-empty" id="sarSpEmpty" hidden></div>
+                        <div class="sar-pcts">
+                            <span>Over All %</span>
+                            <div class="sar-pct"><span>Straight Pass %</span><b id="sarSpPct">--</b></div>
+                            <div class="sar-pct"><span>Rejection %</span><b id="sarRejPct">--</b></div>
+                        </div>
+                    </section>
+
+                    <section class="sar-card" data-sar-panel="rework">
+                        <h3>REWORK REPORT</h3>
+                        <div class="sar-table-wrap"><table class="sar-table" id="sarRwTable"></table></div>
+                        <div class="sar-empty" id="sarRwEmpty" hidden></div>
+                        <div class="sar-pcts">
+                            <span>Over All %</span>
+                            <div class="sar-pct"><span>Rework OK %</span><b id="sarRwOkPct">--</b></div>
+                            <div class="sar-pct"><span>Rework NOK %</span><b id="sarRwNokPct">--</b></div>
+                        </div>
+                    </section>
+
+                    <section class="sar-card" data-sar-panel="bypass">
+                        <h3>BYPASSED DATA REPORT</h3>
+                        <div class="sar-table-wrap"><table class="sar-table" id="sarBpTable"></table></div>
+                        <div class="sar-empty" id="sarBpEmpty" hidden></div>
                     </section>
                 </div>
             </div>
@@ -2326,7 +2524,7 @@
 
         <script src="lib/chart.min.js"></script>
         <!-- App scripts: shared shell first, then one file per module -->
-        <script src="js/core.js?v=5"></script>
+        <script src="js/core.js?v=7"></script>
         <script src="js/dashboards/fire-hydrant.js?v=1"></script>
         <script src="js/dashboards/gas-leak.js?v=1"></script>
         <script src="js/dashboards/ems-renewable.js?v=2"></script>
@@ -2339,6 +2537,8 @@
         <script src="js/reports/categorywise-rework.js?v=1"></script>
         <script src="js/reports/summary-report.js?v=2"></script>
         <script src="js/reports/rejection-summary.js?v=1"></script>
+        <script src="js/reports/sub-assembly-report.js?v=2"></script>
+        <script src="js/reports/process-parameter.js?v=1"></script>
         <script src="js/reports/ebrtm-reports.js?v=4"></script>
         <script src="js/pokayoke/pokayoke.js?v=7"></script>
         <script src="js/pokayoke/jea1-line.js?v=9"></script>

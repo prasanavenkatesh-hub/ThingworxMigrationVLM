@@ -1,0 +1,104 @@
+/* Process/Product Parameter Report EA2 (#tab-process-parameter). Same look as the Rejection Summary
+   report; colours come from the app theme variables so it follows the light/dark toggle. */
+
+#tab-process-parameter {
+    --ppr-accent: #f5b301;
+    --ppr-accent-soft: rgba(245, 179, 1, 0.14);
+    padding: 16px 24px;
+}
+
+body.light-mode #tab-process-parameter { --ppr-accent-soft: rgba(245, 179, 1, 0.18); }
+
+.ppr [hidden] { display: none !important; }
+
+/* style.v2.css forces light-mode <th> to a dark band; keep the theme surface. */
+body.light-mode #tab-process-parameter .ppr-table th {
+    background: var(--white) !important;
+    color: var(--dark) !important;
+    border-color: var(--neutral) !important;
+}
+
+.ppr { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-right: 4px; }
+
+.ppr-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.ppr-header h2 { margin: 0; font-size: 20px; font-weight: 700; color: var(--dark); }
+.ppr-sections { display: inline-flex; gap: 4px; padding: 4px; background: var(--white); border: 1px solid var(--neutral); border-radius: 10px; flex-wrap: wrap; }
+.ppr-section-btn {
+    border: none; background: transparent; color: var(--gray); font: inherit; font-size: 13px; font-weight: 600;
+    padding: 7px 14px; border-radius: 7px; cursor: pointer;
+}
+.ppr-section-btn:hover { color: var(--dark); background: var(--ppr-accent-soft); }
+.ppr-section-btn.active { background: var(--ppr-accent); color: #1a1a1a; }
+
+/* Filters + summary side by side */
+.ppr-top { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 420px); gap: 12px; }
+.ppr-filters {
+    display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 12px; align-content: flex-start;
+    background: var(--white); border: 1px solid var(--neutral); border-radius: 10px; padding: 12px 14px;
+}
+.ppr-field { display: flex; flex-direction: column; gap: 4px; min-width: 120px; flex: 1 1 140px; max-width: 200px; position: relative; }
+.ppr-field label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--gray); white-space: nowrap; }
+.ppr-field select,
+.ppr-field input.ppr-input,
+.ppr-field .ppr-columns-btn {
+    width: 100%; min-width: 0; box-sizing: border-box; height: 34px; padding: 6px 28px 6px 10px; font-size: 13px; border-radius: 6px;
+}
+.ppr-field input.ppr-input,
+.ppr-field .ppr-columns-btn { background: var(--background); color: var(--dark); border: 1px solid var(--neutral); padding-right: 10px; outline: none; text-align: left; font-family: inherit; cursor: pointer; }
+.ppr-field input.ppr-input { cursor: text; }
+.ppr-field input.ppr-input:focus,
+.ppr-field select:focus { border-color: var(--ppr-accent); }
+
+.ppr-columns-panel {
+    position: absolute; top: 58px; left: 0; z-index: 20; width: 240px; max-height: 320px; overflow-y: auto;
+    background: var(--white); border: 1px solid var(--neutral); border-radius: 8px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    padding: 6px; display: flex; flex-direction: column;
+}
+.ppr-check { display: flex; align-items: center; gap: 8px; padding: 4px 6px; font-size: 13px; color: var(--dark); border-radius: 4px; cursor: pointer; }
+.ppr-check:hover { background: var(--ppr-accent-soft); }
+
+.ppr-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.ppr-btn {
+    display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px; border-radius: 6px;
+    border: 1px solid var(--neutral); background: var(--background); color: var(--dark);
+    font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.ppr-btn .material-symbols-outlined { font-size: 18px; }
+.ppr-btn:hover { border-color: var(--ppr-accent); }
+.ppr-btn:disabled { opacity: 0.45; cursor: default; }
+.ppr-btn.ppr-btn-primary { background: var(--ppr-accent); border-color: var(--ppr-accent); color: #1a1a1a; }
+
+.ppr-summary { background: var(--white); border: 1px solid var(--neutral); border-radius: 10px; padding: 12px 14px; display: flex; gap: 14px; align-items: center; }
+.ppr-rows { display: flex; flex-direction: column; gap: 2px; min-width: 110px; }
+.ppr-rows span { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--gray); }
+.ppr-rows b { font-size: 28px; font-weight: 800; color: var(--dark); font-variant-numeric: tabular-nums; }
+.ppr-donut-box { position: relative; width: 110px; height: 110px; flex: 0 0 110px; }
+.ppr-legend { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--dark); min-width: 0; }
+.ppr-legend span { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.ppr-legend i { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 9px; }
+
+.ppr-loading { display: flex; align-items: center; gap: 8px; color: var(--gray); font-size: 13px; }
+.ppr-loading .material-symbols-outlined { animation: spin 1s linear infinite; font-size: 18px; }
+
+/* Table */
+.ppr-card { background: var(--white); border: 1px solid var(--neutral); border-radius: 10px; display: flex; flex-direction: column; min-width: 0; }
+.ppr-table-wrap { overflow: auto; max-height: 62vh; min-height: 120px; }
+.ppr-table { border-collapse: separate; border-spacing: 0; font-size: 13px; color: var(--dark); min-width: 100%; }
+.ppr-table th,
+.ppr-table td { padding: 6px 10px; border-bottom: 1px solid var(--neutral); white-space: nowrap; background: var(--white); text-align: left; }
+.ppr-table thead th { position: sticky; top: 0; z-index: 2; font-size: 12px; font-weight: 700; box-shadow: inset 0 -2px 0 var(--ppr-accent); }
+.ppr-table tbody tr:hover td { background: var(--ppr-accent-soft); }
+.ppr-table td.ppr-num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.ppr-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 40px 16px; color: var(--gray); font-size: 13px; }
+.ppr-empty .material-symbols-outlined { font-size: 36px; }
+
+.ppr-pagination { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border-top: 1px solid var(--neutral); font-size: 13px; color: var(--gray); flex-wrap: wrap; }
+.ppr-pagination > div { display: flex; align-items: center; gap: 8px; }
+
+@media (max-width: 1100px) {
+    .ppr-top { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 900px) {
+    #tab-process-parameter { padding: 12px; }
+}

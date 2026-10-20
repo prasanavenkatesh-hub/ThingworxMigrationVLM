@@ -75,6 +75,10 @@ function switchTab(tabId) {
         loadSrDefaultView();
     } else if (tabId === 'rejection-summary') {
         loadRjsDefaultView();
+    } else if (tabId === 'sub-assembly-report') {
+        loadSarDefaultView();
+    } else if (tabId === 'process-parameter') {
+        loadPprDefaultView();
     } else if (tabId === 'ebrtm-reports') {
         loadEbrDefaultView();
     } else if (tabId === 'pky-jea1-line') {
