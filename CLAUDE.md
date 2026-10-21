@@ -31,11 +31,12 @@ dotnet run --launch-profile http        # http://localhost:5059  (https profile:
 ```
 Program.cs                    calls AddXxxModule() for each module - nothing else module-specific
 appsettings.json              single config file (App, ConnectionStrings, ShiftConfiguration,
-                              DashboardDropdownValues, Mqtt, FireHydrant, GasLeak, Ems, EbRtm)
+                              DashboardDropdownValues, Mqtt, FireHydrant, GasLeak, Ems, EbRtm, PokaYoke)
 Modules/
   Shared/                     ConfigurationController, MqttStatusController (header MQTT pill),
                               ApiDateTime.ToLocal(), KepwareValueParser
   FireHydrant/ GasLeak/ Ems/ EbRtm/      live dashboards (one folder each, incl. <Name>Module.cs)
+  PokaYoke/                   live PokaYoke station status (read-only, ThingWorx VallamPokaYoke port)
   Reports/ReportsModule.cs    registers all report services
   Reports/LineReports/        Biometric, Main Line Cycle Time, Poke Yoke (shared ReportsService)
   Reports/QHold/ CylinderHeadLeak/ CategorywiseRework/ SummaryReport/   Power BI ports (1 stored proc each)
@@ -46,7 +47,7 @@ wwwroot/
   js/dashboards/*.js          fire-hydrant, gas-leak, ems-renewable, eb-rtm
   js/reports/*.js             biometric, main-line, poke-yoke, qhold, cylinder-head-leak,
                               categorywise-rework, summary-report, ebrtm-reports
-  js/pokayoke/*.js            pokayoke.js (shared plant-layout renderer) + one layout file per screen (jea1-line.js)
+  js/pokayoke/*.js            pokayoke.js (shared plant-layout renderer + screen controller), overview.js (PokaYoke > Overview cards) + one layout file per screen (jea1-line.js, jea2-line.js)
   css/style.v2.css            shared shell styles (also used by login.html)
   css/dashboards/*.css, css/reports/*.css, css/pokayoke/*.css   one stylesheet per module
 ```
@@ -97,7 +98,7 @@ Teammates sometimes develop in a full copy of the repo (e.g. `D:\RE\PowerBI_Repo
 - **EB-RTM gauge low limits** for Current (<20 / 20-40 A) and Active Power (<900 / 900-1800 kW) are provisional placeholders.
 - **Stored procedures** for QHold, Cylinder Head Leak, Categorywise Rework and Summary Report are not in the repo. `summary-report.js`'s header comment names `usp_GetSummaryReportLeak/PDI/Testing`, but the API calls `dbo.usp_GetSummaryReport` with `@Stage` — confirm which exists.
 - **Dashboards > Overview** (`dashboard-1`) has no page yet.
-- **PokaYoke** (prefix `pky`): JEA1 Line UI is built with **sample counts** - live data source still to be connected; JEA2 Line and JEA1 Crankshaft are placeholders (add a layout file like `jea1-line.js` and reuse `pokayoke.js`). The donut centre shows `wwwroot/assets/pky-bike.png`. Not to be confused with the existing Reports > Quality > Poke Yoke reports (the MI buttons open those).
+- **PokaYoke** (prefix `pky`): JEA1 Line and JEA2 Line counts are **live** (`PokaYokeStatusService`, `PokaYoke:Lines:jea1` / `jea2`, tag masters `HISTORYCARDLINE01` (line `JEA1`) / `HISTORYCARDLINE02` (line `JEA2`); `factreread` read access to all source databases confirmed 2026-10-20). JEA1's `RE_VL_J1_Magneto Cover.QualityData_1` (8 SA-22 checkpoints) has no source rule (none in ThingWorx either) - not counted, listed in the badge tooltip. Not yet ported: the summary service `getpokeyokevalueOverall` (the donut / HC table use the sum of the station counts without the auto stations), (the station and HC-table click pop-ups are done: `GET /api/pokayoke/{line}/stations/{station}`, `GET /api/pokayoke/{line}/checkpoints?status=`). **Overview** (`overview.js`) shows JEA1 / JEA2 live; its Crank Shaft (EA1) card is a placeholder - when the Crankshaft screen gets an API, drop `placeholder: true` from its `PKY_OV_LINES` entry. JEA1 Crankshaft is a placeholder: add a layout file like `jea2-line.js` that calls `pkyRegisterScreen('pky-jea1-crankshaft', ...)` and a pane with the same element ids. JEA2's ThingWorx screen shows two stray `0` values beside ET-L4 / ET-L3 that were not reproduced, and its decorative green chain graphic on the main line is not drawn. The donut centre shows `wwwroot/assets/pky-bike.png`. Not to be confused with the existing Reports > Quality > Poke Yoke reports (the MI buttons open those).
 - **EB-RTM, multiple meters**: `EbRtm:Meters` drives the EB-RTM Reports dropdown, but the dashboard still hardcodes Source_7's tags (`EbRtmStateStore`) and `EbCMonitoring` / `EbCPowerFailureEvents` have no meter column. Adding a meter needs: a `MeterId` column in both tables, per-meter state/logging, `?meter=` on the dashboard API, and a dropdown on the dashboard.
 - **EB-RTM alerts** (`EbRtmAlertMonitor`, ported from the ThingWorx `RE_EnergyMeterRealTimeMonitoring_TS` subscriptions) need the table `[ControlTowerVLM].dbo.EbCAlerts` - script `Modules/EbRtm/Sql/EbCAlerts.sql`, to be created by the developer. The ThingWorx alert/report e-mails are not ported. Every running copy of the app on the plant network writes alerts (and the other loggers' rows): set `EbRtm:Alerts:Enabled: false` on developer machines.
 - **EB-RTM dashboard energy table** (`EbRtmEnergyCalculator`) still uses the reading at-or-before each boundary however old it is, so energy used during a logging gap lands in one shift (e.g. "A=0, B=0, C=464781"). The EB-RTM Reports only use a boundary reading logged near the boundary (otherwise the first reading inside the window) and mark incomplete values as partial; port that rule to the dashboard.

@@ -1,19 +1,9 @@
 // --- POKAYOKE - JEA1 LINE ---
 // "Poka Yoke Station Status JEA1" (ThingWorx screen): J1 Engine Assembly Main Line 1 and its
 // sub-assembly stations, drawn by the shared renderer in pokayoke.js. Coordinates are design
-// pixels taken from the ThingWorx screen (origin subtracted by the renderer).
-// Counts are SAMPLE values until the live data source is connected.
-
-// Station row helpers: n stations from x0, `step` apart, all at y.
-const pkyRow = (ids, x0, step, y, side, extra = {}) => ids.map((id, i) => ({ id, x: Math.round(x0 + i * step), y, side, ...extra }));
-const pkyCol = (ids, x, y0, step, side, extra = {}) => ids.map((id, i) => ({ id, x, y: Math.round(y0 + i * step), side, ...extra }));
-const pkyRange = (prefix, from, to) => {
-    const out = [];
-    for (let n = from; from <= to ? n <= to : n >= to; n += from <= to ? 1 : -1) out.push(`${prefix}${String(n).padStart(2, '0')}`);
-    return out;
-};
-// Mark stations as auto stations (grey) and/or without count cells.
-const pkyMark = (stations, ids, flags) => stations.forEach(s => { if (ids.includes(s.id)) Object.assign(s, flags); });
+// pixels taken from the ThingWorx screen (origin subtracted by the renderer); row/column helpers,
+// show/fit and the MI buttons are shared (pokayoke.js).
+// Counts are live: GET /api/pokayoke/jea1/stations (PokaYokeStatusService, appsettings PokaYoke:Lines:jea1).
 
 // ET and TB QA stations: a little larger than the standard station.
 const PKY_JEA1_TEST_SIZE = { w: 30, h: 28 };
@@ -97,50 +87,4 @@ const PKY_JEA1_LAYOUT = (() => {
     };
 })();
 
-let pkyJea1Initialised = false;
-let pkyJea1ResizeTimer = null;
-let pkyJea1Counts = {};
-
-// Sample counts (deterministic per station) until live data is connected.
-function pkyJea1SampleCounts() {
-    const counts = {};
-    PKY_JEA1_LAYOUT.stations.forEach(st => {
-        let h = 0;
-        for (const ch of st.id) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-        counts[st.id] = { ok: st.noCounts ? 0 : h % 16, mi: st.id === 'ML-03' ? 1 : 0 };
-    });
-    return counts;
-}
-
-function pkyJea1Show() {
-    const counts = pkyJea1Counts = pkyJea1SampleCounts();
-
-    const ok = Object.values(counts).reduce((s, c) => s + c.ok, 0);
-    const mi = Object.values(counts).reduce((s, c) => s + c.mi, 0);
-    pkyRenderSummary(
-        { chart: 'pkyJea1Donut', okPct: 'pkyJea1OkPct', miPct: 'pkyJea1MiPct', tableBody: 'pkyJea1TableBody', alert: 'pkyJea1Alert' },
-        [{ name: 'Main Line', total: ok + mi, ok, mi }]
-    );
-
-    // Fit after layout so the wrapper has its real size.
-    requestAnimationFrame(() => pkyFitLayout('pkyJea1CanvasWrap', 'pkyJea1Canvas', PKY_JEA1_LAYOUT, pkyJea1Counts));
-    if (!pkyJea1Initialised) {
-        pkyJea1Initialised = true;
-        window.addEventListener('resize', () => {
-            clearTimeout(pkyJea1ResizeTimer);
-            pkyJea1ResizeTimer = setTimeout(() => pkyFitLayout('pkyJea1CanvasWrap', 'pkyJea1Canvas', PKY_JEA1_LAYOUT, pkyJea1Counts), 100);
-        });
-    }
-}
-
-// MI - Overall / MI - Summary buttons: open the existing Poke Yoke Manual Inspection reports
-// (Reports > Quality) with the header Line dropdown set to JEA1.
-function pkyJea1OpenReport(tabId) {
-    const dropdown = document.getElementById('mainDashboardDropdown');
-    const jea1 = dropdown && [...dropdown.options].find(o => /^JEA1/i.test(o.value));
-    if (jea1 && dropdown.value !== jea1.value) {
-        dropdown.value = jea1.value;
-        dropdown.dispatchEvent(new Event('change'));
-    }
-    switchTab(tabId);
-}
+pkyRegisterScreen('pky-jea1-line', { layout: PKY_JEA1_LAYOUT, prefix: 'pkyJea1', line: 'JEA1', api: 'jea1' });

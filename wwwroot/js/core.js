@@ -53,6 +53,7 @@ function switchTab(tabId) {
     stopGasLeakPolling();
     stopEbRtmPolling();
     stopEmsSolarPolling();
+    pkyStopPolling();
     if (tabId !== 'summary-report') leaveSrTab();
 
     if (tabId === 'fire-hydrant') {
@@ -75,8 +76,8 @@ function switchTab(tabId) {
         loadSrDefaultView();
     } else if (tabId === 'ebrtm-reports') {
         loadEbrDefaultView();
-    } else if (tabId === 'pky-jea1-line') {
-        pkyJea1Show();
+    } else if (tabId.startsWith('pky-')) {
+        pkyShowScreen(tabId);   // PokaYoke screens (no-op for screens not built yet)
     }
 }
 

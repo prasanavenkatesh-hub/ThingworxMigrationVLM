@@ -17,7 +17,7 @@
     <link rel="stylesheet" href="css/reports/categorywise-rework.css?v=1">
     <link rel="stylesheet" href="css/reports/summary-report.css?v=2">
     <link rel="stylesheet" href="css/reports/ebrtm-reports.css?v=4">
-    <link rel="stylesheet" href="css/pokayoke/pokayoke.css?v=9">
+    <link rel="stylesheet" href="css/pokayoke/pokayoke.css?v=15">
     <script src="lib/exceljs.min.js"></script>
     <script>
         function applyTheme(theme) {
@@ -41,6 +41,10 @@
             const cwrTab = document.getElementById('tab-categorywise-rework');
             if (cwrTab && cwrTab.classList.contains('active') && typeof renderCwr === 'function') {
                 renderCwr();
+            }
+            const pkyOvTab = document.getElementById('tab-pky-overview');
+            if (pkyOvTab && pkyOvTab.classList.contains('active') && typeof pkyOvRender === 'function') {
+                pkyOvRender();   // Overall donut labels use the theme text colour
             }
             const srTab = document.getElementById('tab-summary-report');
             if (srTab && srTab.classList.contains('active') && typeof renderSr === 'function') {
@@ -115,6 +119,11 @@
                             class="text">PokaYoke</span>
                     </button>
                     <div id="pokaYokeMenu" class="sub-menu" style="display: none; padding-left: 20px;">
+                        <button class="nav-item sub-item" id="nav-pky-overview" onclick="switchTab('pky-overview')"
+                            data-tooltip="Overview" style="font-size: 0.9em; padding: 5px 10px;">
+                            <span class="material-symbols-outlined icon" style="font-size: 18px;">donut_large</span>
+                            <span class="text">Overview</span>
+                        </button>
                         <button class="nav-item sub-item" id="nav-pky-jea1-line" onclick="switchTab('pky-jea1-line')"
                             data-tooltip="JEA1 Line" style="font-size: 0.9em; padding: 5px 10px;">
                             <span class="material-symbols-outlined icon" style="font-size: 18px;">conveyor_belt</span>
@@ -1380,16 +1389,21 @@
                 </div>
             </div>
 
+            <!-- PokaYoke - Overview (cards per line + Overall Poka Yoke; js/pokayoke/overview.js builds the cards) -->
+            <div id="tab-pky-overview" class="tab-pane">
+                <div class="pky-ov" id="pkyOvGrid"></div>
+            </div>
+
             <!-- PokaYoke - JEA1 Line ("Poka Yoke Station Status JEA1"; js/pokayoke/jea1-line.js) -->
             <div id="tab-pky-jea1-line" class="tab-pane">
                 <div class="pky-screen">
                     <div class="pky-titlebar">
                         <div class="pky-titlebar-title">Poka Yoke Station Status JEA1
-                            <span class="pky-sample" title="Live data is not connected yet">Sample data</span>
+                            <span class="pky-sample" id="pkyJea1Status" title="Loading live data">Loading...</span>
                         </div>
                         <div class="pky-titlebar-actions">
-                            <button class="pky-btn" onclick="pkyJea1OpenReport('poke-yoke')" title="Poke Yoke - Manual Inspection overall (JEA1)">MI - Overall</button>
-                            <button class="pky-btn" onclick="pkyJea1OpenReport('poke-yoke-summary')" title="Poke Yoke - Manual Inspection summary (JEA1)">MI - Summary</button>
+                            <button class="pky-btn" onclick="pkyOpenReport('pky-jea1-line', 'poke-yoke')" title="Poke Yoke - Manual Inspection overall (JEA1)">MI - Overall</button>
+                            <button class="pky-btn" onclick="pkyOpenReport('pky-jea1-line', 'poke-yoke-summary')" title="Poke Yoke - Manual Inspection summary (JEA1)">MI - Summary</button>
                         </div>
                     </div>
                     <div class="pky-body">
@@ -1428,11 +1442,51 @@
                 </div>
             </div>
 
-            <!-- PokaYoke - JEA2 Line -->
+            <!-- PokaYoke - JEA2 Line ("Poka Yoke Station Status JEA2"; js/pokayoke/jea2-line.js) -->
             <div id="tab-pky-jea2-line" class="tab-pane">
-                <div class="pky-placeholder">
-                    <div class="pky-title">PokaYoke - JEA2 Line</div>
-                    <div class="pky-note">This screen is not built yet.</div>
+                <div class="pky-screen">
+                    <div class="pky-titlebar">
+                        <div class="pky-titlebar-title">Poka Yoke Station Status JEA2
+                            <span class="pky-sample" id="pkyJea2Status" title="Loading live data">Loading...</span>
+                        </div>
+                        <div class="pky-titlebar-actions">
+                            <button class="pky-btn" onclick="pkyOpenReport('pky-jea2-line', 'poke-yoke')" title="Poke Yoke - Manual Inspection overall (JEA2)">MI - Overall</button>
+                            <button class="pky-btn" onclick="pkyOpenReport('pky-jea2-line', 'poke-yoke-summary')" title="Poke Yoke - Manual Inspection summary (JEA2)">MI - Summary</button>
+                        </div>
+                    </div>
+                    <div class="pky-body">
+                        <div class="pky-layout-panel">
+                            <div class="pky-legend">
+                                <span><i class="ok"></i>Ok Count</span>
+                                <span><i class="mi"></i>Manual Inspection</span>
+                                <span><i class="auto"></i>Auto Station</span>
+                            </div>
+                            <div class="pky-canvas-wrap" id="pkyJea2CanvasWrap">
+                                <div class="pky-canvas" id="pkyJea2Canvas"></div>
+                            </div>
+                        </div>
+                        <div class="pky-side">
+                            <div class="pky-side-title">JEA2 Poka Yoke</div>
+                            <div class="pky-donut">
+                                <div class="pky-donut-label mi">MI <span id="pkyJea2MiPct">0%</span></div>
+                                <div class="pky-donut-chart">
+                                    <canvas id="pkyJea2Donut"></canvas>
+                                    <img class="pky-donut-icon" src="assets/pky-bike.png" alt="">
+                                </div>
+                                <div class="pky-donut-label ok">OK <span id="pkyJea2OkPct">100%</span></div>
+                            </div>
+                            <table class="pky-hc-table">
+                                <thead>
+                                    <tr><th>HC Name</th><th>Total</th><th>OK</th><th>Manual Inspection</th></tr>
+                                </thead>
+                                <tbody id="pkyJea2TableBody"></tbody>
+                            </table>
+                            <div class="pky-alert" id="pkyJea2Alert">
+                                <img src="assets/Caution.gif" alt="Alert">
+                                <div class="pky-alert-text">Alert : Poka Yoke Manual Inspection</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -2238,7 +2292,7 @@
 
         <script src="lib/chart.min.js"></script>
         <!-- App scripts: shared shell first, then one file per module -->
-        <script src="js/core.js?v=4"></script>
+        <script src="js/core.js?v=6"></script>
         <script src="js/dashboards/fire-hydrant.js?v=1"></script>
         <script src="js/dashboards/gas-leak.js?v=1"></script>
         <script src="js/dashboards/ems-renewable.js?v=2"></script>
@@ -2251,8 +2305,10 @@
         <script src="js/reports/categorywise-rework.js?v=1"></script>
         <script src="js/reports/summary-report.js?v=2"></script>
         <script src="js/reports/ebrtm-reports.js?v=4"></script>
-        <script src="js/pokayoke/pokayoke.js?v=7"></script>
-        <script src="js/pokayoke/jea1-line.js?v=9"></script>
+        <script src="js/pokayoke/pokayoke.js?v=16"></script>
+        <script src="js/pokayoke/jea1-line.js?v=11"></script>
+        <script src="js/pokayoke/jea2-line.js?v=2"></script>
+        <script src="js/pokayoke/overview.js?v=1"></script>
 </body>
 
 </html>
