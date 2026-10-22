@@ -56,11 +56,13 @@ function pkyRenderLayout(canvasId, layout, counts) {
             </div>`;
         } else if (s.type === 'loop') {
             html += `<div class="pky-loop" style="${pos(s.x, s.y)}${size}"></div>`;
+        } else if (s.type === 'band') {
+            html += `<div class="pky-band" style="${pos(s.x, s.y)}${size}"><span>${pkyEsc(s.title)}</span></div>`;
         }
     });
 
     (layout.labels || []).forEach(l => {
-        html += `<div class="pky-label${l.vertical ? ' vertical' : ''}${l.wrap ? ' wrap' : ''}" style="${pos(l.x, l.y)}width:${l.w}px;height:${Y(l.h)}px;">
+        html += `<div class="pky-label${l.vertical ? ' vertical' : ''}${l.wrap ? ' wrap' : ''}${l.plain ? ' plain' : ''}" style="${pos(l.x, l.y)}width:${l.w}px;height:${Y(l.h)}px;">
             <span>${pkyEsc(l.text)}</span></div>`;
     });
 
@@ -69,11 +71,14 @@ function pkyRenderLayout(canvasId, layout, counts) {
         const h = st.h || PKY_STATION_H;
         const c = counts[st.id] || { ok: 0, mi: 0 };
         const state = st.auto ? 'auto' : (c.mi > 0 ? 'mi' : 'ok');
-        // Horizontal stations show the id on two lines ("ML-54" -> ML / 54, "SA 42I" -> SA / 42I).
-        const text = st.vertical ? `<span>${pkyEsc(st.id)}</span>` : pkyEsc(st.id).replace(/[ -]/, '<br>');
-        const tip = `${st.id}${st.auto ? ' (auto station)' : ''}${st.noCounts ? '' : ` - OK ${c.ok}, Manual Inspection ${c.mi}`}`;
-        const click = st.noCounts ? '' : ` data-station="${pkyEsc(st.id)}"`;
-        html += `<div class="pky-station ${state}${st.vertical ? ' vertical' : ''}${st.noCounts ? '' : ' clickable'}"${click} style="${pos(st.x, st.y)}width:${w}px;height:${Y(h)}px;" title="${pkyEsc(tip)}">${text}</div>`;
+        // Horizontal stations show the id on two lines ("ML-54" -> ML / 54, "SA 42I" -> SA / 42I);
+        // a station with a label shows the label on one line (Crankshaft "OP-10"). title = the name
+        // in the tooltip and pop-up ("Cell 1 OP-10"); defaults to the id.
+        const name = st.title || st.id;
+        const text = st.label ? pkyEsc(st.label) : st.vertical ? `<span>${pkyEsc(st.id)}</span>` : pkyEsc(st.id).replace(/[ -]/, '<br>');
+        const tip = `${name}${st.auto ? ' (auto station)' : ''}${st.noCounts ? '' : ` - OK ${c.ok}, Manual Inspection ${c.mi}`}`;
+        const click = st.noCounts ? '' : ` data-station="${pkyEsc(st.id)}" data-title="${pkyEsc(name)}"`;
+        html += `<div class="pky-station ${state}${st.vertical ? ' vertical' : ''}${st.label ? ' labeled' : ''}${st.noCounts ? '' : ' clickable'}"${click} style="${pos(st.x, st.y)}width:${w}px;height:${Y(h)}px;" title="${pkyEsc(tip)}">${text}</div>`;
         if (st.noCounts) return;
 
         // Manual Inspection cell next to the station, OK cell beyond it (above / below rows);
@@ -233,7 +238,7 @@ async function pkyPoll(key, seq) {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         if (seq !== pkyPollSeq) return;
-        delaySeconds = Math.max(15, data.refreshSeconds || 60);
+        delaySeconds = Math.max(15, (data.refreshSeconds || 60) / 2);
         if (!data.error) {
             screen.live = data;
             pkyRenderScreen(key, pkyLiveCounts(screen, data.stations || {}), data.total || { ok: 0, mi: 0 });
@@ -247,12 +252,13 @@ async function pkyPoll(key, seq) {
     if (seq === pkyPollSeq) pkyPollTimer = setTimeout(() => pkyPoll(key, seq), delaySeconds * 1000);
 }
 
-// Title-bar badge of a live screen: "Live · hh:mm:ss" (amber when some station tables could not
+// Title-bar badge of a live screen: "Live" (amber when some station tables could not
 // be read, red when there is no data); the tooltip lists the details.
 function pkySetStatus(screen, data) {
     const el = document.getElementById(`${screen.prefix}Status`);
     if (!el) return;
-    const time = data.updatedAt ? new Date(data.updatedAt).toLocaleTimeString('en-GB') : '';
+    // A failed request keeps the last snapshot on screen, so the stamp keeps its time.
+    if (!data.error) pkySetUpdated(`${screen.prefix}Updated`, el, data);
     if (data.error) {
         el.className = 'pky-sample pky-status-error';
         el.textContent = screen.live ? `Data from ${new Date(screen.live.updatedAt).toLocaleTimeString('en-GB')}` : 'No data';
@@ -261,7 +267,7 @@ function pkySetStatus(screen, data) {
     }
     // Amber only for read errors; tables without a source rule are a config gap, listed in the tooltip.
     el.className = `pky-sample ${(data.errors || []).length ? 'pky-status-warn' : 'pky-status-live'}`;
-    el.textContent = `Live · ${time}`;
+    el.textContent = 'Live';   // the time is in the "Last updated" stamp next to it
     el.title = [
         `${data.checkpoints} checkpoints counted, ${data.ignored} without a value`,
         ...(data.unmatchedTables || []).map(t => `Not read (no source rule): ${t}`),
@@ -306,6 +312,29 @@ function pkyOpenReport(key, tabId) {
         dropdown.dispatchEvent(new Event('change'));
     }
     switchTab(tabId);
+    if (screen && screen.reportHc) pkySelectReportHc(tabId, screen.reportHc);
+}
+
+// Selects the report's "Select HC" value once the report has loaded the line's history cards
+// (filled asynchronously after the Line dropdown changes); gives up after 10 s if it never appears.
+const PKY_REPORT_HC_SELECT = { 'poke-yoke': 'pokeYokeModel', 'poke-yoke-summary': 'pokeYokeSummaryModel' };
+
+function pkySelectReportHc(tabId, hc) {
+    const select = document.getElementById(PKY_REPORT_HC_SELECT[tabId]);
+    if (!select) return;
+    const started = Date.now();
+    const trySelect = () => {
+        const option = [...select.options].find(o => o.value.trim().toUpperCase() === hc.toUpperCase());
+        if (option) {
+            if (select.value !== option.value) {
+                select.value = option.value;
+                select.dispatchEvent(new Event('change'));
+            }
+        } else if (Date.now() - started < 10000) {
+            setTimeout(trySelect, 250);
+        }
+    };
+    trySelect();
 }
 
 // ---- Station pop-up ----
@@ -321,7 +350,7 @@ function pkyBindStationClicks(key) {
     canvas.dataset.pkyClicks = '1';
     canvas.addEventListener('click', e => {
         const el = e.target.closest('.pky-station[data-station]');
-        if (el && screen.api) pkyOpenStation(key, el.dataset.station);
+        if (el && screen.api) pkyOpenStation(key, el.dataset.station, el.dataset.title);
     });
 }
 
@@ -361,13 +390,13 @@ function pkyCloseStation() {
     pkyModalSeq++;
 }
 
-async function pkyOpenStation(key, stationId) {
+async function pkyOpenStation(key, stationId, title) {
     const screen = pkyScreens[key];
     const modal = pkyModal();
     const seq = ++pkyModalSeq;
     const body = document.getElementById('pkyModalBody');
     const sub = document.getElementById('pkyModalSub');
-    document.getElementById('pkyModalTitle').textContent = `${stationId} - Poka Yoke checkpoints`;
+    document.getElementById('pkyModalTitle').textContent = `${title || stationId} - Poka Yoke checkpoints`;
     sub.textContent = 'Loading...';
     body.innerHTML = '';
     pkyResetTools();
@@ -489,7 +518,7 @@ async function pkyOpenSummary(key, filter) {
     const body = document.getElementById('pkyModalBody');
     const sub = document.getElementById('pkyModalSub');
     const label = filter === 'OK' ? 'OK' : filter === 'MI' ? 'Manual Inspection' : 'All';
-    document.getElementById('pkyModalTitle').textContent = `${screen.line} Main Line - ${label} checkpoints`;
+    document.getElementById('pkyModalTitle').textContent = `${screen.summaryName || `${screen.line} Main Line`} - ${label} checkpoints`;
     sub.textContent = 'Loading...';
     body.innerHTML = '';
     pkyResetTools();
@@ -499,10 +528,50 @@ async function pkyOpenSummary(key, filter) {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const d = await res.json();
         if (seq !== pkyModalSeq) return;
-        pkyFillCheckpoints(d, true, `No ${label === 'All' ? '' : label + ' '}checkpoints.`, `PokaYoke_${screen.line}_MainLine_${label.replace(/ /g, '')}`);
+        pkyFillCheckpoints(d, true, `No ${label === 'All' ? '' : label + ' '}checkpoints.`, `PokaYoke_${(screen.summaryName || `${screen.line} MainLine`).replace(/ /g, '_')}_${label.replace(/ /g, '')}`);
     } catch (e) {
         if (seq !== pkyModalSeq) return;
         sub.textContent = '';
         body.innerHTML = `<div class="pky-modal-empty">Could not load data: ${pkyEsc(e.message)}</div>`;
     }
 }
+
+// ---- "Last updated" stamp ----
+// Shows when the database was last queried for the data on screen ("Last updated 10:32:23 · 45 s
+// ago"); the age ticks every second and turns amber once the data is older than 3 refresh periods.
+// The stamp element is created next to the status badge (anchor) the first time.
+function pkySetUpdated(id, anchor, data) {
+    let el = document.getElementById(id);
+    if (!el) {
+        el = document.createElement('span');
+        el.id = id;
+        el.className = 'pky-updated';
+        anchor.insertAdjacentElement('afterend', el);
+    }
+    el.dataset.pkyUpdated = data.updatedAt ? new Date(data.updatedAt).getTime() : '';
+    el.dataset.pkyPeriod = data.refreshSeconds || 60;
+    const fmt = d => new Date(d).toLocaleTimeString('en-GB');
+    el.title = data.updatedAt
+        ? [`Database queried ${data.queryStartedAt ? fmt(data.queryStartedAt) + ' - ' : ''}${fmt(data.updatedAt)}${data.querySeconds != null ? ` (${data.querySeconds} s)` : ''}`,
+           `The server re-queries at most every ${data.refreshSeconds || 60} s while a PokaYoke screen is open; this screen checks every ${Math.max(15, (data.refreshSeconds || 60) / 2)} s.`].join('\n')
+        : 'No data yet';
+    pkyTickUpdated();
+}
+
+function pkyAgeText(seconds) {
+    if (seconds < 60) return `${seconds} s ago`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)} min ${seconds % 60} s ago`;
+    return `${Math.floor(seconds / 3600)} h ${Math.floor(seconds / 60) % 60} min ago`;
+}
+
+function pkyTickUpdated() {
+    document.querySelectorAll('.pky-updated').forEach(el => {
+        const ts = +el.dataset.pkyUpdated;
+        if (!ts) { el.textContent = 'Not updated yet'; el.classList.remove('stale'); return; }
+        const age = Math.max(0, Math.round((Date.now() - ts) / 1000));
+        el.textContent = `Last updated ${new Date(ts).toLocaleTimeString('en-GB')} \u00b7 ${pkyAgeText(age)}`;
+        el.classList.toggle('stale', age > 3 * (+el.dataset.pkyPeriod || 60));
+    });
+}
+
+setInterval(pkyTickUpdated, 1000);

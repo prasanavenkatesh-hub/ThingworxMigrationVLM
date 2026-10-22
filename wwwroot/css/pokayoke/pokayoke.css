@@ -84,6 +84,37 @@
     border-color: rgba(239, 68, 68, 0.5);
 }
 
+/* "Last updated hh:mm:ss · n s ago" next to the status badge (pkySetUpdated). */
+.pky-updated {
+    font-size: 11px;
+    font-weight: 600;
+    color: #d1d5db;
+    white-space: nowrap;
+}
+
+.pky-updated.stale {
+    color: #fbbf24;
+}
+
+.pky-ov-head-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.2;
+}
+
+.pky-ov-stamp-slot { display: none; }
+
+.pky-ov-head.center .pky-updated {
+    color: #ffffff;
+    opacity: 0.9;
+}
+
+.pky-ov-head.center .pky-updated.stale {
+    color: #ffe08a;
+    opacity: 1;
+}
+
 .pky-titlebar-actions {
     display: flex;
     gap: 8px;
@@ -235,6 +266,34 @@
 }
 
 /* Two-line labels (layout flag wrap: true) */
+/* Stations with a label (Crankshaft "OP-30A"): one line. */
+.pky-station.labeled {
+    white-space: nowrap;
+    letter-spacing: -0.2px;
+}
+
+/* Crankshaft "CELL 1": text only. */
+.pky-label.plain {
+    background: none;
+    border: none;
+    color: var(--dark);
+    font-size: 11px;
+}
+
+/* Crankshaft "CRANK SHAFT SA POKAYOKE STATUS" band. */
+.pky-band {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f2b21c;
+    color: #111111;
+    border-radius: 50% / 100%;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+}
+
 .pky-label.wrap {
     white-space: normal;
     font-size: 8.5px;

@@ -5,15 +5,14 @@
 // table. The numbers are the line screens' summary values (GET /api/pokayoke/<api>/stations
 // -> total, the same values as their HC table), so the cards always match the line screens; the
 // tiles and table values open the same checkpoint pop-up as there. Polls while the tab is open.
-// Crank Shaft (EA1) is a placeholder until its screen is built (no API yet): shown as "–" and not
-// counted in the Overall card.
+// A line with placeholder: true (no screen / API yet) is shown as "–" and not counted in Overall.
 // =============================================================================================
 
 // key = the line screen's tab id (its registered api is used for the data); tag = the badge.
 const PKY_OV_LINES = [
     { key: 'pky-jea1-line', title: 'JEA1 Engine Line (EA1)', tag: 'EA1', short: 'EA1', tableName: 'JEA1 Engine Line-EA1' },
     { key: 'pky-jea2-line', title: 'JEA2 Engine Line (EA2)', tag: 'EA2', short: 'EA2', tableName: 'JEA2 Engine Line-EA2' },
-    { key: 'pky-jea1-crankshaft', title: 'Crank Shaft (EA1)', tag: '', short: 'Crank Shaft', tableName: 'JEA1 Crank Shaft', placeholder: true }
+    { key: 'pky-jea1-crankshaft', title: 'Crank Shaft (EA1)', tag: '', short: 'Crank Shaft', tableName: 'JEA1 Crank Shaft' }
 ];
 
 let pkyOvData = {};        // line key -> { ok, mi } | { error }
@@ -41,8 +40,9 @@ async function pkyOvPoll(seq) {
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const d = await res.json();
             if (d.error) throw new Error(d.error);
-            delaySeconds = Math.max(15, d.refreshSeconds || 60);
-            return [l.key, { ok: d.total.ok, mi: d.total.mi, updatedAt: d.updatedAt, errors: (d.errors || []).length }];
+            delaySeconds = Math.max(15, (d.refreshSeconds || 60) / 2);   // as the line screens
+            return [l.key, { ok: d.total.ok, mi: d.total.mi, updatedAt: d.updatedAt, queryStartedAt: d.queryStartedAt,
+                querySeconds: d.querySeconds, refreshSeconds: d.refreshSeconds, errors: (d.errors || []).length }];
         } catch (e) {
             // Keep the last good numbers on screen; flag the line.
             return [l.key, { ...(pkyOvData[l.key] || {}), error: e.message || 'Could not reach the server.' }];
@@ -115,7 +115,10 @@ function pkyOvBuild() {
     grid.innerHTML = PKY_OV_LINES.map(pkyOvCard).join('') + `
         <div class="pky-ov-card pky-ov-overall">
             <div class="pky-ov-head center">
-                <span class="pky-ov-title">Overall Poka Yoke</span>
+                <div class="pky-ov-head-stack">
+                    <span class="pky-ov-title">Overall Poka Yoke</span>
+                    <span class="pky-ov-stamp-slot"></span>
+                </div>
                 <span class="pky-sample" id="pkyOvStatus">Loading...</span>
             </div>
             ${pkyOvKpis('pkyOvAll', '')}
@@ -269,6 +272,11 @@ function pkyOvRender() {
         </tr>`;
     }).join('');
 
+    // Stamp = the oldest line's snapshot (the Overall numbers are only as new as that).
+    const stamps = live.map(l => pkyOvData[l.key]).filter(d => d && d.updatedAt)
+        .sort((a, b) => new Date(a.updatedAt) - new Date(b.updatedAt));
+    pkySetUpdated('pkyOvUpdated', document.querySelector('.pky-ov-stamp-slot'), stamps[0] || {});
+
     // Status pill: live / some line failed / nothing yet.
     const el = document.getElementById('pkyOvStatus');
     const failed = live.filter(l => pkyOvData[l.key] && pkyOvData[l.key].error);
@@ -276,11 +284,11 @@ function pkyOvRender() {
         el.className = 'pky-sample'; el.textContent = 'Loading...'; el.title = 'Loading live data';
     } else if (failed.length) {
         el.className = `pky-sample ${anyData ? 'pky-status-warn' : 'pky-status-error'}`;
-        el.textContent = anyData ? `Partial · ${pkyOvUpdatedAt.toLocaleTimeString('en-GB')}` : 'No data';
+        el.textContent = anyData ? 'Partial' : 'No data';
         el.title = failed.map(l => `${l.short}: ${pkyOvData[l.key].error}`).join('\n');
     } else {
         el.className = 'pky-sample pky-status-live';
-        el.textContent = `Live · ${pkyOvUpdatedAt.toLocaleTimeString('en-GB')}`;
+        el.textContent = 'Live';   // the time is in the "Last updated" stamp
         el.title = live.map(l => `${l.short}: data ${new Date(pkyOvData[l.key].updatedAt).toLocaleTimeString('en-GB')}`).join('\n');
     }
 }

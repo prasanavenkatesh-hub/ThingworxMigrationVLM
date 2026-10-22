@@ -17,6 +17,8 @@ public class PokaYokeLineSettings
     // Tag master table: database + "Schema.Table".
     public string TagMasterDatabase { get; set; } = "";
     public string TagMasterTable { get; set; } = "EHC.Vallam_TagMaster";
+    // Only these history cards (empty = all), e.g. "14 CrankShaft" for the Crankshaft screen.
+    public List<string> IncludedHistoryCards { get; set; } = new();
     public List<string> ExcludedHistoryCards { get; set; } = new();
     public List<string> ExcludedStations { get; set; } = new();
     // Stations left out of the line total (the summary donut / HC table).
@@ -27,6 +29,19 @@ public class PokaYokeLineSettings
     public List<string> MiValues { get; set; } = new() { "BYPASSED" };
     public List<string> IgnoredValues { get; set; } = new() { "NA" };
     public List<PokaYokeSourceSettings> Sources { get; set; } = new();
+    // Screens with several identical cells (Crankshaft): null for the line screens.
+    public PokaYokeCellSettings? Cells { get; set; }
+}
+
+// Crankshaft (port of getPokeYokeLiveStatusForIndivisualStationForJEA1_CrankSaft): every tag of a
+// station listed in StationNames is read once per cell - the source's StationColumn is the cell
+// column (Cell_Number) and its value one of Values - and reported as station "C<cell>-<name>"
+// (e.g. tag-master station 33 in cell 1 -> "C1-OP-10").
+public class PokaYokeCellSettings
+{
+    public List<string> Values { get; set; } = new();
+    // Tag-master station number -> station name on the screen ("33" -> "OP-10").
+    public Dictionary<string, string> StationNames { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 }
 
 // How to read the latest record of a group of station tables (port of the ThingWorx

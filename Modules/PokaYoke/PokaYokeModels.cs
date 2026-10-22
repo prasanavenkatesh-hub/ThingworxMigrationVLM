@@ -16,10 +16,14 @@ public class PokaYokeCount
 //   Checkpoints / Ignored - checkpoints counted / skipped (no value, "NA", or no record yet)
 //   UnmatchedTables - tag-master tables with no entry in PokaYoke:Lines:<line>:Sources (not read)
 //   Errors   - per-table query errors of the last refresh; Error - the whole refresh failed
+//   QueryStartedAt / UpdatedAt - when the database queries of this snapshot started / finished,
+//   QuerySeconds - how long they took
 public class PokaYokeLineStatus
 {
     public string Line { get; set; } = "";
+    public DateTime? QueryStartedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
+    public double QuerySeconds { get; set; }
     public int RefreshSeconds { get; set; }
     public Dictionary<string, PokaYokeCount> Stations { get; set; } = new();
     public PokaYokeCount Total { get; set; } = new();

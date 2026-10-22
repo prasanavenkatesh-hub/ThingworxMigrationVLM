@@ -56,14 +56,19 @@ public class PokaYokeStatusService
 
     public bool HasLine(string line) => _settings.Lines.ContainsKey(line);
 
-    // Cached snapshot. The first request waits for the first refresh; after that a stale snapshot
-    // is returned at once and refreshed in the background (one refresh per line at a time).
+    // Cached snapshot (one refresh per line at a time):
+    //   no snapshot, or older than 2 x RefreshSeconds (no one had the screen open) -> wait for a refresh,
+    //     so a screen opened after an idle period never shows old data;
+    //   older than RefreshSeconds -> return it at once and refresh in the background (the screens
+    //     poll every RefreshSeconds / 2, so they pick up the new snapshot within half a period).
     public async Task<PokaYokeLineStatus> GetStatusAsync(string line)
     {
         PokaYokeLineStatus? cached;
         lock (_cache) _cache.TryGetValue(line, out cached);
-        if (cached == null) return await RefreshLineAsync(line);
-        if (DateTime.Now - cached.UpdatedAt >= TimeSpan.FromSeconds(_settings.RefreshSeconds) && _gates[line].CurrentCount > 0)
+        var age = cached == null ? TimeSpan.MaxValue : DateTime.Now - (cached.UpdatedAt ?? DateTime.MinValue);
+        var period = TimeSpan.FromSeconds(_settings.RefreshSeconds);
+        if (cached == null || age >= period * 2) return await RefreshLineAsync(line);
+        if (age >= period && _gates[line].CurrentCount > 0)
             _ = Task.Run(() => RefreshLineAsync(line));
         return cached;
     }
@@ -141,6 +146,8 @@ public class PokaYokeStatusService
         public string HistoryCard { get; set; } = "";
         public string? Description { get; set; }
         public int? TagOrder { get; set; }
+        // Station reported when it differs from StationNumber (the query filter value): Cells only.
+        public string? ReportStation { get; set; }
     }
 
     private sealed record TableRef(string Database, string Schema, string Table)
@@ -151,13 +158,13 @@ public class PokaYokeStatusService
 
     private async Task<PokaYokeLineStatus> RefreshAsync(string lineKey, PokaYokeLineSettings line)
     {
-        var status = new PokaYokeLineStatus { Line = lineKey, RefreshSeconds = _settings.RefreshSeconds };
+        var status = new PokaYokeLineStatus { Line = lineKey, RefreshSeconds = _settings.RefreshSeconds, QueryStartedAt = DateTime.Now };
         try
         {
             using var conn = new SqlConnection(_connectionString);
             await conn.OpenAsync();
 
-            var tags = await LoadTagsAsync(conn, line);
+            var tags = ExpandCells(await LoadTagsAsync(conn, line), line);
             var sources = BuildSourceIndex(line);
 
             // (table, station) -> tag columns
@@ -218,7 +225,8 @@ public class PokaYokeStatusService
                         continue;
                     }
 
-                    var station = line.StationAliases.TryGetValue(tag.StationNumber, out var alias) ? alias : tag.StationNumber;
+                    var reported = tag.ReportStation ?? tag.StationNumber;
+                    var station = line.StationAliases.TryGetValue(reported, out var alias) ? alias : reported;
                     if (!counts.TryGetValue(station, out var count)) counts[station] = count = new PokaYokeCount();
                     var isMi = miValues.Contains(value, StringComparer.OrdinalIgnoreCase);
                     if (isMi) count.Mi++;
@@ -256,6 +264,7 @@ public class PokaYokeStatusService
             status.Error = ex.Message;
         }
         status.UpdatedAt = DateTime.Now;
+        status.QuerySeconds = Math.Round((status.UpdatedAt.Value - status.QueryStartedAt.Value).TotalSeconds, 1);
         return status;
     }
 
@@ -276,9 +285,33 @@ public class PokaYokeStatusService
         var rows = await conn.QueryAsync<TagRow>(sql, new { line.Line }, commandTimeout: _settings.QueryTimeoutSeconds);
         return rows
             .Where(r => !string.IsNullOrWhiteSpace(r.StationNumber) && !string.IsNullOrWhiteSpace(r.TagName))
+            .Where(r => line.IncludedHistoryCards.Count == 0 || line.IncludedHistoryCards.Contains((r.HistoryCard ?? "").Trim(), StringComparer.OrdinalIgnoreCase))
             .Where(r => !line.ExcludedHistoryCards.Contains(r.HistoryCard ?? "", StringComparer.OrdinalIgnoreCase))
             .Where(r => !line.ExcludedStations.Contains(r.StationNumber, StringComparer.OrdinalIgnoreCase))
             .Select(r => { r.StationNumber = r.StationNumber.Trim(); r.TagName = r.TagName.Trim(); return r; })
+            .ToList();
+    }
+
+    // Cells (Crankshaft): each tag of a mapped station once per cell. StationNumber becomes the cell
+    // value (the source's StationColumn filter, so one query per cell reads all its tags) and the
+    // station reported is "C<cell>-<name>". Tags of unmapped stations are dropped (ThingWorx
+    // getCranksaftPokeyokeTagList: stationnumber in (33..38, 61, 62)).
+    private static List<TagRow> ExpandCells(List<TagRow> tags, PokaYokeLineSettings line)
+    {
+        if (line.Cells == null) return tags;
+        return tags
+            .Where(t => line.Cells.StationNames.ContainsKey(t.StationNumber))
+            .SelectMany(t => line.Cells.Values.Select(cell => new TagRow
+            {
+                StationNumber = cell,
+                ReportStation = $"C{cell}-{line.Cells.StationNames[t.StationNumber]}",
+                TagName = t.TagName,
+                DatabaseName = t.DatabaseName,
+                DbName = t.DbName,
+                HistoryCard = t.HistoryCard,
+                Description = t.Description,
+                TagOrder = t.TagOrder
+            }))
             .ToList();
     }
 
