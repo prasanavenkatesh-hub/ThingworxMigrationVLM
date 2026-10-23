@@ -16,15 +16,17 @@ public class EbRtmMqttBackgroundService : BackgroundService
     private readonly EbRtmStateStore _store;
     private readonly EbRtmReadingLogger _readingLogger;
     private readonly EbRtmPowerFailureMonitor _powerFailureMonitor;
+    private readonly EbRtmAlertMonitor _alertMonitor;
     private readonly IConfiguration _config;
     private readonly ILogger<EbRtmMqttBackgroundService> _logger;
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
-    public EbRtmMqttBackgroundService(EbRtmStateStore store, EbRtmReadingLogger readingLogger, EbRtmPowerFailureMonitor powerFailureMonitor, IConfiguration config, ILogger<EbRtmMqttBackgroundService> logger)
+    public EbRtmMqttBackgroundService(EbRtmStateStore store, EbRtmReadingLogger readingLogger, EbRtmPowerFailureMonitor powerFailureMonitor, EbRtmAlertMonitor alertMonitor, IConfiguration config, ILogger<EbRtmMqttBackgroundService> logger)
     {
         _store = store;
         _readingLogger = readingLogger;
         _powerFailureMonitor = powerFailureMonitor;
+        _alertMonitor = alertMonitor;
         _config = config;
         _logger = logger;
     }
@@ -57,6 +59,7 @@ public class EbRtmMqttBackgroundService : BackgroundService
                 var reading = _store.GetCurrentReading();
                 await _readingLogger.EvaluateAsync(reading);
                 if (reading.AvgVoltage.HasValue) await _powerFailureMonitor.EvaluateAsync(reading.AvgVoltage.Value);
+                await _alertMonitor.EvaluateAsync(reading, _store.AvgVoltageQualityGood);
             }
             catch (Exception ex)
             {

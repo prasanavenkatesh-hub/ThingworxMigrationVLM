@@ -1,0 +1,899 @@
+/* PokaYoke module (sidebar: PokaYoke > JEA1 Line / JEA2 Line / JEA1 Crankshaft).
+   "Poka Yoke Station Status" screens: plant-layout canvas (left) + summary panel (right).
+   Station / count colours follow the ThingWorx screen. All classes are prefixed .pky- */
+
+/* ---- Placeholder (screens not built yet) ---- */
+.pky-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 100%;
+    min-height: 300px;
+    font-family: 'Inter', sans-serif;
+    color: var(--gray);
+}
+
+.pky-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--dark);
+}
+
+.pky-note {
+    font-size: 13px;
+}
+
+/* ---- Screen ---- */
+.pky-screen {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    height: 100%;
+    min-height: 0;
+    font-family: 'Inter', sans-serif;
+    color: var(--dark);
+}
+
+.pky-titlebar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 12px;
+    background: #3a3f47;
+    border-radius: 6px;
+}
+
+.pky-titlebar-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.pky-sample {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: rgba(245, 158, 11, 0.2);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.5);
+}
+
+/* Live screens: the badge shows the data status (pkySetStatus). */
+.pky-sample.pky-status-live {
+    background: rgba(34, 197, 94, 0.18);
+    color: #4ade80;
+    border-color: rgba(34, 197, 94, 0.5);
+}
+
+.pky-sample.pky-status-warn {
+    background: rgba(245, 158, 11, 0.2);
+    color: #fbbf24;
+    border-color: rgba(245, 158, 11, 0.5);
+}
+
+.pky-sample.pky-status-error {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+    border-color: rgba(239, 68, 68, 0.5);
+}
+
+/* "Last updated hh:mm:ss · n s ago" next to the status badge (pkySetUpdated). */
+.pky-updated {
+    font-size: 11px;
+    font-weight: 600;
+    color: #d1d5db;
+    white-space: nowrap;
+}
+
+.pky-updated.stale {
+    color: #fbbf24;
+}
+
+.pky-ov-head-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.2;
+}
+
+.pky-ov-stamp-slot { display: none; }
+
+.pky-ov-head.center .pky-updated {
+    color: #ffffff;
+    opacity: 0.9;
+}
+
+.pky-ov-head.center .pky-updated.stale {
+    color: #ffe08a;
+    opacity: 1;
+}
+
+.pky-titlebar-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.pky-btn {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border: none;
+    border-radius: 4px;
+    background: #f2b21c;
+    color: #111111;
+    cursor: pointer;
+}
+
+.pky-btn:hover {
+    filter: brightness(1.08);
+}
+
+.pky-body {
+    flex: 1;
+    display: flex;
+    gap: 8px;
+    min-height: 0;
+}
+
+/* ---- Plant layout ---- */
+.pky-layout-panel {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    border: 1px solid var(--neutral);
+    border-radius: 6px;
+    background: var(--white);
+    padding: 6px;
+}
+
+/* Bottom-left: the only free corner of the layout (top-right holds Magneto Cover SA). */
+.pky-legend {
+    position: absolute;
+    bottom: 10px;
+    left: 12px;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: 10px;
+    color: var(--gray);
+}
+
+.pky-legend span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.pky-legend i {
+    width: 11px;
+    height: 11px;
+    border: 1px solid #333;
+}
+
+.pky-legend i.ok { background: #5cb85c; }
+.pky-legend i.mi { background: #f0a830; }
+.pky-legend i.auto { background: #8f959e; }
+
+.pky-canvas-wrap {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+/* Fixed design size (set from the layout); zoomed to the wrapper by pkyFitLayout(). */
+.pky-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: geometricPrecision;
+}
+
+.pky-canvas > div {
+    position: absolute;
+    box-sizing: border-box;
+}
+
+.pky-station {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.1;
+    color: #0f2e22;
+    border: 1px solid #2f5d4a;
+    cursor: default;
+}
+
+/* Live screens: a station with counts opens its checkpoint pop-up. */
+.pky-station.clickable {
+    cursor: pointer;
+}
+
+.pky-station.clickable:hover {
+    outline: 2px solid #f2b21c;
+    outline-offset: -1px;
+}
+
+.pky-station.ok { background: #b4f0d2; }
+.pky-station.mi { background: #f0a830; color: #111; }
+.pky-station.auto { background: #8f959e; color: #111; border-color: #555b63; }
+
+.pky-station.vertical span,
+.pky-label.vertical span {
+    transform: rotate(-90deg);
+    white-space: nowrap;
+}
+
+.pky-count {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: #111;
+    border: 1px solid #333;
+}
+
+.pky-count.ok { background: #5cb85c; }
+.pky-count.mi { background: #f0a830; }
+
+.pky-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.1;
+    color: #111;
+    background: #c9ccd1;
+    border: 1px solid #6b7280;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+/* Two-line labels (layout flag wrap: true) */
+/* Stations with a label (Crankshaft "OP-30A"): one line. */
+.pky-station.labeled {
+    white-space: nowrap;
+    letter-spacing: -0.2px;
+}
+
+/* Crankshaft "CELL 1": text only. */
+.pky-label.plain {
+    background: none;
+    border: none;
+    color: var(--dark);
+    font-size: 11px;
+}
+
+/* Crankshaft "CRANK SHAFT SA POKAYOKE STATUS" band. */
+.pky-band {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f2b21c;
+    color: #111111;
+    border-radius: 50% / 100%;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+}
+
+.pky-label.wrap {
+    white-space: normal;
+    font-size: 8.5px;
+}
+
+/* J1 Engine Assembly main line: dark rounded track with the line name on a light strip. */
+.pky-track {
+    background: #4b5058;
+    border-radius: 9999px;
+}
+
+.pky-track-strip {
+    position: absolute;
+    left: 30px;
+    right: 30px;
+    top: 50%;
+    height: 30px;
+    transform: translateY(-50%);
+    background: #f3f4f6;
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pky-track-strip span {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    color: #111;
+}
+
+/* C.Case Autocell loop outline */
+.pky-loop {
+    border: 1px solid var(--gray);
+    border-radius: 9999px;
+}
+
+/* ---- Summary panel ---- */
+.pky-side {
+    width: 300px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    border: 1px solid var(--neutral);
+    border-radius: 6px;
+    background: var(--white);
+    padding: 0 0 12px;
+    overflow: auto;
+}
+
+.pky-side-title {
+    background: #e2471f;
+    color: #ffffff;
+    text-align: center;
+    font-size: 17px;
+    font-weight: 700;
+    padding: 9px;
+    border-radius: 6px 6px 0 0;
+}
+
+.pky-donut {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.pky-donut-chart {
+    position: relative;
+    width: 200px;
+    height: 200px;
+}
+
+.pky-donut-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 124px;
+    height: auto;
+    pointer-events: none;
+}
+
+.pky-donut-label {
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.pky-donut-label.ok { color: #5cb85c; }
+.pky-donut-label.mi { color: #f0a830; }
+
+.pky-hc-table {
+    width: calc(100% - 20px);
+    margin: 0 10px;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-size: 12px;
+}
+
+.pky-hc-table th {
+    background: #e2471f;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: none;
+    padding: 6px 4px;
+    text-align: center;
+    white-space: normal;
+    line-height: 1.2;
+}
+
+.pky-hc-table th:first-child { width: 30%; }
+.pky-hc-table th:last-child { width: 32%; }
+
+.pky-hc-table th:first-child,
+.pky-hc-table td:first-child {
+    text-align: left;
+}
+
+.pky-hc-table td {
+    padding: 9px 6px;
+    text-align: center;
+    border-bottom: 1px solid var(--neutral);
+}
+
+.pky-link {
+    color: #3b82f6;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+/* Shown only while the line has Manual Inspection checkpoints (pkyRenderSummary). */
+.pky-alert {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.pky-alert.show {
+    display: flex;
+}
+
+.pky-alert img {
+    width: 64px;
+    height: auto;
+}
+
+.pky-alert-text {
+    background: #f2b21c;
+    color: #111;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 3px;
+}
+
+/* Keep the ThingWorx orange-red table header in the light theme too (a global light-mode rule
+   repaints table headers). */
+body.light-mode .pky-hc-table th {
+    background: #e2471f !important;
+    color: #ffffff !important;
+}
+
+/* ---- Station pop-up (checkpoint list) ---- */
+.pky-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    /* Dims (and slightly blurs) the screen behind the pop-up. */
+    background: rgba(0, 0, 0, 0.72);
+    backdrop-filter: blur(2px);
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+.pky-modal.open {
+    display: flex;
+}
+
+.pky-modal-box {
+    width: min(820px, 100%);
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--white);
+    color: var(--dark);
+    border: 1px solid var(--neutral);
+    border-radius: 8px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+    font-family: 'Inter', sans-serif;
+    overflow: hidden;
+}
+
+.pky-modal-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    background: #e2471f;
+    color: #ffffff;
+}
+
+.pky-modal-title {
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.pky-modal-sub {
+    font-size: 12px;
+    opacity: 0.9;
+    margin-top: 2px;
+}
+
+.pky-modal-close {
+    background: none;
+    border: none;
+    color: #ffffff;
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.pky-modal-tools {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--neutral);
+}
+
+.pky-modal-tools.show {
+    display: flex;
+}
+
+.pky-modal-search {
+    flex: 1;
+    min-width: 0;
+    padding: 6px 10px;
+    font-size: 13px;
+    color: var(--dark);
+    background: transparent;
+    border: 1px solid var(--neutral);
+    border-radius: 4px;
+    outline: none;
+}
+
+.pky-modal-search:focus {
+    border-color: #e2471f;
+}
+
+.pky-modal-count {
+    font-size: 12px;
+    color: var(--gray);
+    white-space: nowrap;
+}
+
+.pky-modal-download {
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #111111;
+    background: #f2b21c;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.pky-modal-download:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.pky-modal-body {
+    overflow: auto;
+}
+
+.pky-modal-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.pky-modal-table th {
+    position: sticky;
+    top: 0;
+    text-align: left;
+    padding: 8px 12px;
+    background: #3a3f47;
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.pky-modal-table td {
+    padding: 7px 12px;
+    border-bottom: 1px solid var(--neutral);
+}
+
+.pky-modal-table td:first-child,
+.pky-modal-table th:first-child {
+    width: 36px;
+    color: var(--gray);
+}
+
+.pky-modal-table th:first-child {
+    color: #ffffff;
+}
+
+.pky-modal-table td.pky-modal-station {
+    white-space: nowrap;
+    font-weight: 600;
+}
+
+.pky-modal-table tr.mi td {
+    background: rgba(240, 168, 48, 0.12);
+}
+
+.pky-pill {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #111111;
+    white-space: nowrap;
+}
+
+.pky-pill.ok { background: #5cb85c; }
+.pky-pill.mi { background: #f0a830; }
+
+.pky-modal-empty {
+    padding: 24px 16px;
+    color: var(--gray);
+    text-align: center;
+}
+
+/* ---- PokaYoke > Overview (overview.js) ----
+   Grid: JEA1 card (top left), JEA2 card (bottom left), Overall card (middle, both rows),
+   Crank Shaft card (top right). */
+.pky-ov {
+    --pky-ov-card: #fdf6f0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    height: 100%;
+    min-height: 640px;
+    font-family: 'Inter', sans-serif;
+    color: var(--dark);
+}
+
+.pky-ov .pky-ov-line0 { grid-column: 1; grid-row: 1; }
+.pky-ov .pky-ov-line1 { grid-column: 1; grid-row: 2; }
+.pky-ov .pky-ov-line2 { grid-column: 3; grid-row: 1; }
+.pky-ov .pky-ov-overall { grid-column: 2; grid-row: 1 / span 2; }
+
+.pky-ov-card {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: var(--white);
+    border: 1px solid var(--neutral);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+body.light-mode .pky-ov-card {
+    background: var(--pky-ov-card);
+    border-color: #f1e3d6;
+}
+
+.pky-ov-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 18px;
+    min-height: 42px;
+    background: #e2471f;
+    color: #ffffff;
+}
+
+.pky-ov-head.center {
+    justify-content: center;
+    position: relative;
+}
+
+.pky-ov-head.center .pky-sample {
+    position: absolute;
+    right: 14px;
+}
+
+.pky-ov-title {
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.pky-ov-title.link {
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.pky-ov-tag {
+    padding: 2px 8px;
+    border-radius: 14px;
+    background: #f2b21c;
+    color: #111111;
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.pky-ov-detail {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    font-style: italic;
+    white-space: nowrap;
+    opacity: 0.95;
+}
+
+.pky-ov-detail.link { cursor: pointer; }
+.pky-ov-detail.link:hover { text-decoration: underline; }
+.pky-ov-detail .material-symbols-outlined { font-size: 18px; font-style: normal; }
+
+.pky-ov-kpis {
+    display: grid;
+    grid-template-columns: 1fr 1.3fr 0.95fr;
+    gap: 4px;
+    padding: 4px;
+}
+
+.pky-ov-kpi {
+    display: flex;
+    min-height: 58px;
+    color: #333333;
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.pky-ov-kpi[data-pky-ov-line] { cursor: pointer; }
+.pky-ov-kpi[data-pky-ov-line]:hover { filter: brightness(0.95); }
+
+.pky-ov-kpi-val {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 6px;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.pky-ov-kpi-val b {
+    font-size: 26px;
+    font-weight: 700;
+    color: #3a3a3a;
+}
+
+.pky-ov-kpi-val small {
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.pky-ov-kpi-alert {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.pky-ov-kpi-alert img {
+    width: 24px;
+    height: auto;
+}
+
+.pky-ov-kpi-label {
+    display: flex;
+    align-items: center;
+    padding: 0 6px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.pky-ov-kpi.ok { background: #c9e9c0; }
+.pky-ov-kpi.ok .pky-ov-kpi-label { background: #aee09f; }
+.pky-ov-kpi.mi { background: #fbe3a4; }
+.pky-ov-kpi.mi .pky-ov-kpi-label { background: #f9d57f; max-width: 42%; }
+.pky-ov-kpi.total { background: #d6d6d6; }
+.pky-ov-kpi.total .pky-ov-kpi-label { background: #c2c2c2; max-width: 46%; }
+
+.pky-ov-donut {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 6px 0 10px;
+}
+
+.pky-ov-donut-chart {
+    position: relative;
+    flex: 1;
+    width: 100%;
+    max-height: 220px;
+    min-height: 110px;
+}
+
+.pky-ov-donut.overall .pky-ov-donut-chart {
+    max-height: 400px;
+    min-height: 220px;
+}
+
+.pky-ov-donut-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    height: 34%;
+    width: auto;
+    pointer-events: none;
+}
+
+.pky-ov-donut.overall .pky-ov-donut-icon { height: 22%; }
+
+.pky-ov-donut .pky-donut-label { font-size: 14px; }
+
+.pky-ov-note {
+    padding: 8px 16px 0;
+    text-align: center;
+    font-size: 12px;
+    color: var(--gray);
+}
+
+.pky-ov-card.placeholder .pky-ov-kpis,
+.pky-ov-card.placeholder .pky-ov-donut {
+    opacity: 0.55;
+}
+
+.pky-ov-table {
+    width: calc(100% - 20px);
+    margin: 0 10px 10px;
+    border-collapse: separate;
+    border-spacing: 0 5px;
+    font-size: 14px;
+}
+
+.pky-ov-table th {
+    padding: 8px 10px;
+    text-align: left;
+    background: #e2471f;
+    color: #ffffff;
+    font-weight: 700;
+}
+
+.pky-ov-table th:first-child { border-radius: 8px 0 0 0; }
+.pky-ov-table th:last-child { border-radius: 0 8px 0 0; }
+
+.pky-ov-table td {
+    padding: 7px 10px;
+    background: #d6d6d6;
+    color: #111111;
+    font-weight: 700;
+}
+
+.pky-ov-table tr.placeholder td { color: #666666; }
+
+.pky-ov-num {
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+/* A global light-mode rule repaints table headers; keep the orange-red one. */
+body.light-mode .pky-ov-table th {
+    background: #e2471f !important;
+    color: #ffffff !important;
+}
+
+/* Narrow screens: one card per row. */
+@media (max-width: 1100px) {
+    .pky-ov {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: none;
+        height: auto;
+    }
+    .pky-ov .pky-ov-line0, .pky-ov .pky-ov-line1, .pky-ov .pky-ov-line2, .pky-ov .pky-ov-overall {
+        grid-column: 1;
+        grid-row: auto;
+    }
+    .pky-ov-card { min-height: 380px; }
+}

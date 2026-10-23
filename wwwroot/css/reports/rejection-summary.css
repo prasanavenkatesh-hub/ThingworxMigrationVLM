@@ -1,0 +1,113 @@
+/* Rejection Summary Report (#tab-rejection-summary). Same look as the Categorywise Rework report;
+   colours come from the app theme variables (--white surface, --dark text, --neutral border,
+   --gray muted) so it follows the light/dark toggle. */
+
+#tab-rejection-summary {
+    --rjs-accent: #f5b301;
+    --rjs-accent-text: #f5b301;
+    --rjs-accent-soft: rgba(245, 179, 1, 0.14);
+    padding: 16px 24px;
+}
+
+body.light-mode #tab-rejection-summary {
+    --rjs-accent-text: #a86f00;
+    --rjs-accent-soft: rgba(245, 179, 1, 0.18);
+}
+
+.rjs [hidden] { display: none !important; }
+
+/* style.v2.css forces light-mode <th> to a dark band; keep the theme surface. */
+body.light-mode #tab-rejection-summary .rjs-table th {
+    background: var(--white) !important;
+    color: var(--dark) !important;
+    border-color: var(--neutral) !important;
+}
+
+.rjs { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-right: 4px; }
+
+/* Header: title + section buttons */
+.rjs-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.rjs-header h2 { margin: 0; font-size: 20px; font-weight: 700; color: var(--dark); }
+.rjs-sections { display: inline-flex; gap: 4px; padding: 4px; background: var(--white); border: 1px solid var(--neutral); border-radius: 10px; flex-wrap: wrap; }
+.rjs-section-btn {
+    display: inline-flex; align-items: center; gap: 8px; border: none; background: transparent; color: var(--gray);
+    font: inherit; font-size: 13px; font-weight: 600; padding: 7px 14px; border-radius: 7px; cursor: pointer;
+}
+.rjs-section-btn .material-symbols-outlined { font-size: 18px; }
+.rjs-section-btn:hover { color: var(--dark); background: var(--rjs-accent-soft); }
+.rjs-section-btn.active { background: var(--rjs-accent); color: #1a1a1a; }
+.rjs-section-btn:disabled { cursor: wait; }
+
+/* Filters */
+.rjs-filters {
+    display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 12px;
+    background: var(--white); border: 1px solid var(--neutral); border-radius: 10px; padding: 12px 14px;
+}
+.rjs-column-filters { display: contents; }
+.rjs-field { display: flex; flex-direction: column; gap: 4px; min-width: 120px; flex: 1 1 130px; max-width: 200px; }
+.rjs-field.rjs-field-line { flex: 0 0 110px; min-width: 110px; }
+.rjs-field.rjs-field-date { flex: 0 1 185px; min-width: 170px; max-width: 200px; }
+.rjs-field label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--gray); white-space: nowrap; }
+.rjs-field select,
+.rjs-field input.rjs-input {
+    width: 100%; min-width: 0; box-sizing: border-box; height: 34px; padding: 6px 28px 6px 10px; font-size: 13px; border-radius: 6px;
+}
+.rjs-field input.rjs-input { background: var(--background); color: var(--dark); border: 1px solid var(--neutral); padding-right: 10px; outline: none; }
+.rjs-field input.rjs-input:focus,
+.rjs-field select:focus { border-color: var(--rjs-accent); }
+.rjs-field.is-filtered select,
+.rjs-field.is-filtered input.rjs-input { border-color: var(--rjs-accent); }
+
+.rjs-actions { display: flex; gap: 8px; margin-left: auto; flex-wrap: wrap; }
+.rjs-btn {
+    display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px; border-radius: 6px;
+    border: 1px solid var(--neutral); background: var(--background); color: var(--dark);
+    font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.rjs-btn .material-symbols-outlined { font-size: 18px; }
+.rjs-btn:hover { border-color: var(--rjs-accent); }
+.rjs-btn:disabled { opacity: 0.45; cursor: default; }
+
+.rjs-loading { display: flex; align-items: center; gap: 8px; color: var(--gray); font-size: 13px; }
+.rjs-loading .material-symbols-outlined { animation: spin 1s linear infinite; font-size: 18px; }
+
+/* Summary: KPI tiles + donut */
+.rjs-summary { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 380px); gap: 12px; }
+.rjs-kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.rjs-kpi {
+    background: var(--white); border: 1px solid var(--neutral); border-radius: 10px; padding: 12px 14px;
+    display: flex; flex-direction: column; gap: 4px; justify-content: center;
+}
+.rjs-kpi span { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--gray); }
+.rjs-kpi b { font-size: 26px; font-weight: 800; color: var(--dark); font-variant-numeric: tabular-nums; }
+.rjs-kpi:first-child { border-left: 3px solid var(--rjs-accent); }
+
+.rjs-donut-card { background: var(--white); border: 1px solid var(--neutral); border-radius: 10px; padding: 12px 14px; display: flex; gap: 14px; align-items: center; }
+.rjs-donut-box { position: relative; width: 130px; height: 130px; flex: 0 0 130px; }
+.rjs-donut-side { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.rjs-donut-title { font-size: 12px; font-weight: 700; color: var(--dark); }
+.rjs-legend { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--dark); }
+.rjs-legend span { display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rjs-legend i { width: 9px; height: 9px; border-radius: 2px; flex: 0 0 9px; }
+
+/* Table */
+.rjs-card { background: var(--white); border: 1px solid var(--neutral); border-radius: 10px; display: flex; flex-direction: column; min-width: 0; }
+.rjs-table-wrap { overflow: auto; max-height: 62vh; min-height: 120px; }
+.rjs-table { border-collapse: separate; border-spacing: 0; font-size: 13px; color: var(--dark); min-width: 100%; }
+.rjs-table th,
+.rjs-table td { padding: 7px 10px; border-bottom: 1px solid var(--neutral); white-space: nowrap; background: var(--white); text-align: left; }
+.rjs-table thead th { position: sticky; top: 0; z-index: 2; font-size: 12px; font-weight: 700; box-shadow: inset 0 -2px 0 var(--rjs-accent); }
+.rjs-table tbody tr:hover td { background: var(--rjs-accent-soft); }
+.rjs-table td.rjs-num { color: var(--gray); font-variant-numeric: tabular-nums; }
+
+.rjs-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 40px 16px; color: var(--gray); font-size: 13px; }
+.rjs-empty .material-symbols-outlined { font-size: 36px; }
+
+.rjs-pagination { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border-top: 1px solid var(--neutral); font-size: 13px; color: var(--gray); }
+.rjs-pagination > div { display: flex; align-items: center; gap: 10px; }
+
+@media (max-width: 900px) {
+    #tab-rejection-summary { padding: 12px; }
+    .rjs-summary { grid-template-columns: minmax(0, 1fr); }
+    .rjs-actions { margin-left: 0; }
+}

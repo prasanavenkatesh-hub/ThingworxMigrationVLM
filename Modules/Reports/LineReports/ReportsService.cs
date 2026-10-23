@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace ControlTower.Services
@@ -22,6 +23,19 @@ namespace ControlTower.Services
             _mainlineConnectionString = configuration.GetConnectionString("MainlineConnection") ?? "";
             _pokeYokeFilterConnectionString = configuration.GetConnectionString("PokeYokeFilterConnection") ?? "";
             _pokeYokeDataConnectionString = configuration.GetConnectionString("SharedDataConnection") ?? "";
+        }
+
+        // PokeYokeReports:Lines - header Line dropdown value -> its history-card database and the Line
+        // value used there (JEA1_New -> HISTORYCARDLINE01 / JEA1, JEA2 -> HISTORYCARDLINE02 / JEA2).
+        // A line without an entry keeps the old behaviour: PokeYokeFilterConnection (HISTORYCARDLINE02)
+        // with the dropdown value.
+        private (string ConnectionString, string Schema, string Line) PokeYokeMaster(string line)
+        {
+            var entry = _configuration.GetSection($"PokeYokeReports:Lines:{line}");
+            var database = entry["Database"];
+            if (string.IsNullOrWhiteSpace(database) || !Regex.IsMatch(database, @"^[A-Za-z0-9_]+$"))
+                return (_pokeYokeFilterConnectionString, "ehc", line);
+            return (_pokeYokeDataConnectionString, $"[{database}].[EHC]", entry["Line"] ?? line);
         }
 
         private static (string Name, DateTime Start) ResolveShiftStart(DateTime eventDateTime, IConfigurationSection shiftsSection)
@@ -144,12 +158,13 @@ namespace ControlTower.Services
 
         public async Task<IEnumerable<string>> GetPokeYokeHistoryCardsAsync(string line)
         {
-            using (var connection = new SqlConnection(_pokeYokeFilterConnectionString))
+            var master = PokeYokeMaster(line);
+            using (var connection = new SqlConnection(master.ConnectionString))
             {
                 var parameters = new DynamicParameters();
-                parameters.Add("@Line", line);
+                parameters.Add("@Line", master.Line);
 
-                string sql = "select distinct HistoryCard from ehc.Vallam_StationMaster where line = @Line";
+                string sql = $"select distinct HistoryCard from {master.Schema}.Vallam_StationMaster where line = @Line";
 
                 var result = await connection.QueryAsync<string>(
                     sql,
@@ -162,13 +177,14 @@ namespace ControlTower.Services
         }
         public async Task<IEnumerable<string>> GetPokeYokeStationsAsync(string line, string historyCard)
         {
-            using (var connection = new SqlConnection(_pokeYokeFilterConnectionString))
+            var master = PokeYokeMaster(line);
+            using (var connection = new SqlConnection(master.ConnectionString))
             {
                 var parameters = new DynamicParameters();
-                parameters.Add("@Line", line);
+                parameters.Add("@Line", master.Line);
                 parameters.Add("@HistoryCard", historyCard);
 
-                string sql = "select distinct UnifiedStationName from ehc.Vallam_StationMaster where line = @Line and HistoryCard = @HistoryCard";
+                string sql = $"select distinct UnifiedStationName from {master.Schema}.Vallam_StationMaster where line = @Line and HistoryCard = @HistoryCard";
 
                 var result = await connection.QueryAsync<string>(
                     sql,
@@ -186,15 +202,16 @@ namespace ControlTower.Services
             bool isEngMode = !string.IsNullOrWhiteSpace(engineNo);
 
             List<dynamic> tags;
-            using (var connection = new SqlConnection(_pokeYokeFilterConnectionString))
+            var master = PokeYokeMaster(line);
+            using (var connection = new SqlConnection(master.ConnectionString))
             {
                 var parameters = new DynamicParameters();
-                parameters.Add("@Line", line);
+                parameters.Add("@Line", master.Line);
                 parameters.Add("@HistoryCard", historyCard);
 
-                string sql = @"
+                string sql = $@"
                     SELECT Description, StationNumber, DatabaseName, DbName, TagName
-                    FROM ehc.Vallam_TagMaster
+                    FROM {master.Schema}.Vallam_TagMaster
                     WHERE Line = @Line 
                     AND HistoryCard = @HistoryCard 
                     AND PokeYokeCheckPoints = 'YES'
@@ -323,15 +340,16 @@ namespace ControlTower.Services
             var allReports = new List<PokeYokeSummaryReport>();
 
             List<dynamic> tags;
-            using (var connection = new SqlConnection(_pokeYokeFilterConnectionString))
+            var master = PokeYokeMaster(line);
+            using (var connection = new SqlConnection(master.ConnectionString))
             {
                 var parameters = new DynamicParameters();
-                parameters.Add("@Line", line);
+                parameters.Add("@Line", master.Line);
                 parameters.Add("@HistoryCard", historyCard);
 
-                string sql = @"
+                string sql = $@"
                     SELECT Description, StationNumber, DatabaseName, DbName, TagName
-                    FROM ehc.Vallam_TagMaster
+                    FROM {master.Schema}.Vallam_TagMaster
                     WHERE Line = @Line 
                     AND HistoryCard = @HistoryCard 
                     AND PokeYokeCheckPoints = 'YES'

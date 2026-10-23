@@ -16,6 +16,11 @@
     <link rel="stylesheet" href="css/dashboards/eb-rtm.css?v=1">
     <link rel="stylesheet" href="css/reports/categorywise-rework.css?v=1">
     <link rel="stylesheet" href="css/reports/summary-report.css?v=2">
+    <link rel="stylesheet" href="css/reports/rejection-summary.css?v=1">
+    <link rel="stylesheet" href="css/reports/sub-assembly-report.css?v=2">
+    <link rel="stylesheet" href="css/reports/process-parameter.css?v=1">
+    <link rel="stylesheet" href="css/reports/ebrtm-reports.css?v=4">
+    <link rel="stylesheet" href="css/pokayoke/pokayoke.css?v=19">
     <script src="lib/exceljs.min.js"></script>
     <script>
         function applyTheme(theme) {
@@ -40,9 +45,21 @@
             if (cwrTab && cwrTab.classList.contains('active') && typeof renderCwr === 'function') {
                 renderCwr();
             }
+            const pkyOvTab = document.getElementById('tab-pky-overview');
+            if (pkyOvTab && pkyOvTab.classList.contains('active') && typeof pkyOvRender === 'function') {
+                pkyOvRender();   // Overall donut labels use the theme text colour
+            }
             const srTab = document.getElementById('tab-summary-report');
             if (srTab && srTab.classList.contains('active') && typeof renderSr === 'function') {
                 renderSr();
+            }
+            const rjsTab = document.getElementById('tab-rejection-summary');
+            if (rjsTab && rjsTab.classList.contains('active') && typeof renderRjs === 'function') {
+                renderRjs();
+            }
+            const pprTab = document.getElementById('tab-process-parameter');
+            if (pprTab && pprTab.classList.contains('active') && typeof renderPpr === 'function') {
+                renderPpr();
             }
         }
 
@@ -102,6 +119,36 @@
                             data-tooltip="EB-Real Time Monitoring" style="font-size: 0.9em; padding: 5px 10px;">
                             <span class="material-symbols-outlined icon" style="font-size: 18px;">bolt</span>
                             <span class="text">EB-Real Time Monitoring</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- PokaYoke -->
+                <div class="nav-group" style="margin-top: 10px;">
+                    <button class="nav-item" onclick="toggleSubmenu('pokaYokeMenu')" data-tooltip="PokaYoke">
+                        <span class="material-symbols-outlined icon">fact_check</span> <span
+                            class="text">PokaYoke</span>
+                    </button>
+                    <div id="pokaYokeMenu" class="sub-menu" style="display: none; padding-left: 20px;">
+                        <button class="nav-item sub-item" id="nav-pky-overview" onclick="switchTab('pky-overview')"
+                            data-tooltip="Overview" style="font-size: 0.9em; padding: 5px 10px;">
+                            <span class="material-symbols-outlined icon" style="font-size: 18px;">donut_large</span>
+                            <span class="text">Overview</span>
+                        </button>
+                        <button class="nav-item sub-item" id="nav-pky-jea1-line" onclick="switchTab('pky-jea1-line')"
+                            data-tooltip="JEA1 Line" style="font-size: 0.9em; padding: 5px 10px;">
+                            <span class="material-symbols-outlined icon" style="font-size: 18px;">conveyor_belt</span>
+                            <span class="text">JEA1 Line</span>
+                        </button>
+                        <button class="nav-item sub-item" id="nav-pky-jea2-line" onclick="switchTab('pky-jea2-line')"
+                            data-tooltip="JEA2 Line" style="font-size: 0.9em; padding: 5px 10px;">
+                            <span class="material-symbols-outlined icon" style="font-size: 18px;">conveyor_belt</span>
+                            <span class="text">JEA2 Line</span>
+                        </button>
+                        <button class="nav-item sub-item" id="nav-pky-jea1-crankshaft" onclick="switchTab('pky-jea1-crankshaft')"
+                            data-tooltip="JEA1 Crankshaft" style="font-size: 0.9em; padding: 5px 10px;">
+                            <span class="material-symbols-outlined icon" style="font-size: 18px;">settings</span>
+                            <span class="text">JEA1 Crankshaft</span>
                         </button>
                     </div>
                 </div>
@@ -173,6 +220,21 @@
                                 <span class="material-symbols-outlined icon" style="font-size: 18px;">build_circle</span>
                                 <span class="text">Categorywise Rework Report</span>
                             </button>
+                            <button class="nav-item sub-item" id="nav-rejection-summary" onclick="switchTab('rejection-summary')"
+                                data-tooltip="Rejection Summary Report" style="font-size: 0.9em; padding: 5px 10px;">
+                                <span class="material-symbols-outlined icon" style="font-size: 18px;">assignment_late</span>
+                                <span class="text">Rejection Summary Report</span>
+                            </button>
+                            <button class="nav-item sub-item" id="nav-sub-assembly-report" onclick="switchTab('sub-assembly-report')"
+                                data-tooltip="StraightPass & Rework Sub Assembly Report" style="font-size: 0.9em; padding: 5px 10px;">
+                                <span class="material-symbols-outlined icon" style="font-size: 18px;">fact_check</span>
+                                <span class="text">StraightPass &amp; Rework Sub Assembly Report</span>
+                            </button>
+                            <button class="nav-item sub-item" id="nav-process-parameter" onclick="switchTab('process-parameter')"
+                                data-tooltip="Process/Product Parameter Report" style="font-size: 0.9em; padding: 5px 10px;">
+                                <span class="material-symbols-outlined icon" style="font-size: 18px;">tune</span>
+                                <span class="text">Process/Product Parameter Report</span>
+                            </button>
                             <button class="nav-item sub-item" id="nav-poke-yoke" onclick="switchTab('poke-yoke')"
                                 data-tooltip="Poke Yoke- Manual Inspection overall" style="font-size: 0.9em; padding: 5px 10px;">
                                 <span class="material-symbols-outlined icon" style="font-size: 18px;">checklist</span>
@@ -182,6 +244,19 @@
                                 data-tooltip="Poke Yoke- Manual Inspection summary" style="font-size: 0.9em; padding: 5px 10px;">
                                 <span class="material-symbols-outlined icon" style="font-size: 18px;">summarize</span>
                                 <span class="text">Poke Yoke- Manual Inspection summary</span>
+                            </button>
+                        </div>
+                        <!-- Energy -->
+                        <button class="nav-item sub-item nav-subgroup" onclick="toggleSubmenu('reportsEnergyMenu')"
+                            data-tooltip="Energy" style="font-size: 0.9em; padding: 5px 10px;">
+                            <span class="material-symbols-outlined icon" style="font-size: 18px;">bolt</span>
+                            <span class="text">Energy</span>
+                        </button>
+                        <div id="reportsEnergyMenu" class="sub-menu" style="display: none; padding-left: 12px;">
+                            <button class="nav-item sub-item" id="nav-ebrtm-reports" onclick="switchTab('ebrtm-reports')"
+                                data-tooltip="EB-RTM Reports" style="font-size: 0.9em; padding: 5px 10px;">
+                                <span class="material-symbols-outlined icon" style="font-size: 18px;">electric_meter</span>
+                                <span class="text">EB-RTM Reports</span>
                             </button>
                         </div>
                     </div>
@@ -1140,6 +1215,266 @@
                 </div>
             </div>
 
+            <!-- Rejection Summary Report (Main Line / Sub Assembly) -->
+            <div id="tab-rejection-summary" class="tab-pane">
+                <div class="rjs">
+                    <div class="rjs-header">
+                        <h2 id="rjsTitle">EA02 Main Line Rejection Summary Report</h2>
+                        <div class="rjs-sections" id="rjsSections">
+                            <button class="rjs-section-btn active" data-section="ML" onclick="setRjsSection('ML')">
+                                <span class="material-symbols-outlined">conveyor_belt</span>Main Line
+                            </button>
+                            <button class="rjs-section-btn" data-section="SA" onclick="setRjsSection('SA')">
+                                <span class="material-symbols-outlined">settings</span>Sub Assembly
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="rjs-filters">
+                        <div class="rjs-field rjs-field-line">
+                            <label for="rjsLine">Line</label>
+                            <select id="rjsLine" class="select-royal">
+                                <option value="EA01">EA01</option>
+                                <option value="EA02" selected>EA02</option>
+                            </select>
+                        </div>
+                        <div class="rjs-field rjs-field-date">
+                            <label for="rjsStart">From</label>
+                            <input type="text" id="rjsStart" class="rjs-input" placeholder="From date">
+                        </div>
+                        <div class="rjs-field rjs-field-date">
+                            <label for="rjsEnd">To</label>
+                            <input type="text" id="rjsEnd" class="rjs-input" placeholder="To date">
+                        </div>
+                        <!-- Section-specific dropdowns, built by rejection-summary.js -->
+                        <div class="rjs-column-filters" id="rjsColumnFilters"></div>
+                        <div class="rjs-actions">
+                            <button class="rjs-btn" onclick="clearRjsFilters()">
+                                <span class="material-symbols-outlined">filter_alt_off</span>Clear
+                            </button>
+                            <button class="rjs-btn" onclick="exportRjsToExcel()">
+                                <span class="material-symbols-outlined">download</span>Excel
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="rjsLoading" class="rjs-loading" hidden>
+                        <span class="material-symbols-outlined">progress_activity</span>Loading rejections...
+                    </div>
+
+                    <div class="rjs-summary">
+                        <div class="rjs-kpis" id="rjsKpis"></div>
+                        <div class="rjs-donut-card">
+                            <div class="rjs-donut-box"><canvas id="rjsDonut"></canvas></div>
+                            <div class="rjs-donut-side">
+                                <div class="rjs-donut-title" id="rjsDonutTitle">Rows by rejection station</div>
+                                <div class="rjs-legend" id="rjsDonutLegend"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <section class="rjs-card">
+                        <div class="rjs-table-wrap">
+                            <table class="rjs-table" id="rjsTable"></table>
+                            <div class="rjs-empty" id="rjsEmpty" hidden>
+                                <span class="material-symbols-outlined">search_off</span>
+                                <span>No rejections for the selected filters</span>
+                            </div>
+                        </div>
+                        <div class="rjs-pagination" id="rjsPagination" hidden>
+                            <span id="rjsTotalCount">Total: 0 rows</span>
+                            <div>
+                                <button class="rjs-btn" id="rjsPrev" onclick="changeRjsPage(-1)">Previous</button>
+                                <span id="rjsPageLabel">Page 1</span>
+                                <button class="rjs-btn" id="rjsNext" onclick="changeRjsPage(1)">Next</button>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- Process/Product Parameter Report EA2 (MainLine / QHold / Duplicate) -->
+            <div id="tab-process-parameter" class="tab-pane">
+                <div class="ppr">
+                    <div class="ppr-header">
+                        <h2>Process/Product Parameter Report EA2</h2>
+                        <div class="ppr-sections" id="pprSections">
+                            <button class="ppr-section-btn active" data-section="ML" onclick="setPprSection('ML')">Vallam - MainLine</button>
+                            <button class="ppr-section-btn" data-section="QH" onclick="setPprSection('QH')">Vallam - QHold</button>
+                            <button class="ppr-section-btn" data-section="DUP" onclick="setPprSection('DUP')">Duplicate of Vallam - MainLine</button>
+                        </div>
+                    </div>
+
+                    <div class="ppr-top">
+                        <div class="ppr-filters">
+                            <div class="ppr-field" id="pprStationField">
+                                <label for="pprStation">Station Number</label>
+                                <select id="pprStation" class="select-royal" onchange="setPprFilter('station', this.value)"><option value="">All</option></select>
+                            </div>
+                            <div class="ppr-field">
+                                <label for="pprShift">Shift</label>
+                                <select id="pprShift" class="select-royal" onchange="setPprFilter('shift', this.value)"><option value="">All</option></select>
+                            </div>
+                            <div class="ppr-field">
+                                <label for="pprTimeRange">Time Range</label>
+                                <select id="pprTimeRange" class="select-royal" onchange="setPprFilter('timeRange', this.value)"><option value="">All</option></select>
+                            </div>
+                            <div class="ppr-field">
+                                <label for="pprEngine">Engine Number</label>
+                                <input type="text" id="pprEngine" class="ppr-input" placeholder="All (type + Enter)" autocomplete="off">
+                            </div>
+                            <div class="ppr-field" id="pprColumnsField">
+                                <label>Dynamic Columns</label>
+                                <button type="button" class="ppr-columns-btn" id="pprColumnsBtn" onclick="togglePprColumns()">All</button>
+                                <div class="ppr-columns-panel" id="pprColumnsPanel" hidden></div>
+                            </div>
+                            <div class="ppr-field">
+                                <label for="pprStatus">Station Status</label>
+                                <select id="pprStatus" class="select-royal" onchange="setPprFilter('status', this.value)"><option value="">All</option></select>
+                            </div>
+                            <div class="ppr-field">
+                                <label for="pprStart">From</label>
+                                <input type="text" id="pprStart" class="ppr-input" placeholder="From date">
+                            </div>
+                            <div class="ppr-field">
+                                <label for="pprEnd">To</label>
+                                <input type="text" id="pprEnd" class="ppr-input" placeholder="To date">
+                            </div>
+                            <div class="ppr-actions">
+                                <button class="ppr-btn ppr-btn-primary" onclick="applyPprFilters()">
+                                    <span class="material-symbols-outlined">check</span>Apply
+                                </button>
+                                <button class="ppr-btn" onclick="clearPprFilters()">
+                                    <span class="material-symbols-outlined">filter_alt_off</span>Clear
+                                </button>
+                                <button class="ppr-btn" onclick="exportPprCsv()">
+                                    <span class="material-symbols-outlined">download</span>Excel
+                                </button>
+                            </div>
+                        </div>
+                        <div class="ppr-summary">
+                            <div class="ppr-rows"><span>Rows</span><b id="pprRows">0</b></div>
+                            <div class="ppr-donut-box"><canvas id="pprDonut"></canvas></div>
+                            <div class="ppr-legend" id="pprDonutLegend"></div>
+                        </div>
+                    </div>
+
+                    <div id="pprLoading" class="ppr-loading" hidden>
+                        <span class="material-symbols-outlined">progress_activity</span>Loading rows...
+                    </div>
+
+                    <section class="ppr-card">
+                        <div class="ppr-table-wrap">
+                            <table class="ppr-table" id="pprTable"></table>
+                            <div class="ppr-empty" id="pprEmpty" hidden>
+                                <span class="material-symbols-outlined">search_off</span>
+                                <span>No rows for the selected filters</span>
+                            </div>
+                        </div>
+                        <div class="ppr-pagination" id="pprPagination" hidden>
+                            <span id="pprTotalCount"></span>
+                            <div>
+                                <button class="ppr-btn" id="pprFirst" onclick="changePprPage('first')">First</button>
+                                <button class="ppr-btn" id="pprPrev" onclick="changePprPage(-1)">Previous</button>
+                                <span id="pprPageLabel">Page 1</span>
+                                <button class="ppr-btn" id="pprNext" onclick="changePprPage(1)">Next</button>
+                                <button class="ppr-btn" id="pprLast" onclick="changePprPage('last')">Last</button>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- StraightPass & Rework Sub Assembly Report (EA2 - 14 sub-assemblies + Crankshaft OP-60) -->
+            <div id="tab-sub-assembly-report" class="tab-pane">
+                <div class="sar">
+                    <div class="sar-header">
+                        <button class="sar-btn" id="sarMenuBtn" onclick="toggleSarMenu()" title="Sub assemblies">
+                            <span class="material-symbols-outlined">menu</span>Sub Assembly
+                        </button>
+                        <div class="sar-menu" id="sarMenu" hidden></div>
+                        <h2 id="sarTitle">EA2 BALANCER SHAFT SUB ASSEMBLY REPORT</h2>
+                        <button class="sar-btn" id="sarOp60Btn" onclick="selectSarSubAssembly('CRANKSHAFT_OP60')" hidden>
+                            <span class="material-symbols-outlined">open_in_new</span>OP-60 Report
+                        </button>
+                        <button class="sar-btn" id="sarBackBtn" onclick="selectSarSubAssembly('CRANKSHAFT')" hidden>
+                            <span class="material-symbols-outlined">arrow_back</span>Crankshaft
+                        </button>
+                    </div>
+
+                    <div class="sar-filters">
+                        <div class="sar-field">
+                            <label for="sarShift">Shift</label>
+                            <select id="sarShift" class="select-royal" onchange="setSarFilter('shift', this.value)">
+                                <option value="">All</option>
+                                <option value="A">A</option>
+                                <option value="B">B</option>
+                                <option value="C">C</option>
+                            </select>
+                        </div>
+                        <div class="sar-field">
+                            <label for="sarStation">Station Number</label>
+                            <select id="sarStation" class="select-royal" onchange="setSarFilter('station', this.value)"></select>
+                        </div>
+                        <div class="sar-field" id="sarSubGroupField" hidden>
+                            <label for="sarSubGroup" id="sarSubGroupLabel">Cell</label>
+                            <select id="sarSubGroup" class="select-royal" onchange="setSarFilter('subGroup', this.value)"></select>
+                        </div>
+                        <div class="sar-field sar-field-date">
+                            <label for="sarStart">From</label>
+                            <input type="text" id="sarStart" class="sar-input" placeholder="From date">
+                        </div>
+                        <div class="sar-field sar-field-date">
+                            <label for="sarEnd">To</label>
+                            <input type="text" id="sarEnd" class="sar-input" placeholder="To date">
+                        </div>
+                        <div class="sar-actions">
+                            <button class="sar-btn sar-btn-primary" id="sarApply" onclick="fetchSarReport()">
+                                <span class="material-symbols-outlined">check</span>Apply
+                            </button>
+                            <button class="sar-btn" onclick="resetSarFilters()">
+                                <span class="material-symbols-outlined">filter_alt_off</span>Clear
+                            </button>
+                            <button class="sar-btn" onclick="exportSarToExcel()">
+                                <span class="material-symbols-outlined">download</span>Excel
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="sarLoading" class="sar-loading" hidden>
+                        <span class="material-symbols-outlined">progress_activity</span>Loading report... (can take up to a minute for long ranges)
+                    </div>
+
+                    <section class="sar-card" data-sar-panel="sp">
+                        <h3>STRAIGHT PASS REPORT</h3>
+                        <div class="sar-table-wrap"><table class="sar-table" id="sarSpTable"></table></div>
+                        <div class="sar-empty" id="sarSpEmpty" hidden></div>
+                        <div class="sar-pcts">
+                            <span>Over All %</span>
+                            <div class="sar-pct"><span>Straight Pass %</span><b id="sarSpPct">--</b></div>
+                            <div class="sar-pct"><span>Rejection %</span><b id="sarRejPct">--</b></div>
+                        </div>
+                    </section>
+
+                    <section class="sar-card" data-sar-panel="rework">
+                        <h3>REWORK REPORT</h3>
+                        <div class="sar-table-wrap"><table class="sar-table" id="sarRwTable"></table></div>
+                        <div class="sar-empty" id="sarRwEmpty" hidden></div>
+                        <div class="sar-pcts">
+                            <span>Over All %</span>
+                            <div class="sar-pct"><span>Rework OK %</span><b id="sarRwOkPct">--</b></div>
+                            <div class="sar-pct"><span>Rework NOK %</span><b id="sarRwNokPct">--</b></div>
+                        </div>
+                    </section>
+
+                    <section class="sar-card" data-sar-panel="bypass">
+                        <h3>BYPASSED DATA REPORT</h3>
+                        <div class="sar-table-wrap"><table class="sar-table" id="sarBpTable"></table></div>
+                        <div class="sar-empty" id="sarBpEmpty" hidden></div>
+                    </section>
+                </div>
+            </div>
+
             <!-- Summary Report (EA01 / EA02 - Leak, PDI, Testing) -->
             <div id="tab-summary-report" class="tab-pane">
                 <div class="sr" id="sr">
@@ -1305,6 +1640,186 @@
                             <div class="sr-rework-kpis" id="srReworkKpis"></div>
                             <div class="sr-table-wrap"><table class="sr-table" id="srReworkTable"></table></div>
                         </section>
+                    </div>
+                </div>
+            </div>
+
+            <!-- EB-RTM Reports (port of ThingWorx RE_EMSRTMReports_MU) -->
+            <div id="tab-ebrtm-reports" class="tab-pane">
+                <div class="ebr">
+                    <div class="ebr-header">
+                        <div class="ebr-meter">
+                            <select id="ebrMeter" class="select-royal" onchange="ebrSetMeter(this.value)" title="Energy meter"></select>
+                        </div>
+                        <div class="ebr-title">Vallam RTM Reports - <span id="ebrMeterName"></span></div>
+                        <div class="ebr-dates">
+                            <label for="ebrFrom">From</label>
+                            <input type="text" id="ebrFrom" readonly>
+                            <label for="ebrTo">To</label>
+                            <input type="text" id="ebrTo" readonly>
+                        </div>
+                    </div>
+                    <div class="ebr-tabbar" id="ebrTabs"></div>
+                    <div class="ebr-panel">
+                        <div class="ebr-toolbar">
+                            <span class="ebr-status" id="ebrStatus"></span>
+                            <button class="ebr-download" onclick="ebrDownload()">Download</button>
+                        </div>
+                        <div class="ebr-table-wrap">
+                            <table class="ebr-table">
+                                <thead id="ebrHead"></thead>
+                                <tbody id="ebrBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PokaYoke - Overview (cards per line + Overall Poka Yoke; js/pokayoke/overview.js builds the cards) -->
+            <div id="tab-pky-overview" class="tab-pane">
+                <div class="pky-ov" id="pkyOvGrid"></div>
+            </div>
+
+            <!-- PokaYoke - JEA1 Line ("Poka Yoke Station Status JEA1"; js/pokayoke/jea1-line.js) -->
+            <div id="tab-pky-jea1-line" class="tab-pane">
+                <div class="pky-screen">
+                    <div class="pky-titlebar">
+                        <div class="pky-titlebar-title">Poka Yoke Station Status JEA1
+                            <span class="pky-sample" id="pkyJea1Status" title="Loading live data">Loading...</span>
+                        </div>
+                        <div class="pky-titlebar-actions">
+                            <button class="pky-btn" onclick="pkyOpenReport('pky-jea1-line', 'poke-yoke')" title="Poke Yoke - Manual Inspection overall (JEA1)">MI - Overall</button>
+                            <button class="pky-btn" onclick="pkyOpenReport('pky-jea1-line', 'poke-yoke-summary')" title="Poke Yoke - Manual Inspection summary (JEA1)">MI - Summary</button>
+                        </div>
+                    </div>
+                    <div class="pky-body">
+                        <div class="pky-layout-panel">
+                            <div class="pky-legend">
+                                <span><i class="ok"></i>Ok Count</span>
+                                <span><i class="mi"></i>Manual Inspection</span>
+                                <span><i class="auto"></i>Auto Station</span>
+                            </div>
+                            <div class="pky-canvas-wrap" id="pkyJea1CanvasWrap">
+                                <div class="pky-canvas" id="pkyJea1Canvas"></div>
+                            </div>
+                        </div>
+                        <div class="pky-side">
+                            <div class="pky-side-title">JEA1 Poka Yoke</div>
+                            <div class="pky-donut">
+                                <div class="pky-donut-label mi">MI <span id="pkyJea1MiPct">0%</span></div>
+                                <div class="pky-donut-chart">
+                                    <canvas id="pkyJea1Donut"></canvas>
+                                    <img class="pky-donut-icon" src="assets/pky-bike.png" alt="">
+                                </div>
+                                <div class="pky-donut-label ok">OK <span id="pkyJea1OkPct">100%</span></div>
+                            </div>
+                            <table class="pky-hc-table">
+                                <thead>
+                                    <tr><th>HC Name</th><th>Total</th><th>OK</th><th>Manual Inspection</th></tr>
+                                </thead>
+                                <tbody id="pkyJea1TableBody"></tbody>
+                            </table>
+                            <div class="pky-alert" id="pkyJea1Alert">
+                                <img src="assets/Caution.gif" alt="Alert">
+                                <div class="pky-alert-text">Alert : Poka Yoke Manual Inspection</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PokaYoke - JEA2 Line ("Poka Yoke Station Status JEA2"; js/pokayoke/jea2-line.js) -->
+            <div id="tab-pky-jea2-line" class="tab-pane">
+                <div class="pky-screen">
+                    <div class="pky-titlebar">
+                        <div class="pky-titlebar-title">Poka Yoke Station Status JEA2
+                            <span class="pky-sample" id="pkyJea2Status" title="Loading live data">Loading...</span>
+                        </div>
+                        <div class="pky-titlebar-actions">
+                            <button class="pky-btn" onclick="pkyOpenReport('pky-jea2-line', 'poke-yoke')" title="Poke Yoke - Manual Inspection overall (JEA2)">MI - Overall</button>
+                            <button class="pky-btn" onclick="pkyOpenReport('pky-jea2-line', 'poke-yoke-summary')" title="Poke Yoke - Manual Inspection summary (JEA2)">MI - Summary</button>
+                        </div>
+                    </div>
+                    <div class="pky-body">
+                        <div class="pky-layout-panel">
+                            <div class="pky-legend">
+                                <span><i class="ok"></i>Ok Count</span>
+                                <span><i class="mi"></i>Manual Inspection</span>
+                                <span><i class="auto"></i>Auto Station</span>
+                            </div>
+                            <div class="pky-canvas-wrap" id="pkyJea2CanvasWrap">
+                                <div class="pky-canvas" id="pkyJea2Canvas"></div>
+                            </div>
+                        </div>
+                        <div class="pky-side">
+                            <div class="pky-side-title">JEA2 Poka Yoke</div>
+                            <div class="pky-donut">
+                                <div class="pky-donut-label mi">MI <span id="pkyJea2MiPct">0%</span></div>
+                                <div class="pky-donut-chart">
+                                    <canvas id="pkyJea2Donut"></canvas>
+                                    <img class="pky-donut-icon" src="assets/pky-bike.png" alt="">
+                                </div>
+                                <div class="pky-donut-label ok">OK <span id="pkyJea2OkPct">100%</span></div>
+                            </div>
+                            <table class="pky-hc-table">
+                                <thead>
+                                    <tr><th>HC Name</th><th>Total</th><th>OK</th><th>Manual Inspection</th></tr>
+                                </thead>
+                                <tbody id="pkyJea2TableBody"></tbody>
+                            </table>
+                            <div class="pky-alert" id="pkyJea2Alert">
+                                <img src="assets/Caution.gif" alt="Alert">
+                                <div class="pky-alert-text">Alert : Poka Yoke Manual Inspection</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PokaYoke - JEA1 Crankshaft ("Crank Shaft Pokayoke Screen"; js/pokayoke/jea1-crankshaft.js) -->
+            <div id="tab-pky-jea1-crankshaft" class="tab-pane">
+                <div class="pky-screen">
+                    <div class="pky-titlebar">
+                        <div class="pky-titlebar-title">Crank Shaft Pokayoke Screen
+                            <span class="pky-sample" id="pkyCrankStatus" title="Loading live data">Loading...</span>
+                        </div>
+                        <div class="pky-titlebar-actions">
+                            <button class="pky-btn" onclick="pkyOpenReport('pky-jea1-crankshaft', 'poke-yoke')" title="Poke Yoke - Manual Inspection overall (JEA1, 01B Crankcase SA)">MI - Overall</button>
+                            <button class="pky-btn" onclick="pkyOpenReport('pky-jea1-crankshaft', 'poke-yoke-summary')" title="Poke Yoke - Manual Inspection summary (JEA1, 01B Crankcase SA)">MI - Summary</button>
+                        </div>
+                    </div>
+                    <div class="pky-body">
+                        <div class="pky-layout-panel">
+                            <div class="pky-legend">
+                                <span><i class="ok"></i>Ok Count</span>
+                                <span><i class="mi"></i>Manual Inspection</span>
+                                <span><i class="auto"></i>Auto Station</span>
+                            </div>
+                            <div class="pky-canvas-wrap" id="pkyCrankCanvasWrap">
+                                <div class="pky-canvas" id="pkyCrankCanvas"></div>
+                            </div>
+                        </div>
+                        <div class="pky-side">
+                            <div class="pky-side-title">CRANK SHAFT Poka Yoke</div>
+                            <div class="pky-donut">
+                                <div class="pky-donut-label mi">MI <span id="pkyCrankMiPct">0%</span></div>
+                                <div class="pky-donut-chart">
+                                    <canvas id="pkyCrankDonut"></canvas>
+                                    <img class="pky-donut-icon" src="assets/pky-bike.png" alt="">
+                                </div>
+                                <div class="pky-donut-label ok">OK <span id="pkyCrankOkPct">100%</span></div>
+                            </div>
+                            <table class="pky-hc-table">
+                                <thead>
+                                    <tr><th>HC Name</th><th>Total</th><th>OK</th><th>Manual Inspection</th></tr>
+                                </thead>
+                                <tbody id="pkyCrankTableBody"></tbody>
+                            </table>
+                            <div class="pky-alert" id="pkyCrankAlert">
+                                <img src="assets/Caution.gif" alt="Alert">
+                                <div class="pky-alert-text">Alert : Poka Yoke Manual Inspection</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2103,7 +2618,7 @@
 
         <script src="lib/chart.min.js"></script>
         <!-- App scripts: shared shell first, then one file per module -->
-        <script src="js/core.js?v=2"></script>
+        <script src="js/core.js?v=7"></script>
         <script src="js/dashboards/fire-hydrant.js?v=1"></script>
         <script src="js/dashboards/gas-leak.js?v=1"></script>
         <script src="js/dashboards/ems-renewable.js?v=3"></script>
@@ -2115,6 +2630,15 @@
         <script src="js/reports/cylinder-head-leak.js?v=1"></script>
         <script src="js/reports/categorywise-rework.js?v=1"></script>
         <script src="js/reports/summary-report.js?v=2"></script>
+        <script src="js/reports/rejection-summary.js?v=1"></script>
+        <script src="js/reports/sub-assembly-report.js?v=2"></script>
+        <script src="js/reports/process-parameter.js?v=1"></script>
+        <script src="js/reports/ebrtm-reports.js?v=4"></script>
+        <script src="js/pokayoke/pokayoke.js?v=20"></script>
+        <script src="js/pokayoke/jea1-line.js?v=11"></script>
+        <script src="js/pokayoke/jea2-line.js?v=2"></script>
+        <script src="js/pokayoke/jea1-crankshaft.js?v=1"></script>
+        <script src="js/pokayoke/overview.js?v=4"></script>
 </body>
 
 </html>
