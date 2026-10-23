@@ -76,6 +76,12 @@ function switchTab(tabId) {
         loadSrDefaultView();
     } else if (tabId === 'ebrtm-reports') {
         loadEbrDefaultView();
+    } else if (tabId === 'rejection-summary') {
+        loadRjsDefaultView();
+    } else if (tabId === 'sub-assembly-report') {
+        loadSarDefaultView();
+    } else if (tabId === 'process-parameter') {
+        loadPprDefaultView();
     } else if (tabId.startsWith('pky-')) {
         pkyShowScreen(tabId);   // PokaYoke screens (no-op for screens not built yet)
     }

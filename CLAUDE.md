@@ -31,7 +31,8 @@ dotnet run --launch-profile http        # http://localhost:5059  (https profile:
 ```
 Program.cs                    calls AddXxxModule() for each module - nothing else module-specific
 appsettings.json              single config file (App, ConnectionStrings, ShiftConfiguration,
-                              DashboardDropdownValues, Mqtt, FireHydrant, GasLeak, Ems, EbRtm, PokaYoke)
+                              DashboardDropdownValues, PokeYokeReports, SubAssemblyReport, ProcessParameterReport,
+                              Mqtt, FireHydrant, GasLeak, Ems, EbRtm, PokaYoke)
 Modules/
   Shared/                     ConfigurationController, MqttStatusController (header MQTT pill),
                               ApiDateTime.ToLocal(), KepwareValueParser
@@ -39,14 +40,16 @@ Modules/
   PokaYoke/                   live PokaYoke station status (read-only, ThingWorx VallamPokaYoke port)
   Reports/ReportsModule.cs    registers all report services
   Reports/LineReports/        Biometric, Main Line Cycle Time, Poke Yoke (shared ReportsService)
-  Reports/QHold/ CylinderHeadLeak/ CategorywiseRework/ SummaryReport/   Power BI ports (1 stored proc each)
+  Reports/QHold/ CylinderHeadLeak/ CategorywiseRework/ SummaryReport/ RejectionSummary/ SubAssemblyReport/   Power BI ports (1 stored proc each)
+  Reports/ProcessParameter/   Power BI port without a proc (whitelisted-column parameterised SELECTs, server-side paging)
   Reports/EbRtmReports/       EB-RTM Reports (ThingWorx RE_EMSRTMReports_MU port) - reads the EB-RTM logging tables
 wwwroot/
   index.html                  shell: header, sidebar, one <div id="tab-<name>" class="tab-pane"> per screen
   js/core.js                  switchTab(), logout, header (version, MQTT pill, line dropdown), shared helpers
   js/dashboards/*.js          fire-hydrant, gas-leak, ems-renewable, eb-rtm
   js/reports/*.js             biometric, main-line, poke-yoke, qhold, cylinder-head-leak,
-                              categorywise-rework, summary-report, ebrtm-reports
+                              categorywise-rework, summary-report, rejection-summary, sub-assembly-report,
+                              process-parameter, ebrtm-reports
   js/pokayoke/*.js            pokayoke.js (shared plant-layout renderer + screen controller), overview.js (PokaYoke > Overview cards) + one layout file per screen (jea1-line.js, jea2-line.js, jea1-crankshaft.js)
   css/style.v2.css            shared shell styles (also used by login.html)
   css/dashboards/*.css, css/reports/*.css, css/pokayoke/*.css   one stylesheet per module
@@ -96,7 +99,11 @@ Teammates sometimes develop in a full copy of the repo (e.g. `D:\RE\PowerBI_Repo
 - **EMS date badge** (`31/03/2026`) and the Roof Top Solar "March - 2026" label are static placeholders; the EMS screen always uses "today".
 - **EMS VOC panel** and the FY bars of Green Power Contributions are sample data; the "VOC Inputs" and "Green Power Contribution Input" pop-up tabs don't save. EMS/Fire Hydrant payload models use `double V` (a `"v":""` tag drops the whole message) — switch to `JsonElement` + `KepwareValueParser`.
 - **EB-RTM gauge low limits** for Current (<20 / 20-40 A) and Active Power (<900 / 900-1800 kW) are provisional placeholders.
-- **Stored procedures** for QHold, Cylinder Head Leak, Categorywise Rework and Summary Report are not in the repo. `summary-report.js`'s header comment names `usp_GetSummaryReportLeak/PDI/Testing`, but the API calls `dbo.usp_GetSummaryReport` with `@Stage` — confirm which exists.
+- **Stored procedures** for QHold, Cylinder Head Leak, Categorywise Rework, Summary Report and Rejection Summary are not in the repo. `summary-report.js`'s header comment names `usp_GetSummaryReportLeak/PDI/Testing`, but the API calls `dbo.usp_GetSummaryReport` with `@Stage` — confirm which exists.
+- **Rejection Summary (prefix `rjs`)**: EA02 only. EA01 has no data source yet - add `RejectionSummaryEA01Connection` and the proc in the EA01 database when it exists. The proc runs under the `Test` login (`factreread` has no EXECUTE on it). Main Line keeps each engine's latest rejection and drops engines rejected again after To, matching Power BI's whole-table Remove Duplicates.
+- **StraightPass & Rework Sub Assembly (prefix `sar`)**: EA2 only, `dbo.usp_GetSubAssemblyReport` (one proc, one branch per sub-assembly; CREATE script in `Modules/Reports/SubAssemblyReport/Sql/` - keep it in sync with the database). Runs under the `Test` login. De-duplicates over ±30 days around the range (Power BI de-duplicated the whole table). Source tables have no `Date_Time` index, so each call full-scans (3-45 s per month); a date index on the source tables would fix that. SA-22, the Machine Shop crankshaft data and OP-60 stopped logging in 2025/2026.
+- **Process/Product Parameter (prefix `ppr`)**: EA2 only. Column lists are a port of the Power BI field parameters (`ProcessParameterColumns.cs`) and double as the SQL column whitelist - never build column names from request text. STN_data has 82M+ rows: keep the date filter mandatory and paging on the server. The Duplicate rule (repeat loads at ML-01) was inferred from the Power BI example because that page never loaded - confirm with the report owner.
+- **EXECUTE denied (seen 20 Oct 2026)**: `factreread` gets "EXECUTE permission was denied" on `usp_GetCylinderHeadLeakRejectionReport`, `usp_GetSummaryReport` and `usp_GetQHoldReport`, so Cylinder Head Leak, Summary and Engine QHold return HTTP 500. Grant EXECUTE to `factreread` or switch those connection strings to a login that has it.
 - **Dashboards > Overview** (`dashboard-1`) has no page yet.
 - **PokaYoke** (prefix `pky`): JEA1 Line and JEA2 Line counts are **live** (`PokaYokeStatusService`, `PokaYoke:Lines:jea1` / `jea2`, tag masters `HISTORYCARDLINE01` (line `JEA1`) / `HISTORYCARDLINE02` (line `JEA2`); `factreread` read access to all source databases confirmed 2026-10-20). JEA1's `RE_VL_J1_Magneto Cover.QualityData_1` (8 SA-22 checkpoints) has no source rule (none in ThingWorx either) - not counted, listed in the badge tooltip. Not yet ported: the summary service `getpokeyokevalueOverall` (the donut / HC table use the sum of the station counts without the auto stations), (the station and HC-table click pop-ups are done: `GET /api/pokayoke/{line}/stations/{station}`, `GET /api/pokayoke/{line}/checkpoints?status=`). **Overview** (`overview.js`) shows JEA1 / JEA2 / Crank Shaft live. **JEA1 Crankshaft** (`jea1-crankshaft.js`, `PokaYoke:Lines:jea1crank`) is live but its value source is **provisional**: the ThingWorx query without its `DateTime < 2025-05-22` filter = the latest `RE_VL_MachineShop.MachineShopData` row per cell, not filtered by `Station_Number`; the Crankshaft stations 33..38/61/62 last wrote to that table in 2025, so the values come from other machine-shop stations of the cell. Revisit: station filter and the current Crankshaft data source (`RE_VL_J1_CrankShaft`? - `factreread` has no access). Its MI buttons open the JEA1 reports with HC `01B Crankcase SA` selected. JEA2's ThingWorx screen shows two stray `0` values beside ET-L4 / ET-L3 that were not reproduced, and its decorative green chain graphic on the main line is not drawn. The donut centre shows `wwwroot/assets/pky-bike.png`. Not to be confused with the existing Reports > Quality > Poke Yoke reports (the MI buttons open those).
 - **EB-RTM, multiple meters**: `EbRtm:Meters` drives the EB-RTM Reports dropdown, but the dashboard still hardcodes Source_7's tags (`EbRtmStateStore`) and `EbCMonitoring` / `EbCPowerFailureEvents` have no meter column. Adding a meter needs: a `MeterId` column in both tables, per-meter state/logging, `?meter=` on the dashboard API, and a dropdown on the dashboard.
