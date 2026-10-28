@@ -16,3 +16,6 @@ PROMPTS.md
 
 # Report export scratch output (not part of the application)
 data (*).csv
+
+# dotnet publish output (deployed to IIS, not source)
+publish/

@@ -287,7 +287,7 @@
 
 .scada-tank-cap-label {
     position: absolute;
-    color: #e5e5e5;
+    color: var(--dark);   /* theme text colour (was fixed #e5e5e5, invisible in light mode) */
     font-size: 10px;
     font-weight: 600;
 }
@@ -328,6 +328,12 @@
     position: absolute;
 }
 
+/* Tank name sits just right of its drop pipe (pipe x + 8px), left-aligned. */
+.scada-tank-label.beside-pipe {
+    text-align: left;
+    line-height: 1.25;
+}
+
 /* Diesel tank */
 .scada-diesel {
     display: flex;
@@ -339,9 +345,9 @@
 .scada-diesel-label {
     position: absolute;
     left: 20%;
-    top: 35px;
+    top: 27px;   /* 8px higher than before so the box clears the Diesel Pump name below it */
     transform: translateX(-50%);
-    color: #e5e5e5;
+    color: var(--dark);   /* theme text colour (was fixed #e5e5e5, invisible in light mode) */
     font-size: 10px;
     font-weight: 600;
     white-space: nowrap;
@@ -363,7 +369,7 @@
        pipe rather than overlapping it as it did when it lived inside branch 1's own column. */
     position: absolute;
     left: 20%;
-    top: 55px;
+    top: 47px;
     transform: translateX(-50%);
     z-index: 2;
 }
@@ -441,7 +447,9 @@
 
 /* Pump manifold (5-branch grid + dynamically-measured SVG piping) */
 .scada-manifold-wrap {
-    padding-top: 90px;
+    /* 90px originally; reduced by 28px when the pump pictures grew to 80px and by 10px when the
+       label slot grew to 44px, so taller branches extend upwards and the bottom header stays put. */
+    padding-top: 52px;
 }
 
 .scada-manifold-row {
@@ -453,7 +461,9 @@
 .scada-manifold-grid {
     flex: 1;
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    /* minmax(0, 1fr): the pump labels deliberately overflow their column (see .scada-branch-slot.label),
+       so columns must not grow to fit them. */
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     position: relative;
     z-index: 1;
 }
@@ -483,7 +493,7 @@
 }
 
 .scada-branch-slot.label {
-    height: 34px;
+    height: 44px;
     justify-content: flex-start;
 }
 
@@ -491,8 +501,80 @@
     height: 40px;
 }
 
+/* Pump name, Count and POWER toggle sit right of the vertical pipe (pipe = column centre),
+   left-aligned. Their text may run into the next column's empty left half (that column's own
+   labels are right of its pipe), so it wraps at 100px (pipe-to-pipe spacing is ~120px); the last column stops short of the
+   feedback panel. */
+.scada-branch-slot.label,
+.scada-branch-slot.toggle {
+    align-self: stretch;
+    align-items: flex-start;
+    padding-left: calc(50% + 10px);
+}
+
+.scada-branch-slot.label > *,
+.scada-branch-slot.toggle > * {
+    width: 100px;
+    flex-shrink: 0;
+}
+
+.scada-branch[data-branch="diesel"] .scada-branch-slot.label,
+.scada-branch[data-branch="diesel"] .scada-branch-slot.toggle {
+    /* Diesel Pump: labels left of its pipe (the Diesel Tank box and feed line are on the right). */
+    padding-left: 0;
+    padding-right: calc(50% + 10px);
+    align-items: flex-end;
+}
+
+.scada-branch[data-branch="diesel"] .scada-pump-label2,
+.scada-branch[data-branch="diesel"] .scada-pump-count,
+.scada-branch[data-branch="diesel"] .scada-power-label {
+    text-align: right;
+}
+
+.scada-branch[data-branch="diesel"] .scada-toggle-row {
+    justify-content: flex-end;
+}
+
+/* Control line: every pump wired to the feedback/control panel (drawn in layoutScadaManifoldPipes()). */
+.scada-control-line {
+    fill: none;
+    stroke: #ef4444;
+    stroke-width: 1.5;
+    stroke-linejoin: round;
+}
+
+/* Diesel feed line from the Diesel Tank to the Diesel Pump (drawn in layoutScadaManifoldPipes()). */
+.scada-diesel-feed {
+    fill: none;
+    stroke: #ef4444;
+    stroke-width: 2;
+    stroke-linejoin: round;
+}
+
+.scada-branch[data-branch="smain"] .scada-branch-slot.label > *,
+.scada-branch[data-branch="smain"] .scada-branch-slot.toggle > * {
+    width: 72px;
+}
+
 .scada-branch-slot.pump-icon {
-    height: 52px;
+    height: 80px;   /* = SCADA_PUMP_ART_HEIGHT */
+    position: relative;
+}
+
+/* Pump picture drawn behind the spinning pump icon (SCADA_PUMP_ART). Size, horizontal offset and
+   rotation are set inline by scadaPumpArtImg() so the picture's ports land on the branch pipes. */
+.scada-pump-bg {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 0;
+    pointer-events: none;
+}
+
+.scada-branch-slot.pump-icon .scada-pump-icon-svg {
+    position: relative;
+    z-index: 1;
 }
 
 .scada-branch-slot.gate-valve {
@@ -507,7 +589,8 @@
 
 .scada-branch.running .scada-pump-icon-svg {
     animation: scadaSpin 1.4s linear infinite;
-    transform-origin: 22px 18px;
+    /* Wheel centre (viewBox 22,18 of 44x44) as a fraction, so it holds at any icon size. */
+    transform-origin: 50% 40.91%;
 }
 
 .scada-branch.running .scada-pump-icon-svg circle.body {
@@ -521,18 +604,23 @@
 }
 
 .scada-pump-label2 {
-    font-size: 13px;
-    color: #ffffff;
-    text-align: center;
-    line-height: 1.2;
+    font-size: 12px;
+    color: var(--dark);   /* theme text colour (was fixed white, invisible in light mode) */
+    text-align: left;
+    line-height: 1.15;
+    overflow-wrap: break-word;
     font-weight: 700;
 }
 
 .scada-pump-count {
-    font-size: 12px;
+    font-size: 11px;
     color: #d1d5db;
     font-family: 'Courier New', monospace;
     font-weight: 600;
+}
+
+body.light-mode .scada-pump-count {
+    color: #4b5563;
 }
 
 .scada-power-label {

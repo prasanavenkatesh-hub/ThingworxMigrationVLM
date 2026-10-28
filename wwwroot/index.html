@@ -10,7 +10,7 @@
     <!-- Shared shell styles, then one stylesheet per module (css/dashboards, css/reports) -->
     <link rel="stylesheet" href="css/style.v2.css?v=5">
     <link rel="stylesheet" href="css/extra_styles.css?v=1.1">
-    <link rel="stylesheet" href="css/dashboards/fire-hydrant.css?v=1">
+    <link rel="stylesheet" href="css/dashboards/fire-hydrant.css?v=12">
     <link rel="stylesheet" href="css/dashboards/gas-leak.css?v=1">
     <link rel="stylesheet" href="css/dashboards/ems-renewable.css?v=3">
     <link rel="stylesheet" href="css/dashboards/eb-rtm.css?v=1">
@@ -21,6 +21,7 @@
     <link rel="stylesheet" href="css/reports/process-parameter.css?v=1">
     <link rel="stylesheet" href="css/reports/ebrtm-reports.css?v=4">
     <link rel="stylesheet" href="css/pokayoke/pokayoke.css?v=19">
+    <link rel="stylesheet" href="css/machineshop/leak-test.css?v=3">
     <script src="lib/exceljs.min.js"></script>
     <script>
         function applyTheme(theme) {
@@ -60,6 +61,9 @@
             const pprTab = document.getElementById('tab-process-parameter');
             if (pprTab && pprTab.classList.contains('active') && typeof renderPpr === 'function') {
                 renderPpr();
+            }
+            if (typeof mltApplyTheme === 'function') {
+                mltApplyTheme();   // Machine Shop > Leak Test charts
             }
         }
 
@@ -259,6 +263,21 @@
                                 <span class="text">EB-RTM Reports</span>
                             </button>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Machine Shop -->
+                <div class="nav-group" style="margin-top: 10px;">
+                    <button class="nav-item" onclick="toggleSubmenu('machineShopMenu')" data-tooltip="Machine Shop">
+                        <span class="material-symbols-outlined icon">construction</span> <span
+                            class="text">Machine Shop</span>
+                    </button>
+                    <div id="machineShopMenu" class="sub-menu" style="display: none; padding-left: 20px;">
+                        <button class="nav-item sub-item" id="nav-ms-leak-test" onclick="switchTab('ms-leak-test')"
+                            data-tooltip="Leak Test" style="font-size: 0.9em; padding: 5px 10px;">
+                            <span class="material-symbols-outlined icon" style="font-size: 18px;">water_drop</span>
+                            <span class="text">Leak Test</span>
+                        </button>
                     </div>
                 </div>
             </nav>
@@ -1675,6 +1694,14 @@
                 </div>
             </div>
 
+            <!-- Machine Shop - Leak Test (component sub-tabs; js/machineshop/leak-test.js) -->
+            <div id="tab-ms-leak-test" class="tab-pane">
+                <div class="mlt">
+                    <div class="mlt-tabs" id="mltTabs"></div>
+                    <div class="mlt-body" id="mltBody"></div>
+                </div>
+            </div>
+
             <!-- PokaYoke - Overview (cards per line + Overall Poka Yoke; js/pokayoke/overview.js builds the cards) -->
             <div id="tab-pky-overview" class="tab-pane">
                 <div class="pky-ov" id="pkyOvGrid"></div>
@@ -1912,8 +1939,8 @@
                             <img id="scadaTank1Valve" class="scada-valve-img vert" src="assets/valve.png" style="left:39px;top:216px;width:22px;height:22px;">
                             <img id="scadaTank2Valve" class="scada-valve-img vert" src="assets/valve.png" style="left:139px;top:216px;width:22px;height:22px;">
 
-                            <div class="scada-tank-label" style="left:8px;top:246px;width:84px;">Water Tank 1<br>(232 m&sup3;)</div>
-                            <div class="scada-tank-label" style="left:108px;top:246px;width:84px;">Water Tank 2<br>(232 m&sup3;)</div>
+                            <div class="scada-tank-label beside-pipe" style="left:58px;top:246px;width:84px;">Water Tank 1<br>(232 m&sup3;)</div>
+                            <div class="scada-tank-label beside-pipe" style="left:158px;top:246px;width:84px;">Water Tank 2<br>(232 m&sup3;)</div>
                         </div>
 
                         <!-- Pump manifold: 5-column CSS grid, piping drawn dynamically into #scadaManifoldPipes -->
@@ -1936,9 +1963,10 @@
                             </div>
                         </div>
 
-                        <!-- Gauges -->
-                        <div class="scada-widget scada-gauge" data-gauge="hydrant" style="left:20px;top:400px;width:120px;"></div>
-                        <div class="scada-widget scada-gauge" data-gauge="sprinkler" style="left:160px;top:400px;width:120px;"></div>
+                        <!-- Gauges: the 260px pair is centred under the left layout (tanks + pump manifold,
+                             x 0-1020, centre 510). -->
+                        <div class="scada-widget scada-gauge" data-gauge="hydrant" style="left:380px;top:400px;width:120px;"></div>
+                        <div class="scada-widget scada-gauge" data-gauge="sprinkler" style="left:520px;top:400px;width:120px;"></div>
 
                         <!-- Shopfloor Pressure: coordinate-based absolute schematic beside the pump
                              manifold (not below). One SVG layer (z-index:0) draws every pipe segment
@@ -2618,8 +2646,8 @@
 
         <script src="lib/chart.min.js"></script>
         <!-- App scripts: shared shell first, then one file per module -->
-        <script src="js/core.js?v=7"></script>
-        <script src="js/dashboards/fire-hydrant.js?v=1"></script>
+        <script src="js/core.js?v=8"></script>
+        <script src="js/dashboards/fire-hydrant.js?v=12"></script>
         <script src="js/dashboards/gas-leak.js?v=1"></script>
         <script src="js/dashboards/ems-renewable.js?v=3"></script>
         <script src="js/dashboards/eb-rtm.js?v=1"></script>
@@ -2639,6 +2667,7 @@
         <script src="js/pokayoke/jea2-line.js?v=2"></script>
         <script src="js/pokayoke/jea1-crankshaft.js?v=1"></script>
         <script src="js/pokayoke/overview.js?v=4"></script>
+        <script src="js/machineshop/leak-test.js?v=2"></script>
 </body>
 
 </html>

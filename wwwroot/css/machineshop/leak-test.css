@@ -1,0 +1,276 @@
+/* Machine Shop > Leak Test (#tab-ms-leak-test). Prefix: mlt.
+   Layout ported from the ThingWorx mashup RE_MS_LT_CoverLH_MU. */
+
+.mlt {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.mlt-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--neutral);
+    flex-shrink: 0;
+    overflow-x: auto;
+}
+
+.mlt-tab {
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    padding: 12px 14px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gray);
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.mlt-tab:hover {
+    color: var(--dark);
+}
+
+.mlt-tab.active {
+    color: var(--dark);
+    border-bottom-color: var(--primary);
+}
+
+.mlt-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+}
+
+.mlt-pane {
+    display: none;
+}
+
+.mlt-pane.active {
+    display: block;
+}
+
+/* Two columns: fixed 284px pie column (flexcontainer-25) + grids/chart column. */
+.mlt-layout {
+    display: grid;
+    grid-template-columns: 284px minmax(0, 1fr);
+    gap: 16px;
+}
+
+.mlt-left,
+.mlt-card {
+    background: var(--white);
+    border: 1px solid var(--neutral);
+    border-radius: 10px;
+}
+
+.mlt-left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 10px;
+}
+
+.mlt-pie {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.mlt-pie-canvas {
+    position: relative;
+    width: 96px;
+    height: 96px;
+}
+
+.mlt-pie-lg .mlt-pie-canvas {
+    width: 130px;
+    height: 130px;
+}
+
+.mlt-pie-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--gray);
+    letter-spacing: 0.5px;
+}
+
+.mlt-legend {
+    display: flex;
+    gap: 18px;
+    font-size: 12px;
+    color: var(--dark);
+}
+
+.mlt-legend i {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: -1px;
+}
+
+.mlt-right {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+}
+
+.mlt-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    gap: 12px;
+    flex-wrap: wrap;
+    min-height: 50px;
+}
+
+.mlt-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: rgb(51, 153, 255);
+}
+
+.mlt-date {
+    width: 230px;
+    padding: 7px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--neutral);
+    background: rgba(255, 163, 26, 1);
+    color: #1d1d1f;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.mlt-btn {
+    padding: 7px 16px;
+    font-size: 13px;
+}
+
+.mlt-grids {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.mlt-grid {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    color: var(--dark);
+    table-layout: fixed;
+}
+
+.mlt-grid th {
+    padding: 8px;
+    text-align: center;
+    font-weight: 700;
+    background: var(--white);
+    border-bottom: 2px solid var(--neutral);
+}
+
+.mlt-grid td {
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--neutral);
+}
+
+.mlt-grid tbody tr:nth-child(odd) td {
+    background: rgba(237, 242, 247, 0.06);
+}
+
+.mlt-grid tbody tr:nth-child(even) td {
+    background: rgba(219, 228, 240, 0.12);
+}
+
+body.light-mode .mlt-grid tbody tr:nth-child(odd) td {
+    background: rgb(237, 242, 247);
+}
+
+body.light-mode .mlt-grid tbody tr:nth-child(even) td {
+    background: rgb(219, 228, 240);
+}
+
+/* Totals grid (ptcsgrid-59): orange rows. */
+.mlt-grid.mlt-grid-total tbody tr td,
+body.light-mode .mlt-grid.mlt-grid-total tbody tr td {
+    background: rgb(255, 221, 204);
+    color: #1d1d1f;
+}
+
+.mlt-grid.mlt-grid-total tbody tr:nth-child(even) td,
+body.light-mode .mlt-grid.mlt-grid-total tbody tr:nth-child(even) td {
+    background: rgb(255, 204, 179);
+}
+
+.mlt-grid tr.mlt-grid-empty td {
+    text-align: center;
+    color: var(--gray);
+    font-style: italic;
+}
+
+.mlt-grid.mlt-grid-total tr.mlt-grid-empty td {
+    color: #6b4b3e;
+}
+
+.mlt-card {
+    padding: 12px 14px;
+}
+
+.mlt-card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--dark);
+    margin-bottom: 8px;
+}
+
+.mlt-leak-canvas {
+    position: relative;
+    height: 320px;
+}
+
+/* Pop-ups */
+.mlt-modal .mlt-modal-content {
+    max-width: 900px;
+}
+
+.mlt-modal .mlt-modal-wide {
+    max-width: 1000px;
+}
+
+.mlt-modal-body {
+    padding: 16px 24px 24px;
+    overflow-y: auto;
+}
+
+.mlt-trend-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+.mlt-trend-canvas {
+    position: relative;
+    height: 220px;
+}
+
+@media (max-width: 1100px) {
+    .mlt-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .mlt-left {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .mlt-trend-grid {
+        grid-template-columns: 1fr;
+    }
+}
