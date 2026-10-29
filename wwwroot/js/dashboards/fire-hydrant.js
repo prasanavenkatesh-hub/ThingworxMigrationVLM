@@ -605,7 +605,9 @@ function scadaPumpArtGeom(p) {
         iconDy: (icon.y - rh / 2) * k,
         bottomDx: top ? (bottom.x - top.x) * k : 0,
         topFy: top ? top.y / rh : null,
-        bottomFy: bottom ? bottom.y / rh : null
+        bottomFy: bottom ? bottom.y / rh : null,
+        // Horizontal distance from the branch (upper) pipe to the diesel feed line's drop (fuelIn).
+        fuelDx: a.fuelIn ? dx + (map(a.fuelIn).x - rw / 2) * k : null
     };
 }
 
@@ -613,6 +615,12 @@ function scadaPumpArtImg(p) {
     const g = scadaPumpArtGeom(p);
     if (!g) return '';
     return `<img class="scada-pump-bg" src="${p.art.src}" alt="" style="width:${g.cssW.toFixed(1)}px;height:${g.cssH.toFixed(1)}px;left:calc(50% + ${g.dx.toFixed(1)}px);transform:translate(-50%,-50%) rotate(${g.rot}deg)">`;
+}
+
+// Labels of a pump with a diesel feed line start 10px right of that line instead of the pipe.
+function scadaBesideFeedStyle(p) {
+    const g = scadaPumpArtGeom(p);
+    return g && g.fuelDx !== null ? ` style="padding-left:calc(50% + ${(g.fuelDx + 10).toFixed(1)}px)"` : '';
 }
 
 function scadaPumpIconSvg(p) {
@@ -640,11 +648,11 @@ function renderScadaManifold() {
                 <img class="scada-valve-img inline vert" src="assets/valve.png" title="Non-return valve">
                 <img class="scada-valve-img inline vert" src="assets/valve.png" title="Butterfly valve">
             </div>
-            <div class="scada-branch-slot label">
+            <div class="scada-branch-slot label"${scadaBesideFeedStyle(p)}>
                 <div class="scada-pump-label2">${p.label}</div>
                 <div class="scada-pump-count">Count: ${p.count}</div>
             </div>
-            <div class="scada-branch-slot toggle">
+            <div class="scada-branch-slot toggle"${scadaBesideFeedStyle(p)}>
                 <div class="scada-power-label">POWER</div>
                 <div class="scada-toggle-row">
                     <span class="scada-toggle-text">OFF</span>

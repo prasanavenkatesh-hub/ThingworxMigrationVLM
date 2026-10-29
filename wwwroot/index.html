@@ -10,7 +10,7 @@
     <!-- Shared shell styles, then one stylesheet per module (css/dashboards, css/reports) -->
     <link rel="stylesheet" href="css/style.v2.css?v=5">
     <link rel="stylesheet" href="css/extra_styles.css?v=1.1">
-    <link rel="stylesheet" href="css/dashboards/fire-hydrant.css?v=12">
+    <link rel="stylesheet" href="css/dashboards/fire-hydrant.css?v=16">
     <link rel="stylesheet" href="css/dashboards/gas-leak.css?v=1">
     <link rel="stylesheet" href="css/dashboards/ems-renewable.css?v=3">
     <link rel="stylesheet" href="css/dashboards/eb-rtm.css?v=1">
@@ -1886,20 +1886,23 @@
                         </svg>
 
                         <!-- Water tank assembly (two-compartment tank with brick partition, top nozzles, ladder and inlet) -->
-                        <div class="scada-widget scada-level-scale" style="left:8px;top:40px;width:14px;height:180px;">
-                            <span class="scada-level-tick" style="top:-6px;">100%</span>
-                            <span class="scada-level-tick" style="top:39px;">75%</span>
-                            <span class="scada-level-tick" style="top:84px;">50%</span>
-                            <span class="scada-level-tick" style="top:129px;">25%</span>
-                            <span class="scada-level-tick" style="top:174px;">0%</span>
+                        <!-- Level scale: percentages drawn on the bar itself (100% / 0% inside the ends, the
+                             others centred on their colour boundaries) so they don't overlap the tank. -->
+                        <div class="scada-widget scada-level-scale" style="left:2px;top:40px;width:24px;height:180px;">
+                            <span class="scada-level-tick" style="top:1px;">100%</span>
+                            <span class="scada-level-tick" style="top:40px;">75%</span>
+                            <span class="scada-level-tick" style="top:85px;">50%</span>
+                            <span class="scada-level-tick" style="top:130px;">25%</span>
+                            <span class="scada-level-tick" style="top:169px;">0%</span>
                         </div>
 
                         <div class="scada-widget scada-tank-assembly" style="left:30px;top:6px;width:200px;height:270px;">
-                            <svg class="scada-tank-structure" viewBox="0 0 200 270" width="200" height="270">
+                            <svg class="scada-tank-structure" viewBox="0 0 200 270" width="200" height="270" overflow="visible">
                                 <!-- water top-up inlet -->
                                 <path class="scada-pipe-path thin" d="M0,14 L26,14 L26,26" />
                                 <image class="scada-valve-img" href="assets/valve.png" x="7" y="3" width="16" height="16" />
-                                <text x="2" y="7" class="scada-tank-inlet-label">Water Top Up</text>
+                                <!-- label sits above the valve (y<0 draws over the SVG top edge, hence overflow="visible") -->
+                                <text x="2" y="1" class="scada-tank-inlet-label">Water Top Up</text>
 
                                 <!-- header frame + nozzles -->
                                 <rect x="4" y="26" width="192" height="8" class="scada-tank-frame" />
@@ -1963,17 +1966,18 @@
                             </div>
                         </div>
 
-                        <!-- Gauges: the 260px pair is centred under the left layout (tanks + pump manifold,
-                             x 0-1020, centre 510). -->
-                        <div class="scada-widget scada-gauge" data-gauge="hydrant" style="left:380px;top:400px;width:120px;"></div>
-                        <div class="scada-widget scada-gauge" data-gauge="sprinkler" style="left:520px;top:400px;width:120px;"></div>
+                        <!-- Gauges: the 360px pair (2 x 170px + 20px gap) is centred under the left layout
+                             (tanks + pump manifold, x 0-1020, centre 510). -->
+                        <div class="scada-widget scada-gauge" data-gauge="hydrant" style="left:330px;top:400px;width:170px;"></div>
+                        <div class="scada-widget scada-gauge" data-gauge="sprinkler" style="left:520px;top:400px;width:170px;"></div>
 
                         <!-- Shopfloor Pressure: coordinate-based absolute schematic beside the pump
                              manifold (not below). One SVG layer (z-index:0) draws every pipe segment
                              at fixed coordinates; cards (.pipe-card, z-index:1) are absolutely
                              positioned on top. EV Building sits above G120 with its own vertical
                              connector; G120/RO/Fire Hydrant/MRS sit on the top branch. -->
-                        <div class="scada-widget pipe-schematic" style="left:1190px;top:15px;width:770px;height:470px;">
+                        <!-- left:1135px = 5px gap between the feedback panel (right edge x 1020) and FG Warehouse (110px left of this box). -->
+                        <div class="scada-widget pipe-schematic" style="left:1135px;top:15px;width:770px;height:470px;">
                             <svg class="pipe-svg" viewBox="0 0 770 470" xmlns="http://www.w3.org/2000/svg">
                                 <!-- Main Spine: top branch + vertical trunk, 10px maroon -->
                                 <path class="pipe-seg" stroke-width="10" d="M4,159 L544,159" />
@@ -2647,7 +2651,7 @@
         <script src="lib/chart.min.js"></script>
         <!-- App scripts: shared shell first, then one file per module -->
         <script src="js/core.js?v=8"></script>
-        <script src="js/dashboards/fire-hydrant.js?v=12"></script>
+        <script src="js/dashboards/fire-hydrant.js?v=13"></script>
         <script src="js/dashboards/gas-leak.js?v=1"></script>
         <script src="js/dashboards/ems-renewable.js?v=3"></script>
         <script src="js/dashboards/eb-rtm.js?v=1"></script>

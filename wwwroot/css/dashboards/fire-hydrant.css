@@ -312,9 +312,14 @@
 
 .scada-level-tick {
     position: absolute;
-    left: 18px;
-    font-size: 8px;
-    color: var(--gray);
+    left: 0;
+    width: 100%;
+    text-align: center;
+    font-size: 7px;
+    line-height: 10px;
+    font-weight: 700;
+    color: #ffffff;                       /* on the coloured bar in both themes */
+    text-shadow: 0 0 2px rgba(0, 0, 0, 0.9);
     white-space: nowrap;
 }
 
@@ -346,7 +351,7 @@
     position: absolute;
     left: 20%;
     top: 27px;   /* 8px higher than before so the box clears the Diesel Pump name below it */
-    transform: translateX(-50%);
+    transform: translateX(calc(-50% - 20px));   /* -20px: moved left with the Diesel Pump branch */
     color: var(--dark);   /* theme text colour (was fixed #e5e5e5, invisible in light mode) */
     font-size: 10px;
     font-weight: 600;
@@ -370,7 +375,7 @@
     position: absolute;
     left: 20%;
     top: 47px;
-    transform: translateX(-50%);
+    transform: translateX(calc(-50% - 20px));   /* -20px: moved left with the Diesel Pump branch */
     z-index: 2;
 }
 
@@ -433,14 +438,14 @@
 }
 
 .scada-gauge-value {
-    font-size: 18px;
+    font-size: 24px;
     font-weight: 900;
     color: var(--dark);
     margin-top: -6px;
 }
 
 .scada-gauge-label {
-    font-size: 10px;
+    font-size: 12px;
     color: var(--gray);
     text-transform: uppercase;
 }
@@ -518,22 +523,17 @@
     flex-shrink: 0;
 }
 
-.scada-branch[data-branch="diesel"] .scada-branch-slot.label,
-.scada-branch[data-branch="diesel"] .scada-branch-slot.toggle {
-    /* Diesel Pump: labels left of its pipe (the Diesel Tank box and feed line are on the right). */
-    padding-left: 0;
-    padding-right: calc(50% + 10px);
-    align-items: flex-end;
+/* Diesel Pump branch (with the Diesel Tank box/label and the feed line, which are positioned from it)
+   sits 20px left of its grid column. Pipes/lines are measured from the DOM, so they follow. */
+.scada-branch[data-branch="diesel"] {
+    transform: translateX(-20px);
 }
 
-.scada-branch[data-branch="diesel"] .scada-pump-label2,
-.scada-branch[data-branch="diesel"] .scada-pump-count,
-.scada-branch[data-branch="diesel"] .scada-power-label {
-    text-align: right;
-}
-
-.scada-branch[data-branch="diesel"] .scada-toggle-row {
-    justify-content: flex-end;
+/* Diesel Pump name / count / POWER: left-aligned just right of the red diesel feed line; the
+   padding-left (pipe-to-feed-line offset + 10px) is set inline by renderScadaManifold(). */
+.scada-branch[data-branch="diesel"] .scada-branch-slot.label > *,
+.scada-branch[data-branch="diesel"] .scada-branch-slot.toggle > * {
+    width: 96px;
 }
 
 /* Control line: every pump wired to the feedback/control panel (drawn in layoutScadaManifoldPipes()). */
@@ -809,7 +809,7 @@ body.light-mode .scada-pump-count {
     border: 1px solid #555555;
     border-radius: 4px;
     text-align: center;
-    padding-top: 6px;
+    padding-top: 5px;
     white-space: nowrap;
 }
 
@@ -834,7 +834,10 @@ body.light-mode .scada-pump-count {
 }
 
 .pipe-card-val {
-    margin-top: 6px;
+    /* line-height 1 + smaller gap: the 26px value used to sit on the card's bottom border
+       (only the narrow FG Warehouse card, with a 20px value, cleared it). */
+    margin-top: 4px;
+    line-height: 1;
     font-family: 'Segment7', 'Consolas', 'Courier New', monospace;
     font-size: 26px;
     font-weight: 700;
