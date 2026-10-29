@@ -54,6 +54,7 @@ function switchTab(tabId) {
     stopEbRtmPolling();
     stopEmsSolarPolling();
     pkyStopPolling();
+    msPdiStop();
     if (tabId !== 'summary-report') leaveSrTab();
 
     if (tabId === 'fire-hydrant') {
@@ -84,6 +85,8 @@ function switchTab(tabId) {
         loadPprDefaultView();
     } else if (tabId.startsWith('pky-')) {
         pkyShowScreen(tabId);   // PokaYoke screens (no-op for screens not built yet)
+    } else if (tabId === 'ms-pdi') {
+        msPdiShow();            // Machine Shop > PDI Dashboard
     }
 }
 

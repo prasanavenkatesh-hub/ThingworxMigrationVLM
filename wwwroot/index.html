@@ -9,6 +9,7 @@
     <link rel="icon" type="image/png" href="assets/logo-small.png">
     <!-- Shared shell styles, then one stylesheet per module (css/dashboards, css/reports) -->
     <link rel="stylesheet" href="css/style.v2.css?v=5">
+    <link rel="stylesheet" href="css/app-write-mode.css?v=1"> <!-- TEMPORARY: AppWriteMode -->
     <link rel="stylesheet" href="css/extra_styles.css?v=1.1">
     <link rel="stylesheet" href="css/dashboards/fire-hydrant.css?v=1">
     <link rel="stylesheet" href="css/dashboards/gas-leak.css?v=1">
@@ -21,6 +22,7 @@
     <link rel="stylesheet" href="css/reports/process-parameter.css?v=1">
     <link rel="stylesheet" href="css/reports/ebrtm-reports.css?v=4">
     <link rel="stylesheet" href="css/pokayoke/pokayoke.css?v=19">
+    <link rel="stylesheet" href="css/machineshop/machine-shop.css?v=9">
     <script src="lib/exceljs.min.js"></script>
     <script>
         function applyTheme(theme) {
@@ -60,6 +62,12 @@
             const pprTab = document.getElementById('tab-process-parameter');
             if (pprTab && pprTab.classList.contains('active') && typeof renderPpr === 'function') {
                 renderPpr();
+            }
+            if (typeof msPdiRenderPie === 'function') {
+                msPdiRenderPie();   // PDI rejection pop-up: legend text colour
+            }
+            if (typeof msPdiRethemePies === 'function') {
+                msPdiRethemePies();   // PDI part / summary pies: slice border = panel colour
             }
         }
 
@@ -149,6 +157,21 @@
                             data-tooltip="JEA1 Crankshaft" style="font-size: 0.9em; padding: 5px 10px;">
                             <span class="material-symbols-outlined icon" style="font-size: 18px;">settings</span>
                             <span class="text">JEA1 Crankshaft</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Machine Shop -->
+                <div class="nav-group" style="margin-top: 10px;">
+                    <button class="nav-item" onclick="toggleSubmenu('machineShopMenu')" data-tooltip="Machine Shop">
+                        <span class="material-symbols-outlined icon">precision_manufacturing</span> <span
+                            class="text">Machine Shop</span>
+                    </button>
+                    <div id="machineShopMenu" class="sub-menu" style="display: none; padding-left: 20px;">
+                        <button class="nav-item sub-item" id="nav-ms-pdi" onclick="switchTab('ms-pdi')"
+                            data-tooltip="PDI Dashboard" style="font-size: 0.9em; padding: 5px 10px;">
+                            <span class="material-symbols-outlined icon" style="font-size: 18px;">dashboard</span>
+                            <span class="text">PDI Dashboard</span>
                         </button>
                     </div>
                 </div>
@@ -1824,6 +1847,58 @@
                 </div>
             </div>
 
+            <!-- Machine Shop - PDI Dashboard (js/machineshop/pdi-dashboard.js builds the tabs and grids).
+                 ThingWorx MS PDI screens: Hourly Screen and part tabs (Crankcase, Cover LH, Cover RH, Crankshaft, Cyl Head, Cyl Barrel) and PDI Summary are live. -->
+            <div id="tab-ms-pdi" class="tab-pane">
+                <div class="ms-pdi">
+                    <div class="ms-pdi-bar">
+                        <div class="ms-pdi-tabs" id="msPdiTabs"></div>
+                        <div class="ms-pdi-filters">
+                            <input type="text" id="msPdiDate" class="ms-pdi-date" placeholder="Date" readonly>
+                            <button class="ms-pdi-cal" type="button" onclick="msPdiOpenCalendar()" title="Pick a date">
+                                <span class="material-symbols-outlined">calendar_month</span>
+                            </button>
+                            <select id="msPdiShift" class="ms-pdi-shift" title="Shift"></select>
+                            <button class="ms-pdi-submit" type="button" onclick="msPdiSubmit()">Submit</button>
+                        </div>
+                    </div>
+                    <div class="ms-pdi-title" id="msPdiTitle"></div>
+                    <div class="ms-pdi-note" id="msPdiNote"></div>
+                    <div class="ms-pdi-note" id="msPdiPartNote" hidden></div>
+
+                    <!-- Hourly Screen -->
+                    <div class="ms-pdi-view" id="msPdiViewHourly">
+                        <div class="ms-pdi-grid ms-pdi-grid-top" id="msPdiHourlyTop"></div>
+                        <div class="ms-pdi-bottom">
+                            <div class="ms-pdi-grid" id="msPdiHourlyBottom"></div>
+                            <div class="ms-pdi-rej">
+                                <div class="ms-pdi-rej-title">Machine Shop Rejection Details</div>
+                                <div class="ms-pdi-rej-buttons" id="msPdiRejButtons"></div>
+                                <div class="ms-pdi-rej-note" id="msPdiRejNote"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Part tabs (Crankcase ...): pies on the left, Produced / OK / NOK per cell on the right -->
+                    <div class="ms-pdi-view ms-pdi-part-view" id="msPdiViewPart" hidden>
+                        <div class="ms-pdi-pies" id="msPdiPies"></div>
+                        <div class="ms-pdi-grid" id="msPdiPartGrid"></div>
+                    </div>
+
+                    <!-- PDI Summary: day pie per part on the left, Produced / OK / NOK per part and shift on the right -->
+                    <div class="ms-pdi-view ms-pdi-part-view" id="msPdiViewSummary" hidden>
+                        <div class="ms-pdi-pies" id="msPdiSumPies"></div>
+                        <div class="ms-pdi-grid" id="msPdiSumGrid"></div>
+                    </div>
+
+                    <!-- Placeholder for a tab that is not built yet (none at the moment) -->
+                    <div class="ms-pdi-view ms-pdi-placeholder" id="msPdiViewOther" hidden>
+                        <div class="ms-pdi-placeholder-title" id="msPdiOtherTitle"></div>
+                        <div class="ms-pdi-placeholder-note">This tab is not built yet.</div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Fire Hydrant Monitoring Dashboard -->
             <div id="tab-fire-hydrant" class="tab-pane">
                 <div class="scada-scroll">
@@ -2618,7 +2693,8 @@
 
         <script src="lib/chart.min.js"></script>
         <!-- App scripts: shared shell first, then one file per module -->
-        <script src="js/core.js?v=7"></script>
+        <script src="js/core.js?v=8"></script>
+        <script src="js/app-write-mode.js?v=1"></script> <!-- TEMPORARY: AppWriteMode -->
         <script src="js/dashboards/fire-hydrant.js?v=1"></script>
         <script src="js/dashboards/gas-leak.js?v=1"></script>
         <script src="js/dashboards/ems-renewable.js?v=2"></script>
@@ -2638,6 +2714,7 @@
         <script src="js/pokayoke/jea1-line.js?v=11"></script>
         <script src="js/pokayoke/jea2-line.js?v=2"></script>
         <script src="js/pokayoke/jea1-crankshaft.js?v=1"></script>
+        <script src="js/machineshop/pdi-dashboard.js?v=13"></script>
         <script src="js/pokayoke/overview.js?v=4"></script>
 </body>
 

@@ -32,12 +32,13 @@ dotnet run --launch-profile http        # http://localhost:5059  (https profile:
 Program.cs                    calls AddXxxModule() for each module - nothing else module-specific
 appsettings.json              single config file (App, ConnectionStrings, ShiftConfiguration,
                               DashboardDropdownValues, PokeYokeReports, SubAssemblyReport, ProcessParameterReport,
-                              Mqtt, FireHydrant, GasLeak, Ems, EbRtm, PokaYoke)
+                              Mqtt, FireHydrant, GasLeak, Ems, EbRtm, PokaYoke, MachineShop)
 Modules/
-  Shared/                     ConfigurationController, MqttStatusController (header MQTT pill),
+  Shared/                     ConfigurationController, MqttStatusController (header MQTT pill), AppWriteMode (TEMPORARY view-only mode),
                               ApiDateTime.ToLocal(), KepwareValueParser
   FireHydrant/ GasLeak/ Ems/ EbRtm/      live dashboards (one folder each, incl. <Name>Module.cs)
   PokaYoke/                   live PokaYoke station status (read-only, ThingWorx VallamPokaYoke port)
+  MachineShop/                Machine Shop screens (PDI Dashboard: MachineShopPdiService, read-only)
   Reports/ReportsModule.cs    registers all report services
   Reports/LineReports/        Biometric, Main Line Cycle Time, Poke Yoke (shared ReportsService)
   Reports/QHold/ CylinderHeadLeak/ CategorywiseRework/ SummaryReport/ RejectionSummary/ SubAssemblyReport/   Power BI ports (1 stored proc each)
@@ -52,11 +53,12 @@ wwwroot/
                               process-parameter, ebrtm-reports
   js/pokayoke/*.js            pokayoke.js (shared plant-layout renderer + screen controller), overview.js (PokaYoke > Overview cards) + one layout file per screen (jea1-line.js, jea2-line.js, jea1-crankshaft.js)
   css/style.v2.css            shared shell styles (also used by login.html)
-  css/dashboards/*.css, css/reports/*.css, css/pokayoke/*.css   one stylesheet per module
+  js/machineshop/*.js         pdi-dashboard.js (PDI Dashboard)
+  css/dashboards/*.css, css/reports/*.css, css/pokayoke/*.css, css/machineshop/*.css   one stylesheet per module
 ```
 C# namespaces are **flat and unchanged** regardless of folder: `ControlTower.Controllers`, `ControlTower.Services`, `ControlTower.Models`. Folders only group files.
 
-Frontend scripts are **classic `<script>` tags sharing one global scope** (no bundler/modules), loaded in `index.html` order: `core.js` → dashboards → reports. Prefix every top-level name with your module (`eb…`, `ems…`, `gasleak…`, `scada…`/`fireHydrant…`, `qHold…`, `cylinderHead…`, `cwr…`, `sr…`) — a duplicate name silently overrides another module.
+Frontend scripts are **classic `<script>` tags sharing one global scope** (no bundler/modules), loaded in `index.html` order: `core.js` → dashboards → reports. Prefix every top-level name with your module (`eb…`, `ems…`, `gasleak…`, `scada…`/`fireHydrant…`, `qHold…`, `cylinderHead…`, `cwr…`, `sr…`, `pky…`, `msPdi…`) — a duplicate name silently overrides another module.
 
 ## Adding a live dashboard (MQTT)
 Backend (`Modules/<Name>/`, mirror `EbRtm` or `GasLeak`):
@@ -87,14 +89,18 @@ Teammates sometimes develop in a full copy of the repo (e.g. `D:\RE\PowerBI_Repo
 5. Update README (their feature docs + Structure/Config/API sections) and this file.
 
 ## Data the app writes (everything else is read-only)
+**TEMPORARY view-only mode:** a running copy only writes (and sends MQTT commands) when `App:WritesEnabled` is `true`; it defaults to `false`, so developer copies are view-only and the header shows **View only**. Set it on the ONE machine that should keep the records, e.g. `setx App__WritesEnabled true` (new terminal) or a system environment variable, then restart the app; every other copy stays view-only by default. Every new write method must start with `if (!_writesEnabled) return;` (`AppWriteMode.IsEnabled(config)`), tagged `// TEMPORARY: AppWriteMode` - search that tag to remove it all later (details in `Modules/Shared/AppWriteMode.cs`).
+**`ControlTowerVLM` is the app's only database for its own records** (each module's `<Name>:Database`). Don't write to the old `FireHydrant` / `LPGGasLeak` databases (moved 2026-10-26); new tables get a module prefix (`FH_`, `GasLeak_`, `EbC`) and their CREATE script in `Modules/<Name>/Sql/`.
+
 | Module | Writes to | When |
 |---|---|---|
-| Fire Hydrant | `[FireHydrant].dbo.Alerts`, `PumpRunningCount`, `Duration` | alert open/close/snooze, pump count change, pump run start/stop |
-| Gas Leak | `[LPGGasLeak].dbo.GasLeakAlerts`; MQTT valve command topics | alert band change/snooze; Lot 1/2 valve button |
+| Fire Hydrant | `[ControlTowerVLM].dbo.FH_Alerts`, `FH_PumpRunningCount`, `FH_Duration` | alert open/close/snooze, pump count change, pump run start/stop |
+| Gas Leak | `[ControlTowerVLM].dbo.GasLeak_Alerts`; MQTT valve command topics | alert band change/snooze; Lot 1/2 valve button |
 | EB-RTM | `[ControlTowerVLM].dbo.EbCMonitoring`, `EbCPowerFailureEvents`, `EbCAlerts` | one snapshot per `EbRtm:LogIntervalMinutes` slot; failure start/end; alert transitions (`EbRtmAlertMonitor`) |
 | EMS | `[ControlTowerVLM].dbo.SolarData`, `SolarLiveGraph`, `OtherPowerSource` | daily 00:15 baseline, hourly :15 point, "Other Source" Update |
 
 ## Open items / known issues (keep this list current)
+Questions that need an answer from the business team, report owners or IT / DBA are collected in `OPEN-QUESTIONS.md` (what the app does today + a blank answer per question). Add new questions there; when one is answered and applied, delete it there and update the item here.
 - **EMS Today/Yesterday/MTD** treat missing data as 0 → large negative/positive nonsense values when MQTT data or a daily `SolarData` row is missing; should show `--`. The daily baseline is only written if a message arrives during the 00:15 minute.
 - **EMS date badge** (`31/03/2026`) and the Roof Top Solar "March - 2026" label are static placeholders; the EMS screen always uses "today".
 - **EMS VOC panel** and the FY bars of Green Power Contributions are sample data; the "VOC Inputs" and "Green Power Contribution Input" pop-up tabs don't save. EMS/Fire Hydrant payload models use `double V` (a `"v":""` tag drops the whole message) — switch to `JsonElement` + `KepwareValueParser`.
@@ -105,6 +111,7 @@ Teammates sometimes develop in a full copy of the repo (e.g. `D:\RE\PowerBI_Repo
 - **Process/Product Parameter (prefix `ppr`)**: EA2 only. Column lists are a port of the Power BI field parameters (`ProcessParameterColumns.cs`) and double as the SQL column whitelist - never build column names from request text. STN_data has 82M+ rows: keep the date filter mandatory and paging on the server. The Duplicate rule (repeat loads at ML-01) was inferred from the Power BI example because that page never loaded - confirm with the report owner.
 - **EXECUTE denied (seen 20 Oct 2026)**: `factreread` gets "EXECUTE permission was denied" on `usp_GetCylinderHeadLeakRejectionReport`, `usp_GetSummaryReport` and `usp_GetQHoldReport`, so Cylinder Head Leak, Summary and Engine QHold return HTTP 500. Grant EXECUTE to `factreread` or switch those connection strings to a login that has it.
 - **Dashboards > Overview** (`dashboard-1`) has no page yet.
+- **Machine Shop > PDI Dashboard** (`tab-ms-pdi`, prefix `msPdi` / `ms-`, `MachineShop` config section): **Hourly Screen, Crankcase, Cover LH, Cover RH, Crankshaft, Cyl Head, Cyl Barrel and PDI Summary tabs live** (all 8 tabs) (grids, pies, Rejection Details pop-ups; `GET /api/machineshop/pdi/...`, source `RE_VL_MachineShop.MachineShopData`; a part tab = `Title` + `Cells` on its `MachineShop:Pdi:Parts` entry + `part` on its `MS_PDI_TABS` entry). Uses the `ShiftConfiguration` windows everywhere and merges duplicate rejection reasons - deliberate differences from ThingWorx (C-shift numbers can differ slightly). The Crankshaft tab reads station 42 with LH / RH per cell (`TabStation`, `Sides`; as ThingWorx `MS_PDI_Crankshaft_TH`); the Hourly Screen still reads station 38 as ThingWorx `MS_PDI_HourlyData_TH` does, which has not logged since 2025-08-18 (row shows 0) - switching it to 42 is `"Station": "42"` on the crankshaft part, if wanted. Colours are our own light / dark palette (`--ms-pdi-*` tokens in `machine-shop.css`; OK green / NOK red instead of ThingWorx purple / cyan), not ThingWorx's (its style definitions were not exported). Cover LH's Report pop-up is ported (`GET /api/machineshop/pdi/report`, `MachineShop:Pdi:Report`). The Hourly Screen and PDI Summary count Crankshaft on `Station` 38 (as ThingWorx); only the Crankshaft tab uses 42.
 - **PokaYoke** (prefix `pky`): JEA1 Line and JEA2 Line counts are **live** (`PokaYokeStatusService`, `PokaYoke:Lines:jea1` / `jea2`, tag masters `HISTORYCARDLINE01` (line `JEA1`) / `HISTORYCARDLINE02` (line `JEA2`); `factreread` read access to all source databases confirmed 2026-10-20). JEA1's `RE_VL_J1_Magneto Cover.QualityData_1` (8 SA-22 checkpoints) has no source rule (none in ThingWorx either) - not counted, listed in the badge tooltip. Not yet ported: the summary service `getpokeyokevalueOverall` (the donut / HC table use the sum of the station counts without the auto stations), (the station and HC-table click pop-ups are done: `GET /api/pokayoke/{line}/stations/{station}`, `GET /api/pokayoke/{line}/checkpoints?status=`). **Overview** (`overview.js`) shows JEA1 / JEA2 / Crank Shaft live. **JEA1 Crankshaft** (`jea1-crankshaft.js`, `PokaYoke:Lines:jea1crank`) is live but its value source is **provisional**: the ThingWorx query without its `DateTime < 2025-05-22` filter = the latest `RE_VL_MachineShop.MachineShopData` row per cell, not filtered by `Station_Number`; the Crankshaft stations 33..38/61/62 last wrote to that table in 2025, so the values come from other machine-shop stations of the cell. Revisit: station filter and the current Crankshaft data source (`RE_VL_J1_CrankShaft`? - `factreread` has no access). Its MI buttons open the JEA1 reports with HC `01B Crankcase SA` selected. JEA2's ThingWorx screen shows two stray `0` values beside ET-L4 / ET-L3 that were not reproduced, and its decorative green chain graphic on the main line is not drawn. The donut centre shows `wwwroot/assets/pky-bike.png`. Not to be confused with the existing Reports > Quality > Poke Yoke reports (the MI buttons open those).
 - **EB-RTM, multiple meters**: `EbRtm:Meters` drives the EB-RTM Reports dropdown, but the dashboard still hardcodes Source_7's tags (`EbRtmStateStore`) and `EbCMonitoring` / `EbCPowerFailureEvents` have no meter column. Adding a meter needs: a `MeterId` column in both tables, per-meter state/logging, `?meter=` on the dashboard API, and a dropdown on the dashboard.
 - **EB-RTM alerts** (`EbRtmAlertMonitor`, ported from the ThingWorx `RE_EnergyMeterRealTimeMonitoring_TS` subscriptions) need the table `[ControlTowerVLM].dbo.EbCAlerts` - script `Modules/EbRtm/Sql/EbCAlerts.sql`, to be created by the developer. The ThingWorx alert/report e-mails are not ported. Every running copy of the app on the plant network writes alerts (and the other loggers' rows): set `EbRtm:Alerts:Enabled: false` on developer machines.

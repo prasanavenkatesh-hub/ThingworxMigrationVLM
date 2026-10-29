@@ -1,0 +1,685 @@
+/* Machine Shop module (sidebar Machine Shop > PDI Dashboard ...). Classes prefixed ms-. */
+
+/* ---- Colour tokens (dark = app default, body.light-mode = light). The pop-ups sit on <body>, outside .ms-pdi,
+        so they get the same tokens. ---- */
+.ms-pdi,
+.ms-pdi-modal {
+    --ms-pdi-panel: var(--white);
+    --ms-pdi-surface: rgba(255, 255, 255, 0.03);    /* table cells, inputs */
+    --ms-pdi-band: #1f2632;                          /* table header band */
+    --ms-pdi-border: #2c3441;
+    --ms-pdi-text: var(--dark);
+    --ms-pdi-muted: #9aa4b2;
+    --ms-pdi-accent: #3b82f6;                        /* active tab, primary buttons, headings */
+    --ms-pdi-accent-hover: #2563eb;
+    --ms-pdi-accent-soft: rgba(59, 130, 246, 0.16);
+    --ms-pdi-ok: #34d399;
+    --ms-pdi-ok-soft: rgba(52, 211, 153, 0.14);
+    --ms-pdi-nok: #f87171;
+    --ms-pdi-nok-soft: rgba(248, 113, 113, 0.14);
+    --ms-pdi-total: rgba(251, 191, 36, 0.09);        /* day totals band */
+    --ms-pdi-total-alt: rgba(251, 191, 36, 0.16);
+    --ms-pdi-current: rgba(52, 211, 153, 0.12);      /* rows of the shift running now */
+    --ms-pdi-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+body.light-mode .ms-pdi,
+body.light-mode .ms-pdi-modal {
+    --ms-pdi-surface: #f8fafc;
+    --ms-pdi-band: #eef2f7;
+    --ms-pdi-border: #dde3eb;
+    --ms-pdi-muted: #64748b;
+    --ms-pdi-accent: #2563eb;
+    --ms-pdi-accent-hover: #1d4ed8;
+    --ms-pdi-accent-soft: rgba(37, 99, 235, 0.10);
+    --ms-pdi-ok: #059669;
+    --ms-pdi-ok-soft: rgba(5, 150, 105, 0.10);
+    --ms-pdi-nok: #dc2626;
+    --ms-pdi-nok-soft: rgba(220, 38, 38, 0.09);
+    --ms-pdi-total: #fff7e8;
+    --ms-pdi-total-alt: #ffefd2;
+    --ms-pdi-current: rgba(5, 150, 105, 0.09);
+    --ms-pdi-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+/* ---- PDI Dashboard: layout of the ThingWorx MS PDI screens ---- */
+.ms-pdi {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    height: 100%;
+    min-height: 560px;
+    font-family: 'Inter', sans-serif;
+    color: var(--ms-pdi-text);
+}
+
+/* Shared control look: buttons and inputs */
+.ms-pdi-btn-primary,
+.ms-pdi-submit,
+.ms-pdi-modal .ms-pdi-submit {
+    padding: 7px 20px;
+    border: 1px solid var(--ms-pdi-accent);
+    border-radius: 6px;
+    background: var(--ms-pdi-accent);
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.ms-pdi-submit:hover { background: var(--ms-pdi-accent-hover); border-color: var(--ms-pdi-accent-hover); }
+
+.ms-pdi :focus-visible,
+.ms-pdi-modal :focus-visible {
+    outline: 2px solid var(--ms-pdi-accent);
+    outline-offset: 1px;
+}
+
+/* Tab bar + filters */
+.ms-pdi-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 6px;
+    background: var(--ms-pdi-panel);
+    border: 1px solid var(--ms-pdi-border);
+    border-radius: 8px;
+    box-shadow: var(--ms-pdi-shadow);
+}
+
+.ms-pdi-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    padding: 3px;
+    background: var(--ms-pdi-surface);
+    border: 1px solid var(--ms-pdi-border);
+    border-radius: 7px;
+}
+
+.ms-pdi-tab {
+    min-width: 76px;
+    padding: 6px 14px;
+    border: none;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--ms-pdi-muted);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.ms-pdi-tab:hover { color: var(--ms-pdi-text); background: var(--ms-pdi-accent-soft); }
+
+.ms-pdi-tab.active {
+    background: var(--ms-pdi-accent);
+    color: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.ms-pdi-filters {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ms-pdi-date,
+.ms-pdi-shift {
+    padding: 6px 10px;
+    border: 1px solid var(--ms-pdi-border);
+    border-radius: 6px;
+    background: var(--ms-pdi-surface);
+    color: var(--ms-pdi-text);
+    font-size: 13px;
+    font-weight: 600;
+    color-scheme: light dark;
+}
+
+.ms-pdi-date { width: 160px; cursor: pointer; }
+.ms-pdi-shift { width: 70px; }
+
+.ms-pdi-date:hover,
+.ms-pdi-shift:hover { border-color: var(--ms-pdi-accent); }
+
+.ms-pdi-shift option { background: var(--white); color: var(--dark); }
+
+.ms-pdi-cal {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 31px;
+    border: 1px solid var(--ms-pdi-border);
+    border-radius: 6px;
+    background: var(--ms-pdi-surface);
+    color: var(--ms-pdi-muted);
+    cursor: pointer;
+}
+
+.ms-pdi-cal:hover { color: var(--ms-pdi-accent); border-color: var(--ms-pdi-accent); }
+
+.ms-pdi-cal .material-symbols-outlined { font-size: 20px; }
+
+.ms-pdi-filters .ms-pdi-submit { margin-left: 6px; }
+
+/* Heading under the bar */
+.ms-pdi-title {
+    text-align: center;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--ms-pdi-accent);
+}
+
+.ms-pdi-note {
+    text-align: center;
+    font-size: 11px;
+    color: var(--ms-pdi-muted);
+    margin-top: -6px;
+}
+
+.ms-pdi-note:empty { display: none; }
+
+/* Views */
+.ms-pdi-view {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.ms-pdi-view[hidden] { display: none; }
+
+.ms-pdi-grid {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: var(--ms-pdi-panel);
+    border: 1px solid var(--ms-pdi-border);
+    border-radius: 8px;
+    box-shadow: var(--ms-pdi-shadow);
+    overflow: auto;
+}
+
+.ms-pdi-grid-top { flex: 0 0 auto; }
+
+.ms-pdi-grid-head {
+    height: 28px;
+    flex-shrink: 0;
+    background: var(--ms-pdi-band);
+}
+
+.ms-pdi-grid-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ms-pdi-muted);
+}
+
+.ms-pdi-grid-empty .material-symbols-outlined { font-size: 18px; }
+
+.ms-pdi-bottom {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    gap: 6px;
+}
+
+/* Machine Shop Rejection Details */
+.ms-pdi-rej {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px;
+    background: var(--ms-pdi-panel);
+    border: 1px solid var(--ms-pdi-border);
+    border-radius: 8px;
+    box-shadow: var(--ms-pdi-shadow);
+}
+
+.ms-pdi-rej-title {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 20px;
+}
+
+.ms-pdi-rej-buttons {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 160px));
+    gap: 12px 20px;
+}
+
+/* Outline buttons: rejection parts, Report, Download */
+.ms-pdi-rej-btn,
+.ms-pdi-report-btn,
+.ms-pdi-modal-download {
+    padding: 8px 12px;
+    border: 1px solid var(--ms-pdi-accent);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--ms-pdi-accent);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, color 0.15s;
+}
+
+.ms-pdi-rej-btn:hover,
+.ms-pdi-report-btn:hover,
+.ms-pdi-modal-download:not(:disabled):hover {
+    background: var(--ms-pdi-accent);
+    color: #ffffff;
+}
+
+.ms-pdi-modal-download:disabled { opacity: 0.45; cursor: default; }
+
+.ms-pdi-rej-note {
+    margin-top: 16px;
+    font-size: 12px;
+    color: var(--ms-pdi-muted);
+}
+
+/* Data grids (hourly + summary + pop-up) */
+.ms-pdi-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+/* body / body.light-mode prefix: beats the global "th { ... !important }" rules in style.v2.css. */
+body .ms-pdi-table th,
+body.light-mode .ms-pdi-table th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding: 9px 6px;
+    background: var(--ms-pdi-band) !important;
+    color: var(--ms-pdi-muted) !important;
+    border-color: var(--ms-pdi-border) !important;
+    border-bottom: 1px solid var(--ms-pdi-border) !important;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.ms-pdi-table td {
+    padding: 7px 6px;
+    text-align: center;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    border-bottom: 1px solid var(--ms-pdi-border);
+    background: transparent;
+}
+
+.ms-pdi-table tbody tr:hover td { background: var(--ms-pdi-accent-soft); }
+
+.ms-pdi-table td.ms-pdi-part {
+    text-align: left;
+    white-space: nowrap;
+}
+
+.ms-pdi-table td.ms-pdi-total { color: var(--ms-pdi-accent); font-weight: 700; }
+
+.ms-pdi-hours-row td {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ms-pdi-muted);
+    white-space: nowrap;
+}
+
+/* Total / Pass / Fail badges (hourly summary grid) */
+.ms-pdi-count {
+    display: inline-block;
+    min-width: 56px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-weight: 700;
+}
+
+.ms-pdi-count.total { background: var(--ms-pdi-accent-soft); color: var(--ms-pdi-accent); }
+.ms-pdi-count.pass { background: var(--ms-pdi-ok-soft); color: var(--ms-pdi-ok); }
+.ms-pdi-count.fail { background: var(--ms-pdi-nok-soft); color: var(--ms-pdi-nok); }
+
+/* Part tabs (Crankcase ...): pies left, per-cell grid right */
+.ms-pdi-part-view {
+    display: grid;
+    grid-template-columns: 284px minmax(0, 1fr);
+    gap: 6px;
+}
+
+.ms-pdi-part-view[hidden] { display: none; }
+
+.ms-pdi-pies {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 10px;
+    background: var(--ms-pdi-panel);
+    border: 1px solid var(--ms-pdi-border);
+    border-radius: 8px;
+    box-shadow: var(--ms-pdi-shadow);
+    overflow: auto;
+}
+
+.ms-pdi-legend {
+    display: flex;
+    gap: 18px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ms-pdi-muted);
+}
+
+.ms-pdi-legend i {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin-right: 6px;
+    border-radius: 50%;
+    vertical-align: middle;
+}
+
+.ms-pdi-pie-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px 14px;
+}
+
+.ms-pdi-pie-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.ms-pdi-pie-canvas {
+    position: relative;
+    width: 115px;
+    height: 115px;
+}
+
+.ms-pdi-pie-box.big .ms-pdi-pie-canvas {
+    width: 170px;
+    height: 150px;
+}
+
+.ms-pdi-pie-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    border: 2px dashed var(--ms-pdi-border);
+    border-radius: 50%;
+    font-size: 11px;
+    color: var(--ms-pdi-muted);
+}
+
+.ms-pdi-pie-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: var(--ms-pdi-muted);
+}
+
+.ms-pdi-cell-table td.ms-pdi-shift-col {
+    font-size: 11px;
+    color: var(--ms-pdi-muted);
+    white-space: nowrap;
+}
+
+/* Shift blocks: a stronger line between shifts */
+.ms-pdi-cell-table tbody.ms-pdi-shift-block tr:last-child td { border-bottom: 2px solid var(--ms-pdi-border); }
+
+/* Rows of the shift running now (ThingWorx MS_PDI_GridHighlighter_SD: green, italic) */
+.ms-pdi-cell-table tr.ms-pdi-current td {
+    background: var(--ms-pdi-current);
+    font-style: italic;
+}
+
+.ms-pdi-cell-table tr.ms-pdi-current td:first-child { box-shadow: inset 3px 0 0 var(--ms-pdi-ok); }
+
+/* Day totals + OK / NOK % (ThingWorx peach grid) */
+.ms-pdi-cell-table tbody.ms-pdi-totals td { background: var(--ms-pdi-total); }
+.ms-pdi-cell-table tbody.ms-pdi-totals tr:nth-child(even) td { background: var(--ms-pdi-total-alt); }
+.ms-pdi-cell-table tbody.ms-pdi-totals td.ms-pdi-total { color: var(--ms-pdi-text); }
+.ms-pdi-cell-table tbody.ms-pdi-totals tr:first-child td { border-top: 2px solid var(--ms-pdi-border); }
+
+@media (max-width: 1100px) {
+    .ms-pdi-part-view { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Rejection Details + Report pop-ups */
+.ms-pdi-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(3px);
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+.ms-pdi-modal.open { display: flex; }
+
+.ms-pdi-modal-box {
+    width: min(720px, 100%);
+    max-height: 88vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--ms-pdi-panel);
+    color: var(--ms-pdi-text);
+    border: 1px solid var(--ms-pdi-border);
+    border-radius: 10px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+    font-family: 'Inter', sans-serif;
+    overflow: hidden;
+}
+
+.ms-pdi-modal-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px 12px;
+    background: var(--ms-pdi-band);
+    border-bottom: 1px solid var(--ms-pdi-border);
+    box-shadow: inset 0 3px 0 var(--ms-pdi-accent);
+}
+
+.ms-pdi-modal-title { font-size: 16px; font-weight: 700; }
+.ms-pdi-modal-sub { font-size: 12px; margin-top: 3px; color: var(--ms-pdi-muted); }
+
+.ms-pdi-modal-close {
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--ms-pdi-muted);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.ms-pdi-modal-close:hover { background: var(--ms-pdi-nok-soft); color: var(--ms-pdi-nok); }
+
+.ms-pdi-modal-tools {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--ms-pdi-border);
+}
+
+.ms-pdi-modal-tools.show { display: flex; }
+
+.ms-pdi-modal-search {
+    flex: 1;
+    min-width: 0;
+    padding: 7px 10px;
+    font-size: 13px;
+    color: var(--ms-pdi-text);
+    background: var(--ms-pdi-surface);
+    border: 1px solid var(--ms-pdi-border);
+    border-radius: 6px;
+    outline: none;
+}
+
+.ms-pdi-modal-search:focus { border-color: var(--ms-pdi-accent); }
+
+.ms-pdi-modal-count {
+    font-size: 12px;
+    color: var(--ms-pdi-muted);
+    white-space: nowrap;
+}
+
+.ms-pdi-modal-body {
+    overflow: auto;
+    padding-bottom: 8px;
+}
+
+.ms-pdi-pie {
+    position: relative;
+    height: 240px;
+    padding: 10px 16px;
+}
+
+.ms-pdi-modal-table td.ms-pdi-reason {
+    text-align: left;
+    font-weight: 600;
+}
+
+.ms-pdi-swatch {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin-right: 8px;
+    border-radius: 2px;
+    vertical-align: middle;
+}
+
+.ms-pdi-modal-empty {
+    padding: 24px 16px;
+    color: var(--ms-pdi-muted);
+    text-align: center;
+}
+
+/* Tabs not built yet */
+.ms-pdi-placeholder {
+    align-items: center;
+    justify-content: center;
+    background: var(--ms-pdi-panel);
+    border: 1px solid var(--ms-pdi-border);
+    border-radius: 8px;
+    color: var(--ms-pdi-muted);
+}
+
+.ms-pdi-placeholder-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--ms-pdi-text);
+}
+
+.ms-pdi-placeholder-note { font-size: 13px; }
+
+/* Narrow screens: rejection panel under the grid */
+@media (max-width: 1100px) {
+    .ms-pdi-bottom { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* PDI Summary: pies in two columns of three (Crankcase / Cover LH / Cover RH | Cyl Head / Cyl Barrel / Crankshaft) */
+.ms-pdi-sum-pies {
+    display: grid;
+    grid-template-rows: repeat(3, auto);
+    grid-auto-flow: column;
+    gap: 14px 18px;
+}
+
+.ms-pdi-sum-pies .ms-pdi-pie-label {
+    max-width: 120px;
+    min-height: 30px;
+    text-align: center;
+}
+
+/* PDI Report (Cover LH): button under the pies + pop-up */
+.ms-pdi-report-btn {
+    margin-top: 6px;
+    padding: 7px 26px;
+}
+
+.ms-pdi-modal-box.ms-pdi-report-box { width: min(1000px, 100%); }
+
+.ms-pdi-report-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 14px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--ms-pdi-border);
+    font-size: 12px;
+}
+
+.ms-pdi-report-filters label { display: inline-flex; align-items: center; gap: 6px; color: var(--ms-pdi-muted); }
+
+.ms-pdi-report-filters input[type="date"],
+.ms-pdi-report-filters select {
+    padding: 6px 8px;
+    border: 1px solid var(--ms-pdi-border);
+    border-radius: 6px;
+    background: var(--ms-pdi-surface);
+    color: var(--ms-pdi-text);
+    font: inherit;
+    font-weight: 600;
+    color-scheme: light dark;
+}
+
+.ms-pdi-report-filters select option { background: var(--white); color: var(--dark); }
+
+.ms-pdi-report-filters fieldset {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 2px 10px 5px;
+    border: 1px solid var(--ms-pdi-border);
+    border-radius: 6px;
+}
+
+.ms-pdi-report-filters legend { padding: 0 4px; font-size: 11px; color: var(--ms-pdi-muted); }
+
+.ms-pdi-check { gap: 5px !important; margin-right: 8px; color: var(--ms-pdi-text) !important; cursor: pointer; }
+
+.ms-pdi-check:last-child { margin-right: 0; }
+
+.ms-pdi-check input { accent-color: var(--ms-pdi-accent); }
+
+.ms-pdi-report-table td { text-align: left; white-space: nowrap; }
+
+.ms-pdi-report-table td.ms-pdi-reason { white-space: normal; }
+
+.ms-pdi-report-table tr.ms-pdi-report-nok td { color: var(--ms-pdi-nok); }
+
+.ms-pdi-report-table tr.ms-pdi-report-nok td:first-child { box-shadow: inset 3px 0 0 var(--ms-pdi-nok); }
+
+/* Light theme: style.v2.css forces "body.light-mode td { color: ... !important }"; keep the PDI cell colours. */
+body.light-mode .ms-pdi-table td.ms-pdi-total { color: var(--ms-pdi-accent) !important; }
+body.light-mode .ms-pdi-cell-table tbody.ms-pdi-totals td.ms-pdi-total { color: var(--ms-pdi-text) !important; }
+body.light-mode .ms-pdi-report-table tr.ms-pdi-report-nok td { color: var(--ms-pdi-nok) !important; }
