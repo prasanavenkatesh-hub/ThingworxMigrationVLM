@@ -1,7 +1,10 @@
 // Machine Shop > Leak Test (#tab-ms-leak-test). Prefix: mlt.
 // Port of the ThingWorx mashup RE_MS_LT_CoverLH_MU (Thing RE_MS_LeakTest_TH), one copy per component tab.
-// Layout only for now: the Thing's service code is not exported yet, so every widget shows an empty state.
-// Widget -> ThingWorx service (Cover LH names; the other components follow the same pattern):
+// live: true = backed by GET /api/machineshop/leaktest/{id}/data (+ /yeartrend), LeakTestService, which
+// reads MachineShop:LeakTest:Components:{id} (stations + cells). All six components are live.
+// Widget -> ThingWorx service (Cover LH names; the other components call the generic services
+// get_ShiftA/B/C_Count, get_TotalValues, getLeakValueChart, getOKNOKSummary, get_OK/NOK_TrendForWeek/Year
+// with MachineDesc = CYLINDER HEAD / CYLINDER BARREL / CRANKSHAFT / CRANKCASE):
 //   Shift A/B/C grids         get_CoverLH_ShiftA/B/C_Count(startDate, endDate)
 //   Totals grid               get_TotalValuesCoverLH(shiftAData, shiftBData, shiftCData)
 //   TOTAL / SHIFT pies        getPercentPieChart(data)   (OK % / NOK %)
@@ -10,15 +13,19 @@
 //   OK vs NOK pop-up          get_OK/NOK_TrendForWeek_CoverLH(startDate, selDate), get_OK/NOK_TrendForYear_CoverLH()
 //   Summary pop-up            getOKNOKSummary_CoverLH(startDate, endDate)
 
-// cells: number of CELL n columns in the grids. Cover LH = 2 (from the mashup, Cell_3..6 hidden);
-// the other components are PROVISIONAL (2) until their mashups / RE_MS_LeakTest_TH confirm the count.
+// cells: number of CELL n columns in the grids, from each mashup's visible grid columns (must match
+// MachineShop:LeakTest:Components:{id}:Cells): Cover LH 2 (RE_MS_LT_CoverLH_MU), Cover RH 3
+// (RE_MS_LT_CoverRH_MU, Cell_4..6 hidden), Cylinder Head 6 (RE_MS_CylinderHead_MU, none hidden),
+// Cylinder Barrel 3 (Cell_4..6 hidden), Crankcase 6 (RE_MS_Crankcase_MU, none hidden). Crankshaft 4:
+// RE_MS_Crankshaft_MU hides Cell_4..6, but station 41 logs cells 1-4 and the ThingWorx Total included
+// cell 4, so the hidden column made the row not add up - shown here.
 const MLT_TABS = [
-    { id: 'cover-lh', label: 'Cover LH', title: 'COVER LH Leak Test', cells: 2 },
-    { id: 'cover-rh', label: 'Cover RH', title: 'COVER RH Leak Test', cells: 2 },
-    { id: 'cylinder-head', label: 'Cylinder Head', title: 'CYLINDER HEAD Leak Test', cells: 2 },
-    { id: 'cylinder-barrel', label: 'Cylinder Barrel', title: 'CYLINDER BARREL Leak Test', cells: 2 },
-    { id: 'crankshaft', label: 'Crankshaft', title: 'CRANKSHAFT Leak Test', cells: 2 },
-    { id: 'crankcase', label: 'Crankcase', title: 'CRANKCASE Leak Test', cells: 2 }
+    { id: 'cover-lh', label: 'Cover LH', title: 'COVER LH Leak Test', cells: 2, live: true },
+    { id: 'cover-rh', label: 'Cover RH', title: 'COVER RH Leak Test', cells: 3, live: true },
+    { id: 'cylinder-head', label: 'Cylinder Head', title: 'CYLINDER HEAD Leak Test', cells: 6, live: true },
+    { id: 'cylinder-barrel', label: 'Cylinder Barrel', title: 'CYLINDER BARREL Leak Test', cells: 3, live: true },
+    { id: 'crankshaft', label: 'Crankshaft', title: 'CRANKSHAFT Leak Test', cells: 4, live: true },
+    { id: 'crankcase', label: 'Crankcase', title: 'CRANKCASE Leak Test', cells: 6, live: true }
 ];
 
 // MS_PDI_SD state colours used by every pie in the mashup.
@@ -28,8 +35,10 @@ const MLT_SHIFTS = ['A', 'B', 'C'];
 
 let mltActiveTab = MLT_TABS[0].id;
 const mltCharts = {};       // tabId -> { pieTotal, pieA, pieB, pieC, pieQty, leak }
-const mltData = {};         // tabId -> last loaded data (null until the backend exists)
+const mltData = {};         // tabId -> last /data response (null = none / not loaded)
+const mltYearTrend = {};    // tabId -> /yeartrend response (loaded once, as in ThingWorx)
 const mltPickers = {};      // tabId -> flatpickr instance
+const mltLoadSeq = {};      // tabId -> request counter (a newer range wins over a slower older one)
 
 function mltTab(id) {
     return MLT_TABS.find(t => t.id === id);
@@ -94,7 +103,7 @@ function mltGridHtml(tab, key, showHeader, isTotal) {
     cols.push('TOTAL');
     return `<table class="mlt-grid${isTotal ? ' mlt-grid-total' : ''}" id="mlt-${tab.id}-${key}">
         ${showHeader ? `<thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>` : ''}
-        <tbody><tr class="mlt-grid-empty"><td colspan="${cols.length}">No data</td></tr></tbody>
+        <tbody>${mltEmptyRow(cols.length, tab.live ? 'No data' : 'No data source yet')}</tbody>
     </table>`;
 }
 
@@ -125,11 +134,65 @@ function mltInitTab(id) {
     }
 }
 
+function mltEmptyRow(colspan, text) {
+    return `<tr class="mlt-grid-empty"><td colspan="${colspan}">${text}</td></tr>`;
+}
+
+function mltIsoDate(d) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 // Single data hook: the date range drives every widget (ThingWorx RangeChanged reloads them all).
-// No backend yet - RE_MS_LeakTest_TH has not been exported - so this renders the empty states.
-function mltLoad(id) {
+async function mltLoad(id) {
+    const tab = mltTab(id);
     mltData[id] = null;
+    if (!tab.live) {
+        mltRenderGrids(id, 'No data source yet');
+        mltRenderCharts(id);
+        return;
+    }
+    const picker = mltPickers[id];
+    const sel = picker && picker.selectedDates.length ? picker.selectedDates : [new Date(), new Date()];
+    const from = mltIsoDate(sel[0]);
+    const to = mltIsoDate(sel[sel.length - 1]);
+    const seq = mltLoadSeq[id] = (mltLoadSeq[id] || 0) + 1;
+
+    mltRenderGrids(id, 'Loading...');
     mltRenderCharts(id);
+    try {
+        const res = await fetch(`/api/machineshop/leaktest/${id}/data?from=${from}&to=${to}`);
+        if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
+        const data = await res.json();
+        if (seq !== mltLoadSeq[id]) return;
+        mltData[id] = data;
+        mltRenderGrids(id);
+        mltFetchYearTrend(id);
+    } catch (err) {
+        if (seq !== mltLoadSeq[id]) return;
+        console.error('Leak test load failed', err);
+        mltRenderGrids(id, 'Failed to load data: ' + String(err.message || err).slice(0, 200).replace(/</g, '&lt;'));
+    }
+    mltRenderCharts(id);
+}
+
+// Shift grids show counts; the Totals grid shows counts and OK % / NOK % with 2 decimals (ptcsgrid-59).
+function mltRenderGrids(id, message) {
+    const tab = mltTab(id);
+    const data = mltData[id];
+    const colspan = tab.cells + 3;
+    const fmt = (v, pct) => v == null ? '--' : (pct ? Number(v).toFixed(2) : Math.round(v));
+    const rowsHtml = rows => rows.map(r => {
+        const pct = r.description.endsWith('%');
+        const cells = [];
+        for (let i = 0; i < tab.cells; i++) cells.push(`<td>${fmt(r.cells[i], pct)}</td>`);
+        return `<tr><td class="mlt-grid-shift">${r.shift || ''}</td><td>${r.description}</td>${cells.join('')}<td>${fmt(r.total, pct)}</td></tr>`;
+    }).join('');
+
+    const grids = { shiftA: data && data.shifts.A, shiftB: data && data.shifts.B, shiftC: data && data.shifts.C, total: data && data.totals };
+    Object.entries(grids).forEach(([key, rows]) => {
+        const body = document.querySelector(`#mlt-${id}-${key} tbody`);
+        if (body) body.innerHTML = rows && rows.length ? rowsHtml(rows) : mltEmptyRow(colspan, message || 'No data');
+    });
 }
 
 function mltThemeColors() {
@@ -166,8 +229,9 @@ function mltRenderCharts(id) {
     if (old) Object.values(old).forEach(c => c && c.destroy());
 
     const colors = mltThemeColors();
-    const data = mltData[id];   // later: { total, A, B, C } percentages, qty, leak[] from the API
+    const data = mltData[id];   // /data response: pies { total, A, B, C (OK % / NOK %), qty (counts) }, leak[]
     const charts = {};
+    const pieValues = key => data && data.pies[key] ? [data.pies[key].ok, data.pies[key].nok] : null;
 
     const pie = (key, values, labels) => {
         const el = document.getElementById(`mlt-${id}-${key}`);
@@ -188,15 +252,21 @@ function mltRenderCharts(id) {
                 responsive: true,
                 maintainAspectRatio: false,
                 animation: false,
-                plugins: { legend: { display: false }, tooltip: { enabled: !empty } }
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        enabled: !empty,
+                        callbacks: { label: c => `${c.label}: ${labels[0].endsWith('%') ? Number(c.raw).toFixed(1) : c.raw}` }
+                    }
+                }
             },
             plugins: [mltNoDataPlugin]
         });
     };
 
-    charts.pieTotal = pie('pieTotal', data && data.totalPct, ['OK %', 'NOK %']);
-    MLT_SHIFTS.forEach(s => { charts['pie' + s] = pie('pie' + s, data && data['shift' + s + 'Pct'], ['OK %', 'NOK %']); });
-    charts.pieQty = pie('pieQty', data && data.qty, ['OK Qty', 'NOK Qty']);
+    charts.pieTotal = pie('pieTotal', pieValues('total'), ['OK %', 'NOK %']);
+    MLT_SHIFTS.forEach(s => { charts['pie' + s] = pie('pie' + s, pieValues(s), ['OK %', 'NOK %']); });
+    charts.pieQty = pie('pieQty', pieValues('qty'), ['OK Qty', 'NOK Qty']);
 
     const leakEl = document.getElementById(`mlt-${id}-leak`);
     if (leakEl) {
@@ -246,8 +316,8 @@ function mltEnsureModals() {
                 </div>
                 <div class="mlt-modal-body mlt-trend-grid">
                     ${['weekOK', 'weekNOK', 'yearOK', 'yearNOK'].map(k => `
-                        <div class="mlt-card">
-                            <div class="mlt-card-title">${k.startsWith('week') ? 'Week' : 'Year'} ${k.endsWith('NOK') ? 'NOK' : 'OK'} %</div>
+                        <div class="mlt-card mlt-trend-card">
+                            <div class="mlt-card-title">${k.startsWith('week') ? 'Daily' : 'Monthly'} ${k.endsWith('NOK') ? 'NOK' : 'OK'}</div>
                             <div class="mlt-trend-canvas"><canvas id="mltTrend-${k}"></canvas></div>
                         </div>`).join('')}
                 </div>
@@ -260,6 +330,7 @@ function mltEnsureModals() {
                     <button class="close-modal" onclick="mltCloseModals()">&times;</button>
                 </div>
                 <div class="mlt-modal-body">
+                    <div class="mlt-summary-actions"><button class="btn-primary mlt-btn" onclick="mltDownloadSummary()">Download</button></div>
                     <table class="mlt-grid">
                         <thead><tr><th>DATE</th><th>PRODUCED QTY</th><th>OK QTY</th><th>OK %</th><th>NOK QTY</th><th>NOK %</th></tr></thead>
                         <tbody id="mltSummaryBody"><tr class="mlt-grid-empty"><td colspan="6">No data</td></tr></tbody>
@@ -271,53 +342,135 @@ function mltEnsureModals() {
     document.addEventListener('keydown', e => { if (e.key === 'Escape') mltCloseModals(); });
 }
 
-// OK vs NOK pop-up: RE_MS_LT_OkvsNok_MU takes weekOK/weekNOK/yearOK/yearNOK tables
-// (RE_MS_LT_PercentageTrend_DS). Its own layout was not exported - 2x2 trend charts are PROVISIONAL.
-function mltOpenOkNok(id) {
+// OK vs NOK pop-up (RE_MS_LT_OkvsNok_MU): 2x2 line charts - Daily OK / Daily NOK on top, Monthly OK /
+// Monthly NOK below (ptcschartline-71 / -10 / -5 / -11), OK green rgba(102,204,51), NOK red rgba(191,48,48),
+// circle markers with the value above each point, X axis DD/MM (daily) and MM/YYYY (monthly), tooltip with
+// the quantity (LineChartLTQtyTooltip). Data: RE_MS_LT_PercentageTrend_DS (Date, Percentage, Qty).
+// Week = the selected date range, per day (get_OK/NOK_TrendForWeek_CoverLH); Year = the current
+// financial year per month (get_OK/NOK_TrendForYear_CoverLH), fetched once per tab.
+async function mltOpenOkNok(id) {
     mltModalTab = id;
     document.getElementById('mltOkNokTitle').textContent = `OK vs NOK - ${mltTab(id).label}`;
     document.getElementById('mltOkNokModal').classList.add('active');
     mltRenderOkNokCharts(id);
+    if (!mltYearTrend[id] && await mltFetchYearTrend(id) && mltModalTab === id) mltRenderOkNokCharts(id);
 }
+
+// Year trend, fetched once per tab: prefetched in the background after the tab's first /data load so
+// the pop-up opens instantly; a click during the prefetch waits on the same request.
+const mltYearTrendReq = {};
+function mltFetchYearTrend(id) {
+    if (!mltTab(id).live) return Promise.resolve(false);
+    if (!mltYearTrendReq[id]) {
+        mltYearTrendReq[id] = fetch(`/api/machineshop/leaktest/${id}/yeartrend`)
+            .then(res => { if (!res.ok) throw new Error(`HTTP ${res.status}`); return res.json(); })
+            .then(trend => { mltYearTrend[id] = trend; return true; })
+            .catch(err => { console.error('Leak test year trend failed', err); delete mltYearTrendReq[id]; return false; });
+    }
+    return mltYearTrendReq[id];
+}
+
+const MLT_TREND_OK_COLOR = 'rgba(102,204,51,1)';
+const MLT_TREND_NOK_COLOR = 'rgba(191,48,48,1)';
+
+// Value label above every point (ThingWorx ValuesPosition: above).
+const mltPointValuePlugin = {
+    id: 'mltPointValue',
+    afterDatasetsDraw(chart) {
+        const { ctx } = chart;
+        ctx.save();
+        ctx.fillStyle = mltThemeColors().text;
+        ctx.font = '11px Inter, Arial, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        // Long ranges put many points close together: label only every n-th point so the labels never
+        // overlap (the tooltip still shows every value).
+        const pts = chart.getDatasetMeta(0).data;
+        const gap = pts.length > 1 ? Math.abs(pts[1].x - pts[0].x) : Infinity;
+        const every = Math.max(1, Math.ceil(24 / gap));
+        pts.forEach((pt, i) => {
+            const v = chart.data.datasets[0].data[i];
+            if (v != null && i % every === 0) ctx.fillText(v, pt.x, pt.y - 7);
+        });
+        ctx.restore();
+    }
+};
 
 function mltRenderOkNokCharts(id) {
     mltModalCharts.forEach(c => c.destroy());
     mltModalCharts = [];
     const colors = mltThemeColors();
-    const trends = (mltData[id] && mltData[id].trends) || {};
+    const week = mltData[id] && mltData[id].week;
+    const year = mltYearTrend[id];
+    const trends = {
+        weekOK: week && week.ok, weekNOK: week && week.nok,
+        yearOK: year && year.ok, yearNOK: year && year.nok
+    };
+    const dayLabel = d => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
+    const monthLabel = d => `${d.slice(5, 7)}/${d.slice(0, 4)}`;
     ['weekOK', 'weekNOK', 'yearOK', 'yearNOK'].forEach(k => {
         const el = document.getElementById(`mltTrend-${k}`);
         const rows = trends[k] || [];
+        const label = k.startsWith('week') ? dayLabel : monthLabel;
+        const color = k.endsWith('NOK') ? MLT_TREND_NOK_COLOR : MLT_TREND_OK_COLOR;
         mltModalCharts.push(new Chart(el, {
-            type: 'bar',
+            type: 'line',
             data: {
-                labels: rows.map(r => r.label),
-                datasets: [{ data: rows.map(r => r.value), backgroundColor: k.endsWith('NOK') ? MLT_NOK_COLOR : MLT_OK_COLOR }]
+                labels: rows.map(r => label(r.date)),
+                datasets: [{
+                    data: rows.map(r => r.percentage),
+                    borderColor: color,
+                    backgroundColor: color,
+                    borderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    tension: 0
+                }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 animation: false,
-                plugins: { legend: { display: false } },
+                layout: { padding: { top: 16, right: 12 } },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: c => `${c.raw}%  (Qty ${rows[c.dataIndex].qty})` } }
+                },
                 scales: {
                     x: { ticks: { color: colors.text }, grid: { color: colors.grid } },
-                    y: { beginAtZero: true, max: 100, ticks: { color: colors.text }, grid: { color: colors.grid } }
+                    y: { beginAtZero: true, ...(Math.max(0, ...rows.map(r => r.percentage)) > 80 ? { max: 100 } : { grace: '15%' }), ticks: { color: colors.text, precision: 0 }, grid: { color: colors.grid } }
                 }
             },
-            plugins: [mltNoDataPlugin]
+            plugins: [mltNoDataPlugin, mltPointValuePlugin]
         }));
     });
 }
 
 // Summary pop-up: RE_MS_LT_SummaryTable_MU (RE_MS_LeakTest_SummaryTable_DS:
-// Date, ProducedQty, OKQty, OKPercent, NOKQty, NOKPercent).
+// Date, ProducedQty, OKQty, OKPercent, NOKQty, NOKPercent) - Download button above the grid
+// (ThingWorx Data Export), dates DD-MM-YYYY, percentages 2 decimals.
+const mltSummaryDate = d => `${d.slice(8, 10)}-${d.slice(5, 7)}-${d.slice(0, 4)}`;
+
 function mltOpenSummary(id) {
+    mltModalTab = id;
     document.getElementById('mltSummaryTitle').textContent = `SUMMARY - ${mltTab(id).label}`;
     const rows = (mltData[id] && mltData[id].summary) || [];
     document.getElementById('mltSummaryBody').innerHTML = rows.length
-        ? rows.map(r => `<tr><td>${r.date}</td><td>${r.producedQty}</td><td>${r.okQty}</td><td>${r.okPercent}</td><td>${r.nokQty}</td><td>${r.nokPercent}</td></tr>`).join('')
+        ? rows.map(r => `<tr><td>${mltSummaryDate(r.date)}</td><td>${r.producedQty}</td><td>${r.okQty}</td><td>${r.okPercent.toFixed(2)}</td><td>${r.nokQty}</td><td>${r.nokPercent.toFixed(2)}</td></tr>`).join('')
         : '<tr class="mlt-grid-empty"><td colspan="6">No data</td></tr>';
     document.getElementById('mltSummaryModal').classList.add('active');
+}
+
+async function mltDownloadSummary() {
+    const id = mltModalTab;
+    const rows = (id && mltData[id] && mltData[id].summary) || [];
+    if (!rows.length || typeof ExcelJS === 'undefined') return;
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('Summary');
+    sheet.addRow(['Date', 'Produced Qty', 'OK Qty', 'OK %', 'NOK Qty', 'NOK %']).font = { bold: true };
+    rows.forEach(r => sheet.addRow([mltSummaryDate(r.date), r.producedQty, r.okQty, Number(r.okPercent.toFixed(2)), r.nokQty, Number(r.nokPercent.toFixed(2))]));
+    sheet.columns.forEach(c => { c.width = 16; });
+    await downloadWorkbook(workbook, `LeakTest_Summary_${mltTab(id).label.replace(/\s+/g, '')}_${new Date().getTime()}.xlsx`);
 }
 
 function mltCloseModals() {

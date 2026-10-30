@@ -15,6 +15,7 @@ builder.Services.AddGasLeakModule();
 builder.Services.AddEmsModule();
 builder.Services.AddEbRtmModule();
 builder.Services.AddPokaYokeModule();
+builder.Services.AddMachineShopModule();
 
 // Enable CORS
 builder.Services.AddCors(options =>

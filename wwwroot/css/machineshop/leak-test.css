@@ -159,6 +159,12 @@
     gap: 6px;
 }
 
+/* Each shift grid (and the Totals grid) is framed so the shifts are clearly separated
+   (ThingWorx core-grid borders: 4px rgb(192,192,192) left / right / top). */
+.mlt-grids .mlt-grid {
+    border: 2px solid rgb(192, 192, 192);
+}
+
 .mlt-grid {
     width: 100%;
     border-collapse: collapse;
@@ -178,6 +184,11 @@
 .mlt-grid td {
     padding: 6px 8px;
     border-bottom: 1px solid var(--neutral);
+}
+
+/* SHIFT and DESCRIPTION never wrap ("Total Produced" broke onto two lines on the 6-cell tabs). */
+.mlt-grid td:nth-child(-n+2) {
+    white-space: nowrap;
 }
 
 .mlt-grid tbody tr:nth-child(odd) td {
@@ -257,6 +268,17 @@ body.light-mode .mlt-grid.mlt-grid-total tbody tr:nth-child(even) td {
 .mlt-trend-canvas {
     position: relative;
     height: 220px;
+}
+
+/* RE_MS_LT_OkvsNok_MU chart containers: 1px border, 20px radius. */
+.mlt-trend-card {
+    border-radius: 20px;
+}
+
+.mlt-summary-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 10px;
 }
 
 @media (max-width: 1100px) {
