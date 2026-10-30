@@ -11,13 +11,11 @@ public class EmsSolarDataRepository
 {
     private readonly string _connectionString;
     private readonly string _database; // Ems:Database (appsettings.json)
-    private readonly bool _writesEnabled; // TEMPORARY: AppWriteMode (view-only copies)
 
     public EmsSolarDataRepository(IConfiguration config)
     {
         _connectionString = config.GetConnectionString("SharedDataConnection") ?? "";
         _database = config["Ems:Database"] ?? "ControlTowerVLM";
-        _writesEnabled = AppWriteMode.IsEnabled(config); // TEMPORARY: AppWriteMode (view-only copies)
     }
 
     public async Task<double?> GetRealEnergyForDateAsync(DateTime date)
@@ -45,7 +43,6 @@ public class EmsSolarDataRepository
 
     public async Task InsertAsync(DateTime timestamp, double liveSolar, double realEnergy)
     {
-        if (!_writesEnabled) return; // TEMPORARY: AppWriteMode (view-only copies)
         var sql = $@"
             INSERT INTO [{_database}].[dbo].[SolarData] ([id], [TimeStamp], [LiveSolar], [RealEnergy])
             SELECT ISNULL(MAX([id]), 0) + 1, @TimeStamp, @LiveSolar, @RealEnergy
@@ -58,7 +55,6 @@ public class EmsSolarDataRepository
     // hourly Live(kW) chart. No id column, no identity concerns - plain insert.
     public async Task InsertLiveGraphPointAsync(DateTime timestamp, long solar)
     {
-        if (!_writesEnabled) return; // TEMPORARY: AppWriteMode (view-only copies)
         var sql = $@"
             INSERT INTO [{_database}].[dbo].[SolarLiveGraph] ([TimeStamp], [Solar])
             VALUES (@TimeStamp, @Solar)";

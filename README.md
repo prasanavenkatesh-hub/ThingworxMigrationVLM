@@ -25,7 +25,7 @@ Every feature is a self-contained module: its backend lives in `Modules/<Module>
 Program.cs                         Registers each module (AddReportsModule / AddFireHydrantModule / ...)
 appsettings.json                   Single config file for every module (see Configuration below)
 Modules/
-  Shared/                          ConfigurationController (version, line dropdown), MqttStatusController (header MQTT pill), AppWriteMode (TEMPORARY view-only mode), ApiDateTime (UTC->local fix), KepwareValueParser
+  Shared/                          ConfigurationController (version, line dropdown), MqttStatusController (header MQTT pill), ApiDateTime (UTC->local fix), KepwareValueParser
   FireHydrant/                     Controller, MQTT service, state store, alert/pump-count/pump-duration loggers + repos, FireHydrantModule.cs
   GasLeak/                         Controller, MQTT service, state store, alert monitor + repo, GasLeakModule.cs
   Ems/                             EmsController, solar MQTT service + state store, SolarData/SolarLiveGraph repo, OtherPowerSource repo, EmsModule.cs
@@ -403,7 +403,6 @@ Read-only, Machine Shop > PDI Dashboard. `date` = production day `yyyy-MM-dd`, `
 * `GET /api/machineshop/pdi/rejections?part=&date=&shift=` - `{ partId, name, date, shift, start, end, reasons: [{ reason, count }] }` sorted by count (rejection pop-up).
 
 ### `MqttStatusController.cs` (`/api/mqtt`)
-* `GET /api/app/write-mode` — `{ writesEnabled }` (`App:WritesEnabled`) for the header's **Logging ON / View only** pill. **TEMPORARY** (see "View-only copies" under Configuration).
 * `GET /api/mqtt/status` — one entry per live feed (Fire Hydrant, LPG Gas Leak, EMS Renewable (Solar), EB-Real Time Monitoring): `name`, `receiving` (a message arrived within `Mqtt:StaleAfterSeconds`), `secondsSinceLastData`. Drives the header MQTT pill.
 
 All dashboard controllers convert incoming UTC (`toISOString()`) datetimes to server local time with the shared `ApiDateTime.ToLocal()` before querying.
@@ -419,7 +418,7 @@ All settings for every module are in the single `appsettings.json` (`appsettings
 
 | Section | Used by | Contents |
 |---|---|---|
-| `App` | Shared | `Version` - shown in the sidebar (`/api/configuration/version`); `WritesEnabled` (**TEMPORARY**, default `false`) - see "View-only copies" below; `Menu` - which sidebar entries are shown, see "Sidebar menus" below |
+| `App` | Shared | `Version` - shown in the sidebar (`/api/configuration/version`); `Menu` - which sidebar entries are shown, see "Sidebar menus" below |
 | `ConnectionStrings` | All | See below |
 | `ShiftConfiguration` | Line reports, EB-RTM energy | Shift A/B/C (and pre-shift) start/end times |
 | `DashboardDropdownValues` | Line reports | Values of the header's Line dropdown |
@@ -448,7 +447,7 @@ A dashboard can use a different broker by adding `Host` / `Port` to its own `Mqt
 
 * **Filter Connections**: Used strictly to read mapping tables like `ehc.Vallam_StationMaster`.
 * **Data Connections**: Because the Data Connections must query dynamically resolved databases (e.g., `[RE_Vallam_J1EA2_Mainline_DB].[dbo].[STN_data]`), the connection string's default `Database` is often set to `master` but requires cross-database query permissions.
-* **View-only copies (TEMPORARY, while several developers run the app at once)**: `App:WritesEnabled` (default `false`) decides whether a running copy writes to the database and sends commands. View only (`false`): the dashboards still show live MQTT data, but the 14 repository write methods (EB-RTM snapshots / power failures / alerts, EMS solar baseline and hourly point, Fire Hydrant alerts / pump counts / durations, Gas Leak alerts) do nothing, and `AppWriteModeMiddleware` answers every POST / PUT / PATCH / DELETE to `/api` with **403** (alert snooze, Gas Leak valve command, EMS "Other Source" Update); those buttons are greyed out. The header shows **View only** (grey) or **Logging ON** (green) next to the MQTT pill (`js/app-write-mode.js`, `css/app-write-mode.css`). Set it on the ONE machine that should keep the records, e.g. `setx App__WritesEnabled true` (new terminal) or a system environment variable, then restart the app; every other copy stays view-only by default. Read at startup (restart after changing). To remove it: delete `Modules/Shared/AppWriteMode.cs`, the `UseMiddleware<AppWriteModeMiddleware>()` line in `Program.cs`, the lines tagged `TEMPORARY: AppWriteMode` (repositories, `index.html`), `wwwroot/js/app-write-mode.js`, `wwwroot/css/app-write-mode.css` and `App:WritesEnabled`.
+* **Only one copy may run against the plant**: every running copy of the app writes its loggers' / monitors' rows (EB-RTM snapshots / power failures / alerts, EMS solar baseline and hourly point, Fire Hydrant alerts / pump counts / durations, Gas Leak alerts) and accepts the user write actions (alert snooze, Gas Leak valve command, EMS "Other Source" Update). Two copies on the plant network write duplicate rows - stop the app on developer machines that are not the logging copy (or keep them off the plant network). The view-only mode that guarded this (`App:WritesEnabled`) was removed on 2026-10-30.
 * **Power BI report stored procedures** (`usp_GetQHoldReport`, `usp_GetCylinderHeadLeakRejectionReport`, `usp_GetCategorywiseReworkReport`, `usp_GetSummaryReport`, `usp_GetRejectionSummaryReport`, `usp_GetSubAssemblyReport`) are created by hand in their databases - only `usp_GetSubAssemblyReport`'s CREATE script is in this repository (`Modules/Reports/SubAssemblyReport/Sql/`).
 * `SubAssemblyReport`: `CommandTimeoutSeconds` (default 300 - the proc full-scans tables without a date index) and `MaxRangeDays` (default 93).
 * `ProcessParameterReport`: `MainlineDatabase`, `QHoldDatabase` (read through `SharedDataConnection`), `PageSize` (100), `ExportMaxRows` (150000), `MaxRangeDays` (31), `CommandTimeoutSeconds` (120). The Summary Report returns HTTP 503 with a clear message if its procedure is missing.

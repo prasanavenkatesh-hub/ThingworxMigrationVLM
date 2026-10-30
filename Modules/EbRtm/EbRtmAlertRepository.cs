@@ -10,13 +10,11 @@ public class EbRtmAlertRepository
 {
     private readonly string _connectionString;
     private readonly string _database; // EbRtm:Database (appsettings.json)
-    private readonly bool _writesEnabled; // TEMPORARY: AppWriteMode (view-only copies)
 
     public EbRtmAlertRepository(IConfiguration config)
     {
         _connectionString = config.GetConnectionString("SharedDataConnection") ?? "";
         _database = config["EbRtm:Database"] ?? "ControlTowerVLM";
-        _writesEnabled = AppWriteMode.IsEnabled(config); // TEMPORARY: AppWriteMode (view-only copies)
     }
 
     public class NewAlert
@@ -35,7 +33,6 @@ public class EbRtmAlertRepository
 
     public async Task InsertAsync(NewAlert alert)
     {
-        if (!_writesEnabled) return; // TEMPORARY: AppWriteMode (view-only copies)
         var sql = $@"
             INSERT INTO [{_database}].[dbo].[EbCAlerts]
                 ([AlertTime], [SourceId], [MeterId], [Device], [MeterModel], [Category], [Title], [Description], [Type], [ActualValue])

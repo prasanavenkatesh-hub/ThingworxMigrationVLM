@@ -17,13 +17,11 @@ public class GasLeakAlertRepository
 {
     private readonly string _connectionString;
     private readonly string _database; // GasLeak:Database (appsettings.json)
-    private readonly bool _writesEnabled; // TEMPORARY: AppWriteMode (view-only copies)
 
     public GasLeakAlertRepository(IConfiguration config)
     {
         _connectionString = config.GetConnectionString("SharedDataConnection") ?? "";
         _database = config["GasLeak:Database"] ?? "ControlTowerVLM";
-        _writesEnabled = AppWriteMode.IsEnabled(config); // TEMPORARY: AppWriteMode (view-only copies)
     }
 
     public async Task<List<GasLeakAlertDto>> GetOpenAlertsAsync()
@@ -45,7 +43,6 @@ public class GasLeakAlertRepository
 
     public async Task InsertAsync(long alertId, DateTime eventTime, string type, string description, string status)
     {
-        if (!_writesEnabled) return; // TEMPORARY: AppWriteMode (view-only copies)
         var sql = $@"
             INSERT INTO [{_database}].[dbo].[GasLeak_Alerts] ([id], [AlertId], [EventTime], [Type], [Description], [status], [SnoozeTime])
             SELECT ISNULL(MAX([id]), 0) + 1, @AlertId, @EventTime, @Type, @Description, @Status, NULL
@@ -56,7 +53,6 @@ public class GasLeakAlertRepository
 
     public async Task SnoozeAsync(List<long> alertIds, DateTime snoozeUntil)
     {
-        if (!_writesEnabled) return; // TEMPORARY: AppWriteMode (view-only copies)
         if (alertIds.Count == 0) return;
         var sql = $@"
             UPDATE [{_database}].[dbo].[GasLeak_Alerts]

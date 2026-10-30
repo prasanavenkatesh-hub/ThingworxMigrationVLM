@@ -11,13 +11,11 @@ public class EbRtmPowerFailureRepository
 {
     private readonly string _connectionString;
     private readonly string _database; // EbRtm:Database (appsettings.json)
-    private readonly bool _writesEnabled; // TEMPORARY: AppWriteMode (view-only copies)
 
     public EbRtmPowerFailureRepository(IConfiguration config)
     {
         _connectionString = config.GetConnectionString("SharedDataConnection") ?? "";
         _database = config["EbRtm:Database"] ?? "ControlTowerVLM";
-        _writesEnabled = AppWriteMode.IsEnabled(config); // TEMPORARY: AppWriteMode (view-only copies)
     }
 
     public class OpenSession
@@ -38,7 +36,6 @@ public class EbRtmPowerFailureRepository
 
     public async Task<long> InsertStartAsync(DateTime startTime)
     {
-        if (!_writesEnabled) return 0; // TEMPORARY: AppWriteMode (view-only copies)
         var sql = $@"
             INSERT INTO [{_database}].[dbo].[EbCPowerFailureEvents] ([Date], [StartTime], [EndTime], [Duration])
             OUTPUT INSERTED.[Id]
@@ -49,7 +46,6 @@ public class EbRtmPowerFailureRepository
 
     public async Task UpdateEndAsync(long id, DateTime endTime, TimeSpan duration)
     {
-        if (!_writesEnabled) return; // TEMPORARY: AppWriteMode (view-only copies)
         var sql = $@"
             UPDATE [{_database}].[dbo].[EbCPowerFailureEvents]
             SET [EndTime] = @EndTime, [Duration] = @Duration

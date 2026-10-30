@@ -34,7 +34,7 @@ appsettings.json              single config file (App, ConnectionStrings, ShiftC
                               DashboardDropdownValues, PokeYokeReports, SubAssemblyReport, ProcessParameterReport,
                               Mqtt, FireHydrant, GasLeak, Ems, EbRtm, PokaYoke, MachineShop)
 Modules/
-  Shared/                     ConfigurationController, MqttStatusController (header MQTT pill), AppWriteMode (TEMPORARY view-only mode),
+  Shared/                     ConfigurationController, MqttStatusController (header MQTT pill),
                               ApiDateTime.ToLocal(), KepwareValueParser
   FireHydrant/ GasLeak/ Ems/ EbRtm/      live dashboards (one folder each, incl. <Name>Module.cs)
   PokaYoke/                   live PokaYoke station status (read-only, ThingWorx VallamPokaYoke port)
@@ -89,7 +89,7 @@ Teammates sometimes develop in a full copy of the repo (e.g. `D:\RE\PowerBI_Repo
 5. Update README (their feature docs + Structure/Config/API sections) and this file.
 
 ## Data the app writes (everything else is read-only)
-**TEMPORARY view-only mode:** a running copy only writes (and sends MQTT commands) when `App:WritesEnabled` is `true`; it defaults to `false`, so developer copies are view-only and the header shows **View only**. Set it on the ONE machine that should keep the records, e.g. `setx App__WritesEnabled true` (new terminal) or a system environment variable, then restart the app; every other copy stays view-only by default. Every new write method must start with `if (!_writesEnabled) return;` (`AppWriteMode.IsEnabled(config)`), tagged `// TEMPORARY: AppWriteMode` - search that tag to remove it all later (details in `Modules/Shared/AppWriteMode.cs`).
+**Every running copy writes** (the TEMPORARY `App:WritesEnabled` view-only mode was removed 2026-10-30): two copies on the plant network log duplicate rows, so only one copy may run against the plant (stop it on other developer machines; `EbRtm:Alerts:Enabled: false` also stops the EB-RTM alert monitor).
 **`ControlTowerVLM` is the app's only database for its own records** (each module's `<Name>:Database`). Don't write to the old `FireHydrant` / `LPGGasLeak` databases (moved 2026-10-26); new tables get a module prefix (`FH_`, `GasLeak_`, `EbC`) and their CREATE script in `Modules/<Name>/Sql/`. Exception: the History Card layout tables `RE_MSConfiguration` / `SPCMSconfiguration` keep their ThingWorx names; the app only reads them.
 
 | Module | Writes to | When |

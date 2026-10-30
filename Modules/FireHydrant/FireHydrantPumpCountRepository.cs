@@ -18,13 +18,11 @@ public class FireHydrantPumpCountRepository
 
     private readonly string _connectionString;
     private readonly string _database; // FireHydrant:Database (appsettings.json)
-    private readonly bool _writesEnabled; // TEMPORARY: AppWriteMode (view-only copies)
 
     public FireHydrantPumpCountRepository(IConfiguration config)
     {
         _connectionString = config.GetConnectionString("SharedDataConnection") ?? "";
         _database = config["FireHydrant:Database"] ?? "ControlTowerVLM";
-        _writesEnabled = AppWriteMode.IsEnabled(config); // TEMPORARY: AppWriteMode (view-only copies)
     }
 
     public async Task<int?> GetLastCountAsync(string pump)
@@ -38,7 +36,6 @@ public class FireHydrantPumpCountRepository
 
     public async Task InsertAsync(string pump, int count, DateTime dateTime)
     {
-        if (!_writesEnabled) return; // TEMPORARY: AppWriteMode (view-only copies)
         var sql = $@"
             INSERT INTO [{_database}].[dbo].[FH_PumpRunningCount] ([id], [DateTime], [Pump], [Count])
             SELECT ISNULL(MAX([id]), 0) + 1, @DateTime, @Pump, @Count

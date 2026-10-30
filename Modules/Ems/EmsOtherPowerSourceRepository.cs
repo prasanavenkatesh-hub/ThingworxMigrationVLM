@@ -12,18 +12,15 @@ public class EmsOtherPowerSourceRepository
 {
     private readonly string _connectionString;
     private readonly string _database; // Ems:Database (appsettings.json)
-    private readonly bool _writesEnabled; // TEMPORARY: AppWriteMode (view-only copies)
 
     public EmsOtherPowerSourceRepository(IConfiguration config)
     {
         _connectionString = config.GetConnectionString("SharedDataConnection") ?? "";
         _database = config["Ems:Database"] ?? "ControlTowerVLM";
-        _writesEnabled = AppWriteMode.IsEnabled(config); // TEMPORARY: AppWriteMode (view-only copies)
     }
 
     public async Task InsertAsync(DateTime timestamp, OtherPowerSourceInput input)
     {
-        if (!_writesEnabled) return; // TEMPORARY: AppWriteMode (view-only copies)
         var sql = $@"
             INSERT INTO [{_database}].[dbo].[OtherPowerSource]
                 ([id], [TimeStamp], [ThirdPartyWind], [ThirdPartySolar], [TNEB], [DG], [Solar], [GCPSolar], [IEXRenewable], [IEXNonRenewable])
