@@ -8,12 +8,34 @@ const SCADA_TANKS = [
     { id: 'wt2', label: 'Water Tank 2', capacity: 232, unit: 'm³', level: 89 }
 ];
 const SCADA_DIESEL = { label: 'Diesel Tank', capacity: 283, unit: 'L', level: 76 };
+// Pump pictures drawn behind each pump icon. w/h = source image size; rotate = CSS rotation (deg);
+// ports = the pipe inlet/outlet ends in source-image pixels. With ports, the branch pipe is cut at
+// the picture: the upper pipe meets the higher port, the lower pipe (and gate valve) the lower one.
+const SCADA_PUMP_ART = {
+    // Upper-left outlet stack (x 107-161, top edge) and bottom-right inlet pipe (x 459-511, bottom edge).
+    // icon = where the spinning status icon sits (source pixels; default = picture centre): the red body panel.
+    diesel: { src: 'assets/firehydrant/DieselPump.png', w: 512, h: 409, rotate: 0, ports: [{ x: 134, y: 0 }, { x: 485, y: 409 }], icon: { x: 221, y: 280 },
+        // fuelIn = where the diesel feed line from the Diesel Tank meets the pump: top of the centre block.
+        fuelIn: { x: 256, y: 152 },
+        // body = the pump itself in source pixels, excluding the bottom-right inlet pipe (control line anchor).
+        body: { x0: 4, y0: 0, x1: 394, y1: 408 } },
+    // No ports (pipe runs straight behind); the picture is shifted so the red motor's centre sits on the icon.
+    main: { src: 'assets/firehydrant/MainPump.png', w: 512, h: 512, rotate: 0, icon: { x: 308, y: 243 }, body: { x0: 0, y0: 84, x1: 510, y1: 427 },
+        controlInset: 0.15 },   // control line 15% in from the body's right edge (others 10%)
+    // Green inlet/outlet stubs end at x 31 / 317, centred on y 152; rotated 90deg anticlockwise
+    // so they face down / up onto the vertical branch pipe.
+    // body = the pump casing (stubs excluded), before rotation; x0 = its left edge where the control line meets it.
+    jockey: { src: 'assets/firehydrant/JockeyPump.png', w: 352, h: 267, rotate: -90, ports: [{ x: 31, y: 152 }, { x: 317, y: 152 }], body: { x0: 70, y0: 4, x1: 300, y1: 215 } }
+};
+const SCADA_PUMP_ART_HEIGHT = 80;   // displayed picture height = .scada-branch-slot.pump-icon height
+const SCADA_PUMP_ICON_SIZE = 34;    // spinning status icon (px), sized to sit inside the pump picture
+
 const SCADA_PUMPS = [
-    { id: 'diesel', label: 'Diesel Pump', kind: 'main', line: 'hydrant', running: false, count: 0 },
-    { id: 'hmain', label: 'Hydrant Main Pump', kind: 'main', line: 'hydrant', running: false, count: 0 },
-    { id: 'hjockey', label: 'Hydrant Jockey Pump', kind: 'jockey', line: 'hydrant', running: true, count: 12 },
-    { id: 'sjockey', label: 'Sprinkler Jockey Pump', kind: 'jockey', line: 'sprinkler', running: false, count: 0 },
-    { id: 'smain', label: 'Sprinkler Main Pump', kind: 'main', line: 'sprinkler', running: false, count: 0 }
+    { id: 'diesel', label: 'Diesel Pump', kind: 'main', line: 'hydrant', running: false, count: 0, art: SCADA_PUMP_ART.diesel },
+    { id: 'hmain', label: 'Hydrant Main Pump', kind: 'main', line: 'hydrant', running: false, count: 0, art: SCADA_PUMP_ART.main },
+    { id: 'hjockey', label: 'Hydrant Jockey Pump', kind: 'jockey', line: 'hydrant', running: true, count: 12, art: SCADA_PUMP_ART.jockey },
+    { id: 'sjockey', label: 'Sprinkler Jockey Pump', kind: 'jockey', line: 'sprinkler', running: false, count: 0, art: SCADA_PUMP_ART.jockey },
+    { id: 'smain', label: 'Sprinkler Main Pump', kind: 'main', line: 'sprinkler', running: false, count: 0, art: SCADA_PUMP_ART.main }
 ];
 const SCADA_GAUGES = [
     { id: 'hydrant', label: 'Hydrant Pressure (bar)', value: 6.78, max: 10 },
@@ -546,9 +568,69 @@ function renderScadaGauges() {
     });
 }
 
+// Displayed geometry of a pump picture (after rotation, scaled to SCADA_PUMP_ART_HEIGHT):
+// dx = picture-centre offset that puts the top port on the branch pipe; bottomDx = where the
+// bottom port lands relative to the branch pipe; topFy/bottomFy = port heights as fractions.
+function scadaPumpArtGeom(p) {
+    const a = p.art;
+    if (!a) return null;
+    const rot = a.rotate || 0;
+    const map = pt => rot === -90 ? { x: pt.y, y: a.w - pt.x }
+        : rot === 90 ? { x: a.h - pt.y, y: pt.x } : { x: pt.x, y: pt.y };
+    const rw = rot ? a.h : a.w;
+    const rh = rot ? a.w : a.h;
+    const k = SCADA_PUMP_ART_HEIGHT / rh;
+    const ports = (a.ports || []).map(map).sort((u, v) => u.y - v.y);
+    const top = ports[0];
+    const bottom = ports[ports.length - 1];
+    const icon = a.icon ? map(a.icon) : { x: rw / 2, y: rh / 2 };
+    // With ports the top port sits on the branch pipe; without, the icon point does.
+    const dx = (rw / 2 - (top ? top.x : icon.x)) * k;
+    // Pump body box after rotation (source units), for the control-line anchor.
+    const b = a.body || { x0: 0, y0: 0, x1: a.w, y1: a.h };
+    const corners = [map({ x: b.x0, y: b.y0 }), map({ x: b.x1, y: b.y1 })];
+    const body = {
+        x0: Math.min(corners[0].x, corners[1].x), x1: Math.max(corners[0].x, corners[1].x),
+        y0: Math.min(corners[0].y, corners[1].y), y1: Math.max(corners[0].y, corners[1].y)
+    };
+    return {
+        rot,
+        // Control-line anchor: bottom-right of the pump body, controlInset (default 10%) of its width in from the right.
+        controlFx: (body.x1 - (a.controlInset ?? 0.1) * (body.x1 - body.x0)) / rw,
+        controlFy: body.y1 / rh,
+        cssW: a.w * k,
+        cssH: a.h * k,
+        dx,
+        iconDx: dx + (icon.x - rw / 2) * k,
+        iconDy: (icon.y - rh / 2) * k,
+        bottomDx: top ? (bottom.x - top.x) * k : 0,
+        topFy: top ? top.y / rh : null,
+        bottomFy: bottom ? bottom.y / rh : null,
+        // Horizontal distance from the branch (upper) pipe to the diesel feed line's drop (fuelIn).
+        fuelDx: a.fuelIn ? dx + (map(a.fuelIn).x - rw / 2) * k : null
+    };
+}
+
+function scadaPumpArtImg(p) {
+    const g = scadaPumpArtGeom(p);
+    if (!g) return '';
+    return `<img class="scada-pump-bg" src="${p.art.src}" alt="" style="width:${g.cssW.toFixed(1)}px;height:${g.cssH.toFixed(1)}px;left:calc(50% + ${g.dx.toFixed(1)}px);transform:translate(-50%,-50%) rotate(${g.rot}deg)">`;
+}
+
+// Labels of a pump with a diesel feed line start 10px right of that line instead of the pipe.
+function scadaBesideFeedStyle(p) {
+    const g = scadaPumpArtGeom(p);
+    return g && g.fuelDx !== null ? ` style="padding-left:calc(50% + ${(g.fuelDx + 10).toFixed(1)}px)"` : '';
+}
+
 function scadaPumpIconSvg(p) {
     const color = p.kind === 'jockey' ? '#3b82f6' : '#eab308';
-    return `<svg class="scada-pump-icon-svg" viewBox="0 0 44 44" width="40" height="40">
+    const g = scadaPumpArtGeom(p);
+    const size = SCADA_PUMP_ICON_SIZE;
+    // The icon's wheel is centred at viewBox (22,18), 4/44 above the box centre: shift down by that
+    // so the wheel (the part that spins) lands on the picture's icon point.
+    const shift = g ? ` style="left:${g.iconDx.toFixed(1)}px;top:${(g.iconDy + size * 4 / 44).toFixed(1)}px"` : '';
+    return `<svg class="scada-pump-icon-svg" viewBox="0 0 44 44" width="${size}" height="${size}"${shift}>
         <rect x="8" y="30" width="28" height="8" rx="2" fill="#4b5563"></rect>
         <circle class="body" cx="22" cy="18" r="15" fill="${color}"></circle>
         <circle cx="22" cy="18" r="5" fill="#1f2937"></circle>
@@ -566,11 +648,11 @@ function renderScadaManifold() {
                 <img class="scada-valve-img inline vert" src="assets/valve.png" title="Non-return valve">
                 <img class="scada-valve-img inline vert" src="assets/valve.png" title="Butterfly valve">
             </div>
-            <div class="scada-branch-slot label">
+            <div class="scada-branch-slot label"${scadaBesideFeedStyle(p)}>
                 <div class="scada-pump-label2">${p.label}</div>
                 <div class="scada-pump-count">Count: ${p.count}</div>
             </div>
-            <div class="scada-branch-slot toggle">
+            <div class="scada-branch-slot toggle"${scadaBesideFeedStyle(p)}>
                 <div class="scada-power-label">POWER</div>
                 <div class="scada-toggle-row">
                     <span class="scada-toggle-text">OFF</span>
@@ -581,8 +663,8 @@ function renderScadaManifold() {
                     <span class="scada-toggle-text">ON</span>
                 </div>
             </div>
-            <div class="scada-branch-slot pump-icon">${scadaPumpIconSvg(p)}</div>
-            <div class="scada-branch-slot gate-valve">
+            <div class="scada-branch-slot pump-icon">${scadaPumpArtImg(p)}${scadaPumpIconSvg(p)}</div>
+            <div class="scada-branch-slot gate-valve"${scadaPumpArtGeom(p)?.bottomDx ? ` style="transform:translateX(${scadaPumpArtGeom(p).bottomDx.toFixed(1)}px)"` : ''}>
                 <img class="scada-valve-img inline vert" src="assets/valve.png" title="Gate valve">
             </div>
         </div>
@@ -629,7 +711,16 @@ function layoutScadaManifoldPipes() {
         const el = document.querySelector(`.scada-branch[data-branch="${p.id}"]`);
         const gate = toLocal(el.querySelector('.gate-valve').getBoundingClientRect());
         const outlet = toLocal(el.querySelector('.outlet').getBoundingClientRect());
-        return { pump: p, x: Math.round(gate.cx), bottomY: gate.bottom, topY: outlet.top };
+        // x = lower pipe (gate valve), upperX = upper pipe (outlet valves); they differ when the
+        // pump picture's ports are offset (Diesel). cut = where the picture's ports end the pipe.
+        const g = scadaPumpArtGeom(p);
+        const img = el.querySelector('.scada-pump-bg');
+        let cut = null;
+        if (g && g.topFy !== null && img) {
+            const r = toLocal(img.getBoundingClientRect());
+            cut = { top: r.top + g.topFy * (r.bottom - r.top), bottom: r.top + g.bottomFy * (r.bottom - r.top) };
+        }
+        return { pump: p, x: Math.round(gate.cx), upperX: Math.round(outlet.cx), bottomY: gate.bottom, topY: outlet.top, cut };
     });
 
     const bottomHeaderY = Math.round(branches[0].bottomY + 10);
@@ -668,7 +759,7 @@ function layoutScadaManifoldPipes() {
 
     const hydrantBranches = branches.filter(b => b.pump.line === 'hydrant');
     const sprinklerBranches = branches.filter(b => b.pump.line === 'sprinkler');
-    const crossX = Math.round((hydrantBranches[hydrantBranches.length - 1].x + sprinklerBranches[0].x) / 2);
+    const crossX = Math.round((hydrantBranches[hydrantBranches.length - 1].upperX + sprinklerBranches[0].upperX) / 2);
     const crossMidY = (hydrantHeaderY + sprinklerHeaderY) / 2;
 
     // Each pipe is drawn twice: a permanent 3D-gradient body, and a thin red dashed
@@ -684,7 +775,47 @@ function layoutScadaManifoldPipes() {
     // Bottom header: one static body pipe, but the flow overlay is segmented per branch
     // tap-in point so it only lights up as far as the running pump's own vertical.
     const bottomGrad = pipeGrad(true, bottomHeaderY);
-    svg += `<path class="scada-manifold-pipe" data-role="header" style="stroke:${bottomGrad}" d="M${leftX},${bottomHeaderY} L${rightX},${bottomHeaderY}"></path>`;
+    // Control line: a thin red line from each pump's bottom-right (10% in from the right) down to
+    // one shared bus just below the lowest pump, then right into the feedback/control panel.
+    // Drawn first so the water pipes and valves sit on top where they cross.
+    let controlSvg = '';
+    const anchors = SCADA_PUMPS.map(p => {
+        const g = scadaPumpArtGeom(p);
+        const img = document.querySelector(`.scada-branch[data-branch="${p.id}"] .scada-pump-bg`);
+        if (!g || !img) return null;
+        const r = img.getBoundingClientRect();
+        return {
+            x: (r.left - canvasRect.left + g.controlFx * r.width) / scale,
+            y: (r.top - canvasRect.top + g.controlFy * r.height) / scale
+        };
+    }).filter(Boolean);
+    if (anchors.length) {
+        const busY = Math.max(...anchors.map(a => a.y)) + 6;
+        const panelX = (panel.getBoundingClientRect().left - canvasRect.left) / scale;
+        let d = `M${anchors[0].x.toFixed(1)},${anchors[0].y.toFixed(1)} V${busY.toFixed(1)} H${panelX.toFixed(1)}`;
+        anchors.slice(1).forEach(a => { d += ` M${a.x.toFixed(1)},${a.y.toFixed(1)} V${busY.toFixed(1)}`; });
+        controlSvg = `<path class="scada-control-line" d="${d}"></path>`;
+    }
+
+    // Diesel feed: thin red line from the Diesel Tank box's left edge (10% up from its bottom)
+    // across and down to the Diesel Pump picture's fuelIn point.
+    const dieselBox = document.querySelector('.scada-diesel-box');
+    const dieselPump = SCADA_PUMPS.find(p => p.id === 'diesel');
+    const dieselImg = document.querySelector('.scada-branch[data-branch="diesel"] .scada-pump-bg');
+    if (dieselBox && dieselImg && dieselPump?.art?.fuelIn) {
+        const box = dieselBox.getBoundingClientRect();
+        const img = dieselImg.getBoundingClientRect();
+        const a = dieselPump.art;
+        const startX = (box.left - canvasRect.left) / scale;
+        const startY = (box.bottom - canvasRect.top) / scale - 0.1 * box.height / scale;
+        const endX = (img.left - canvasRect.left) / scale + (a.fuelIn.x / a.w) * img.width / scale;
+        const endY = (img.top - canvasRect.top) / scale + (a.fuelIn.y / a.h) * img.height / scale;
+        svg += `<path class="scada-diesel-feed" d="M${startX.toFixed(1)},${startY.toFixed(1)} H${endX.toFixed(1)} V${endY.toFixed(1)}"></path>`;
+    }
+
+    // Ends at the last pump's branch (Sprinkler Main Pump) - nothing taps the header beyond it.
+    const bottomEndX = branches[branches.length - 1].x;
+    svg += `<path class="scada-manifold-pipe" data-role="header" style="stroke:${bottomGrad}" d="M${leftX},${bottomHeaderY} L${bottomEndX},${bottomHeaderY}"></path>`;
     let segX = leftX;
     branches.forEach(b => {
         svg += `<path class="scada-flow-overlaypipe" data-flow-group="bottom-${b.pump.id}" d="M${segX},${bottomHeaderY} L${b.x},${bottomHeaderY}"></path>`;
@@ -692,22 +823,27 @@ function layoutScadaManifoldPipes() {
     });
     branches.forEach(b => {
         const topY = b.pump.line === 'hydrant' ? hydrantHeaderY : sprinklerHeaderY;
-        addPipe(`M${b.x},${bottomHeaderY} L${b.x},${topY}`, false, b.x, `branch-${b.pump.id}`);
+        if (b.cut) {
+            addPipe(`M${b.x},${bottomHeaderY} L${b.x},${b.cut.bottom.toFixed(1)}`, false, b.x, `branch-${b.pump.id}`);
+            addPipe(`M${b.upperX},${b.cut.top.toFixed(1)} L${b.upperX},${topY}`, false, b.upperX, `branch-${b.pump.id}`);
+        } else {
+            addPipe(`M${b.x},${bottomHeaderY} L${b.x},${topY}`, false, b.x, `branch-${b.pump.id}`);
+        }
     });
     // Hydrant Line: body stays one piece; overlay segmented per feeding branch, lit
     // left-to-right starting at the leftmost running pump, through to the outlet.
     const hydrantGrad = pipeGrad(true, hydrantHeaderY);
-    svg += `<path class="scada-manifold-pipe" data-role="header" style="stroke:${hydrantGrad}" d="M${hydrantBranches[0].x},${hydrantHeaderY} L${rightX},${hydrantHeaderY}"></path>`;
+    svg += `<path class="scada-manifold-pipe" data-role="header" style="stroke:${hydrantGrad}" d="M${hydrantBranches[0].upperX},${hydrantHeaderY} L${rightX},${hydrantHeaderY}"></path>`;
     hydrantBranches.forEach((b, i) => {
-        const nextX = i + 1 < hydrantBranches.length ? hydrantBranches[i + 1].x : rightX;
-        svg += `<path class="scada-flow-overlaypipe" data-flow-group="hline-${b.pump.id}" d="M${b.x},${hydrantHeaderY} L${nextX},${hydrantHeaderY}"></path>`;
+        const nextX = i + 1 < hydrantBranches.length ? hydrantBranches[i + 1].upperX : rightX;
+        svg += `<path class="scada-flow-overlaypipe" data-flow-group="hline-${b.pump.id}" d="M${b.upperX},${hydrantHeaderY} L${nextX},${hydrantHeaderY}"></path>`;
     });
 
     // Sprinkler Line: same idea, but its leftmost segment is fed by the cross-connect
     // (from the hydrant side) rather than a pump branch directly.
     const sprinklerGrad = pipeGrad(true, sprinklerHeaderY);
     svg += `<path class="scada-manifold-pipe" data-role="header" style="stroke:${sprinklerGrad}" d="M${crossX},${sprinklerHeaderY} L${rightX},${sprinklerHeaderY}"></path>`;
-    const sprinklerPoints = [{ x: crossX, group: 'cross' }, ...sprinklerBranches.map(b => ({ x: b.x, group: b.pump.id }))];
+    const sprinklerPoints = [{ x: crossX, group: 'cross' }, ...sprinklerBranches.map(b => ({ x: b.upperX, group: b.pump.id }))];
     sprinklerPoints.forEach((p, i) => {
         const nextX = i + 1 < sprinklerPoints.length ? sprinklerPoints[i + 1].x : rightX;
         svg += `<path class="scada-flow-overlaypipe" data-flow-group="sline-${p.group}" d="M${p.x},${sprinklerHeaderY} L${nextX},${sprinklerHeaderY}"></path>`;
@@ -717,7 +853,7 @@ function layoutScadaManifoldPipes() {
     svg += `<image id="scadaCrossValve" class="scada-valve-img" href="assets/valve.png" x="${crossX - 11}" y="${(crossMidY - 15.8).toFixed(1)}" width="22" height="22" transform="rotate(90 ${crossX} ${crossMidY})"></image>`;
     svg += `<text x="${rightX - 4}" y="${hydrantHeaderY - 6}" text-anchor="end" class="scada-manifold-header-label">Hydrant Line</text>`;
     svg += `<text x="${rightX - 4}" y="${sprinklerHeaderY - 6}" text-anchor="end" class="scada-manifold-header-label">Sprinkler Line</text>`;
-    pipesGroup.innerHTML = `<defs>${defs.join('')}</defs>${svg}`;
+    pipesGroup.innerHTML = `<defs>${defs.join('')}</defs>${controlSvg}${svg}`;
 }
 
 // Which pipe segments actually carry water for the current pump on/off states.

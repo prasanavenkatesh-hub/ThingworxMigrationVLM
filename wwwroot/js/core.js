@@ -21,6 +21,11 @@
 const LINE_DROPDOWN_TABS = ['poke-yoke', 'poke-yoke-summary', 'reports', 'biometric-engine-barcode'];
 
 function switchTab(tabId) {
+    // A screen hidden by App:Menu can't be opened from another screen either (e.g. PokaYoke MI buttons).
+    if (menuIsHidden(tabId)) {
+        console.info(`switchTab: '${tabId}' is hidden by App:Menu in appsettings.json`);
+        return;
+    }
     // Nav active state: the clicked nav item, or (when called programmatically) #nav-<tabId>.
     document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
     if (event && event.currentTarget && event.currentTarget.classList && event.currentTarget.classList.contains('nav-item')) {
@@ -65,6 +70,7 @@ function switchTab(tabId) {
         renderEmsRenewable();
         startEmsSolarPolling();
         fetchEmsOtherSourceSummary();
+        fetchEmsContribBars();
     } else if (tabId === 'eb-rtm') {
         startEbRtmPolling();
     } else if (tabId === 'qhold') {
@@ -87,6 +93,8 @@ function switchTab(tabId) {
         pkyShowScreen(tabId);   // PokaYoke screens (no-op for screens not built yet)
     } else if (tabId === 'ms-pdi') {
         msPdiShow();            // Machine Shop > PDI Dashboard
+    } else if (tabId === 'ms-hc') {
+        msHcShow();             // Machine Shop > History Card
     }
 }
 
@@ -188,6 +196,50 @@ async function loadAppVersion() {
     }
 }
 document.addEventListener('DOMContentLoaded', loadAppVersion);
+
+// --- SIDEBAR MENU VISIBILITY (App:Menu) ---
+// Every sidebar button has data-menu = its tab id, or menu-<group> for a group / sub-group toggle.
+// An entry set to false gets .menu-off (style.v2.css); a hidden group also hides its sub-menu, and a
+// group whose entries are all hidden is hidden too. Applies to everyone - there is no per-user login.
+let menuHiddenKeys = new Set();
+
+function menuIsHidden(tabId) {
+    const nav = document.querySelector(`nav [data-menu="${tabId}"]`);
+    return !!(nav && nav.closest('.menu-off'));
+}
+
+function applyMenuVisibility() {
+    document.querySelectorAll('nav [data-menu]').forEach(el =>
+        el.classList.toggle('menu-off', menuHiddenKeys.has(el.dataset.menu.toLowerCase())));
+    // Group toggle -> its sub-menu (the next sibling); outer groups come first in document order.
+    document.querySelectorAll('nav .sub-menu').forEach(menu => {
+        const toggle = menu.previousElementSibling;
+        if (toggle && toggle.classList.contains('menu-off')) menu.classList.add('menu-off');
+    });
+    // Empty groups, innermost first.
+    Array.from(document.querySelectorAll('nav .sub-menu')).reverse().forEach(menu => {
+        const anyVisible = Array.from(menu.querySelectorAll('.nav-item:not(.nav-subgroup)')).some(b => !b.closest('.menu-off'));
+        if (!anyVisible) {
+            menu.classList.add('menu-off');
+            if (menu.previousElementSibling) menu.previousElementSibling.classList.add('menu-off');
+        }
+    });
+    document.querySelectorAll('nav > .nav-group').forEach(g =>
+        g.classList.toggle('menu-off', !!g.querySelector(':scope > .nav-item.menu-off')));
+}
+
+async function loadMenuVisibility() {
+    try {
+        const res = await fetch('/api/configuration/menu');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const menu = await res.json();
+        menuHiddenKeys = new Set(Object.keys(menu).filter(k => menu[k] === false).map(k => k.toLowerCase()));
+        applyMenuVisibility();
+    } catch (e) {
+        console.error('Failed to load the menu settings (all menus shown)', e);
+    }
+}
+document.addEventListener('DOMContentLoaded', loadMenuVisibility);
 
 // ---------------------------------------------
 // Header MQTT indicator - polls GET /api/mqtt/status (in-memory, cheap) on every tab, not just

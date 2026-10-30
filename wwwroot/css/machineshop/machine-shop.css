@@ -1,9 +1,10 @@
 /* Machine Shop module (sidebar Machine Shop > PDI Dashboard ...). Classes prefixed ms-. */
 
 /* ---- Colour tokens (dark = app default, body.light-mode = light). The pop-ups sit on <body>, outside .ms-pdi,
-        so they get the same tokens. ---- */
+        so they get the same tokens. The History Card screens (.ms-hc) use them too. ---- */
 .ms-pdi,
-.ms-pdi-modal {
+.ms-pdi-modal,
+.ms-hc {
     --ms-pdi-panel: var(--white);
     --ms-pdi-surface: rgba(255, 255, 255, 0.03);    /* table cells, inputs */
     --ms-pdi-band: #1f2632;                          /* table header band */
@@ -24,7 +25,8 @@
 }
 
 body.light-mode .ms-pdi,
-body.light-mode .ms-pdi-modal {
+body.light-mode .ms-pdi-modal,
+body.light-mode .ms-hc {
     --ms-pdi-surface: #f8fafc;
     --ms-pdi-band: #eef2f7;
     --ms-pdi-border: #dde3eb;

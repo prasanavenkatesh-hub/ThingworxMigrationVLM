@@ -149,6 +149,11 @@ body.is-scrolling ::-webkit-scrollbar-thumb {
     object-fit: contain;
 }
 
+/* App:Menu in appsettings.json: a sidebar entry / group set to false (core.js applyMenuVisibility). */
+nav .menu-off {
+    display: none !important;
+}
+
 .nav-item {
     width: 100%;
     text-align: left;

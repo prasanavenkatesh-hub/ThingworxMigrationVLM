@@ -8,12 +8,12 @@
     <link rel="stylesheet" href="css/fonts.css">
     <link rel="icon" type="image/png" href="assets/logo-small.png">
     <!-- Shared shell styles, then one stylesheet per module (css/dashboards, css/reports) -->
-    <link rel="stylesheet" href="css/style.v2.css?v=5">
+    <link rel="stylesheet" href="css/style.v2.css?v=6">
     <link rel="stylesheet" href="css/app-write-mode.css?v=1"> <!-- TEMPORARY: AppWriteMode -->
     <link rel="stylesheet" href="css/extra_styles.css?v=1.1">
-    <link rel="stylesheet" href="css/dashboards/fire-hydrant.css?v=1">
+    <link rel="stylesheet" href="css/dashboards/fire-hydrant.css?v=16">
     <link rel="stylesheet" href="css/dashboards/gas-leak.css?v=1">
-    <link rel="stylesheet" href="css/dashboards/ems-renewable.css?v=2">
+    <link rel="stylesheet" href="css/dashboards/ems-renewable.css?v=3">
     <link rel="stylesheet" href="css/dashboards/eb-rtm.css?v=1">
     <link rel="stylesheet" href="css/reports/categorywise-rework.css?v=1">
     <link rel="stylesheet" href="css/reports/summary-report.css?v=2">
@@ -22,7 +22,8 @@
     <link rel="stylesheet" href="css/reports/process-parameter.css?v=1">
     <link rel="stylesheet" href="css/reports/ebrtm-reports.css?v=4">
     <link rel="stylesheet" href="css/pokayoke/pokayoke.css?v=19">
-    <link rel="stylesheet" href="css/machineshop/machine-shop.css?v=9">
+    <link rel="stylesheet" href="css/machineshop/machine-shop.css?v=10">
+    <link rel="stylesheet" href="css/machineshop/history-card.css?v=5">
     <script src="lib/exceljs.min.js"></script>
     <script>
         function applyTheme(theme) {
@@ -98,32 +99,32 @@
             <nav>
                 <!-- Control Tower Dashboards -->
                 <div class="nav-group">
-                    <button class="nav-item" onclick="toggleSubmenu('dashboardsMenu')" data-tooltip="Dashboards">
+                    <button class="nav-item" onclick="toggleSubmenu('dashboardsMenu')" data-menu="menu-dashboards" data-tooltip="Dashboards">
                         <span class="material-symbols-outlined icon">dashboard</span> <span
                             class="text">Dashboards</span>
                     </button>
                     <div id="dashboardsMenu" class="sub-menu" style="display: none; padding-left: 20px;">
-                        <button class="nav-item sub-item" onclick="switchTab('dashboard-1')"
+                        <button class="nav-item sub-item" onclick="switchTab('dashboard-1')" data-menu="dashboard-1"
                             data-tooltip="Overview" style="font-size: 0.9em; padding: 5px 10px;">
                             <span class="material-symbols-outlined icon" style="font-size: 18px;">analytics</span> <span
                                 class="text">Overview</span>
                         </button>
-                        <button class="nav-item sub-item" onclick="switchTab('fire-hydrant')"
+                        <button class="nav-item sub-item" onclick="switchTab('fire-hydrant')" data-menu="fire-hydrant"
                             data-tooltip="Fire Hydrant Monitoring" style="font-size: 0.9em; padding: 5px 10px;">
                             <span class="material-symbols-outlined icon" style="font-size: 18px;">local_fire_department</span>
                             <span class="text">Fire Hydrant Monitoring</span>
                         </button>
-                        <button class="nav-item sub-item" onclick="switchTab('gas-leak')"
+                        <button class="nav-item sub-item" onclick="switchTab('gas-leak')" data-menu="gas-leak"
                             data-tooltip="LPG Gas Leak Monitoring" style="font-size: 0.9em; padding: 5px 10px;">
                             <span class="material-symbols-outlined icon" style="font-size: 18px;">propane_tank</span>
                             <span class="text">LPG Gas Leak Monitoring</span>
                         </button>
-                        <button class="nav-item sub-item" onclick="switchTab('ems-renewable')"
+                        <button class="nav-item sub-item" onclick="switchTab('ems-renewable')" data-menu="ems-renewable"
                             data-tooltip="EMS Renewable" style="font-size: 0.9em; padding: 5px 10px;">
                             <span class="material-symbols-outlined icon" style="font-size: 18px;">solar_power</span>
                             <span class="text">EMS Renewable</span>
                         </button>
-                        <button class="nav-item sub-item" onclick="switchTab('eb-rtm')"
+                        <button class="nav-item sub-item" onclick="switchTab('eb-rtm')" data-menu="eb-rtm"
                             data-tooltip="EB-Real Time Monitoring" style="font-size: 0.9em; padding: 5px 10px;">
                             <span class="material-symbols-outlined icon" style="font-size: 18px;">bolt</span>
                             <span class="text">EB-Real Time Monitoring</span>
@@ -133,27 +134,27 @@
 
                 <!-- PokaYoke -->
                 <div class="nav-group" style="margin-top: 10px;">
-                    <button class="nav-item" onclick="toggleSubmenu('pokaYokeMenu')" data-tooltip="PokaYoke">
+                    <button class="nav-item" onclick="toggleSubmenu('pokaYokeMenu')" data-menu="menu-pokayoke" data-tooltip="PokaYoke">
                         <span class="material-symbols-outlined icon">fact_check</span> <span
                             class="text">PokaYoke</span>
                     </button>
                     <div id="pokaYokeMenu" class="sub-menu" style="display: none; padding-left: 20px;">
-                        <button class="nav-item sub-item" id="nav-pky-overview" onclick="switchTab('pky-overview')"
+                        <button class="nav-item sub-item" id="nav-pky-overview" onclick="switchTab('pky-overview')" data-menu="pky-overview"
                             data-tooltip="Overview" style="font-size: 0.9em; padding: 5px 10px;">
                             <span class="material-symbols-outlined icon" style="font-size: 18px;">donut_large</span>
                             <span class="text">Overview</span>
                         </button>
-                        <button class="nav-item sub-item" id="nav-pky-jea1-line" onclick="switchTab('pky-jea1-line')"
+                        <button class="nav-item sub-item" id="nav-pky-jea1-line" onclick="switchTab('pky-jea1-line')" data-menu="pky-jea1-line"
                             data-tooltip="JEA1 Line" style="font-size: 0.9em; padding: 5px 10px;">
                             <span class="material-symbols-outlined icon" style="font-size: 18px;">conveyor_belt</span>
                             <span class="text">JEA1 Line</span>
                         </button>
-                        <button class="nav-item sub-item" id="nav-pky-jea2-line" onclick="switchTab('pky-jea2-line')"
+                        <button class="nav-item sub-item" id="nav-pky-jea2-line" onclick="switchTab('pky-jea2-line')" data-menu="pky-jea2-line"
                             data-tooltip="JEA2 Line" style="font-size: 0.9em; padding: 5px 10px;">
                             <span class="material-symbols-outlined icon" style="font-size: 18px;">conveyor_belt</span>
                             <span class="text">JEA2 Line</span>
                         </button>
-                        <button class="nav-item sub-item" id="nav-pky-jea1-crankshaft" onclick="switchTab('pky-jea1-crankshaft')"
+                        <button class="nav-item sub-item" id="nav-pky-jea1-crankshaft" onclick="switchTab('pky-jea1-crankshaft')" data-menu="pky-jea1-crankshaft"
                             data-tooltip="JEA1 Crankshaft" style="font-size: 0.9em; padding: 5px 10px;">
                             <span class="material-symbols-outlined icon" style="font-size: 18px;">settings</span>
                             <span class="text">JEA1 Crankshaft</span>
@@ -163,39 +164,44 @@
 
                 <!-- Machine Shop -->
                 <div class="nav-group" style="margin-top: 10px;">
-                    <button class="nav-item" onclick="toggleSubmenu('machineShopMenu')" data-tooltip="Machine Shop">
+                    <button class="nav-item" onclick="toggleSubmenu('machineShopMenu')" data-menu="menu-machine-shop" data-tooltip="Machine Shop">
                         <span class="material-symbols-outlined icon">precision_manufacturing</span> <span
                             class="text">Machine Shop</span>
                     </button>
                     <div id="machineShopMenu" class="sub-menu" style="display: none; padding-left: 20px;">
-                        <button class="nav-item sub-item" id="nav-ms-pdi" onclick="switchTab('ms-pdi')"
+                        <button class="nav-item sub-item" id="nav-ms-pdi" onclick="switchTab('ms-pdi')" data-menu="ms-pdi"
                             data-tooltip="PDI Dashboard" style="font-size: 0.9em; padding: 5px 10px;">
                             <span class="material-symbols-outlined icon" style="font-size: 18px;">dashboard</span>
                             <span class="text">PDI Dashboard</span>
+                        </button>
+                        <button class="nav-item sub-item" id="nav-ms-hc" onclick="switchTab('ms-hc')" data-menu="ms-hc"
+                            data-tooltip="History Card" style="font-size: 0.9em; padding: 5px 10px;">
+                            <span class="material-symbols-outlined icon" style="font-size: 18px;">history_edu</span>
+                            <span class="text">History Card</span>
                         </button>
                     </div>
                 </div>
 
                 <!-- Reports (grouped: Biometric / Production / Quality) -->
                 <div class="nav-group" style="margin-top: 10px;">
-                    <button class="nav-item" onclick="toggleSubmenu('reportsMenu')" data-tooltip="Reports">
+                    <button class="nav-item" onclick="toggleSubmenu('reportsMenu')" data-menu="menu-reports" data-tooltip="Reports">
                         <span class="material-symbols-outlined icon">description</span> <span
                             class="text">Reports</span>
                     </button>
                     <div id="reportsMenu" class="sub-menu" style="display: none; padding-left: 20px;">
                         <!-- Biometric -->
-                        <button class="nav-item sub-item nav-subgroup" onclick="toggleSubmenu('reportsBiometricMenu')"
+                        <button class="nav-item sub-item nav-subgroup" onclick="toggleSubmenu('reportsBiometricMenu')" data-menu="menu-reports-biometric"
                             data-tooltip="Biometric" style="font-size: 0.9em; padding: 5px 10px;">
                             <span class="material-symbols-outlined icon" style="font-size: 18px;">badge</span>
                             <span class="text">Biometric</span>
                         </button>
                         <div id="reportsBiometricMenu" class="sub-menu" style="display: none; padding-left: 12px;">
-                            <button class="nav-item sub-item" id="nav-reports" onclick="switchTab('reports')"
+                            <button class="nav-item sub-item" id="nav-reports" onclick="switchTab('reports')" data-menu="reports"
                                 data-tooltip="Biometric Shiftwise" style="font-size: 0.9em; padding: 5px 10px;">
                                 <span class="material-symbols-outlined icon" style="font-size: 18px;">fingerprint</span>
                                 <span class="text">Biometric Shiftwise</span>
                             </button>
-                            <button class="nav-item sub-item" id="nav-biometric-engine-barcode" onclick="switchTab('biometric-engine-barcode')"
+                            <button class="nav-item sub-item" id="nav-biometric-engine-barcode" onclick="switchTab('biometric-engine-barcode')" data-menu="biometric-engine-barcode"
                                 data-tooltip="Biometric Engine NO and Barcode" style="font-size: 0.9em; padding: 5px 10px;">
                                 <span class="material-symbols-outlined icon" style="font-size: 18px;">qr_code_scanner</span>
                                 <span class="text">Biometric Engine NO and Barcode</span>
@@ -203,18 +209,18 @@
                         </div>
 
                         <!-- Production -->
-                        <button class="nav-item sub-item nav-subgroup" onclick="toggleSubmenu('reportsProductionMenu')"
+                        <button class="nav-item sub-item nav-subgroup" onclick="toggleSubmenu('reportsProductionMenu')" data-menu="menu-reports-production"
                             data-tooltip="Production" style="font-size: 0.9em; padding: 5px 10px;">
                             <span class="material-symbols-outlined icon" style="font-size: 18px;">precision_manufacturing</span>
                             <span class="text">Production</span>
                         </button>
                         <div id="reportsProductionMenu" class="sub-menu" style="display: none; padding-left: 12px;">
-                            <button class="nav-item sub-item" id="nav-main-line" onclick="switchTab('main-line')"
+                            <button class="nav-item sub-item" id="nav-main-line" onclick="switchTab('main-line')" data-menu="main-line"
                                 data-tooltip="Main Line Cycle Time" style="font-size: 0.9em; padding: 5px 10px;">
                                 <span class="material-symbols-outlined icon" style="font-size: 18px;">timeline</span>
                                 <span class="text">Main Line Cycle Time</span>
                             </button>
-                            <button class="nav-item sub-item" id="nav-summary-report" onclick="switchTab('summary-report')"
+                            <button class="nav-item sub-item" id="nav-summary-report" onclick="switchTab('summary-report')" data-menu="summary-report"
                                 data-tooltip="Summary Report" style="font-size: 0.9em; padding: 5px 10px;">
                                 <span class="material-symbols-outlined icon" style="font-size: 18px;">monitoring</span>
                                 <span class="text">Summary Report</span>
@@ -222,61 +228,61 @@
                         </div>
 
                         <!-- Quality -->
-                        <button class="nav-item sub-item nav-subgroup" onclick="toggleSubmenu('reportsQualityMenu')"
+                        <button class="nav-item sub-item nav-subgroup" onclick="toggleSubmenu('reportsQualityMenu')" data-menu="menu-reports-quality"
                             data-tooltip="Quality" style="font-size: 0.9em; padding: 5px 10px;">
                             <span class="material-symbols-outlined icon" style="font-size: 18px;">verified</span>
                             <span class="text">Quality</span>
                         </button>
                         <div id="reportsQualityMenu" class="sub-menu" style="display: none; padding-left: 12px;">
-                            <button class="nav-item sub-item" id="nav-qhold" onclick="switchTab('qhold')"
+                            <button class="nav-item sub-item" id="nav-qhold" onclick="switchTab('qhold')" data-menu="qhold"
                                 data-tooltip="Engine QHold Report" style="font-size: 0.9em; padding: 5px 10px;">
                                 <span class="material-symbols-outlined icon" style="font-size: 18px;">report</span>
                                 <span class="text">Engine QHold Report</span>
                             </button>
-                            <button class="nav-item sub-item" id="nav-cylinder-head-leak" onclick="switchTab('cylinder-head-leak')"
+                            <button class="nav-item sub-item" id="nav-cylinder-head-leak" onclick="switchTab('cylinder-head-leak')" data-menu="cylinder-head-leak"
                                 data-tooltip="Cylinder Head Leak Rejection Report" style="font-size: 0.9em; padding: 5px 10px;">
                                 <span class="material-symbols-outlined icon" style="font-size: 18px;">water_drop</span>
                                 <span class="text">Cylinder Head Leak Rejection Report</span>
                             </button>
-                            <button class="nav-item sub-item" id="nav-categorywise-rework" onclick="switchTab('categorywise-rework')"
+                            <button class="nav-item sub-item" id="nav-categorywise-rework" onclick="switchTab('categorywise-rework')" data-menu="categorywise-rework"
                                 data-tooltip="Categorywise Rework Report" style="font-size: 0.9em; padding: 5px 10px;">
                                 <span class="material-symbols-outlined icon" style="font-size: 18px;">build_circle</span>
                                 <span class="text">Categorywise Rework Report</span>
                             </button>
-                            <button class="nav-item sub-item" id="nav-rejection-summary" onclick="switchTab('rejection-summary')"
+                            <button class="nav-item sub-item" id="nav-rejection-summary" onclick="switchTab('rejection-summary')" data-menu="rejection-summary"
                                 data-tooltip="Rejection Summary Report" style="font-size: 0.9em; padding: 5px 10px;">
                                 <span class="material-symbols-outlined icon" style="font-size: 18px;">assignment_late</span>
                                 <span class="text">Rejection Summary Report</span>
                             </button>
-                            <button class="nav-item sub-item" id="nav-sub-assembly-report" onclick="switchTab('sub-assembly-report')"
+                            <button class="nav-item sub-item" id="nav-sub-assembly-report" onclick="switchTab('sub-assembly-report')" data-menu="sub-assembly-report"
                                 data-tooltip="StraightPass & Rework Sub Assembly Report" style="font-size: 0.9em; padding: 5px 10px;">
                                 <span class="material-symbols-outlined icon" style="font-size: 18px;">fact_check</span>
                                 <span class="text">StraightPass &amp; Rework Sub Assembly Report</span>
                             </button>
-                            <button class="nav-item sub-item" id="nav-process-parameter" onclick="switchTab('process-parameter')"
+                            <button class="nav-item sub-item" id="nav-process-parameter" onclick="switchTab('process-parameter')" data-menu="process-parameter"
                                 data-tooltip="Process/Product Parameter Report" style="font-size: 0.9em; padding: 5px 10px;">
                                 <span class="material-symbols-outlined icon" style="font-size: 18px;">tune</span>
                                 <span class="text">Process/Product Parameter Report</span>
                             </button>
-                            <button class="nav-item sub-item" id="nav-poke-yoke" onclick="switchTab('poke-yoke')"
+                            <button class="nav-item sub-item" id="nav-poke-yoke" onclick="switchTab('poke-yoke')" data-menu="poke-yoke"
                                 data-tooltip="Poke Yoke- Manual Inspection overall" style="font-size: 0.9em; padding: 5px 10px;">
                                 <span class="material-symbols-outlined icon" style="font-size: 18px;">checklist</span>
                                 <span class="text">Poke Yoke- Manual Inspection overall</span>
                             </button>
-                            <button class="nav-item sub-item" id="nav-poke-yoke-summary" onclick="switchTab('poke-yoke-summary')"
+                            <button class="nav-item sub-item" id="nav-poke-yoke-summary" onclick="switchTab('poke-yoke-summary')" data-menu="poke-yoke-summary"
                                 data-tooltip="Poke Yoke- Manual Inspection summary" style="font-size: 0.9em; padding: 5px 10px;">
                                 <span class="material-symbols-outlined icon" style="font-size: 18px;">summarize</span>
                                 <span class="text">Poke Yoke- Manual Inspection summary</span>
                             </button>
                         </div>
                         <!-- Energy -->
-                        <button class="nav-item sub-item nav-subgroup" onclick="toggleSubmenu('reportsEnergyMenu')"
+                        <button class="nav-item sub-item nav-subgroup" onclick="toggleSubmenu('reportsEnergyMenu')" data-menu="menu-reports-energy"
                             data-tooltip="Energy" style="font-size: 0.9em; padding: 5px 10px;">
                             <span class="material-symbols-outlined icon" style="font-size: 18px;">bolt</span>
                             <span class="text">Energy</span>
                         </button>
                         <div id="reportsEnergyMenu" class="sub-menu" style="display: none; padding-left: 12px;">
-                            <button class="nav-item sub-item" id="nav-ebrtm-reports" onclick="switchTab('ebrtm-reports')"
+                            <button class="nav-item sub-item" id="nav-ebrtm-reports" onclick="switchTab('ebrtm-reports')" data-menu="ebrtm-reports"
                                 data-tooltip="EB-RTM Reports" style="font-size: 0.9em; padding: 5px 10px;">
                                 <span class="material-symbols-outlined icon" style="font-size: 18px;">electric_meter</span>
                                 <span class="text">EB-RTM Reports</span>
@@ -1899,6 +1905,33 @@
                 </div>
             </div>
 
+            <!-- Machine Shop - History Card: barcode list (js/machineshop/history-card.js); a row opens
+                 ms-history-card.html in a new browser tab (ThingWorx QF_MachineShopBarcode_MU / QF_MachineShop_HistoryCardMU). -->
+            <div id="tab-ms-hc" class="tab-pane">
+                <div class="ms-hc">
+                    <div class="ms-hc-bar">
+                        <label class="ms-hc-field">Barcode Number
+                            <input type="text" id="msHcBarcode" class="ms-hc-barcode" placeholder="Enter Barcode Number" maxlength="100" autocomplete="off">
+                        </label>
+                        <label class="ms-hc-field">Station Name
+                            <select id="msHcCard"></select>
+                        </label>
+                        <label class="ms-hc-field ms-hc-range">Cell
+                            <select id="msHcCell"></select>
+                        </label>
+                        <label class="ms-hc-field ms-hc-range">From
+                            <input type="datetime-local" id="msHcFrom">
+                        </label>
+                        <label class="ms-hc-field ms-hc-range">To
+                            <input type="datetime-local" id="msHcTo">
+                        </label>
+                        <button class="ms-pdi-submit" type="button" onclick="msHcSubmit()">Submit</button>
+                    </div>
+                    <div class="ms-hc-note" id="msHcNote"></div>
+                    <div class="ms-hc-list" id="msHcGrid"></div>
+                </div>
+            </div>
+
             <!-- Fire Hydrant Monitoring Dashboard -->
             <div id="tab-fire-hydrant" class="tab-pane">
                 <div class="scada-scroll">
@@ -1934,20 +1967,23 @@
                         </svg>
 
                         <!-- Water tank assembly (two-compartment tank with brick partition, top nozzles, ladder and inlet) -->
-                        <div class="scada-widget scada-level-scale" style="left:8px;top:40px;width:14px;height:180px;">
-                            <span class="scada-level-tick" style="top:-6px;">100%</span>
-                            <span class="scada-level-tick" style="top:39px;">75%</span>
-                            <span class="scada-level-tick" style="top:84px;">50%</span>
-                            <span class="scada-level-tick" style="top:129px;">25%</span>
-                            <span class="scada-level-tick" style="top:174px;">0%</span>
+                        <!-- Level scale: percentages drawn on the bar itself (100% / 0% inside the ends, the
+                             others centred on their colour boundaries) so they don't overlap the tank. -->
+                        <div class="scada-widget scada-level-scale" style="left:2px;top:40px;width:24px;height:180px;">
+                            <span class="scada-level-tick" style="top:1px;">100%</span>
+                            <span class="scada-level-tick" style="top:40px;">75%</span>
+                            <span class="scada-level-tick" style="top:85px;">50%</span>
+                            <span class="scada-level-tick" style="top:130px;">25%</span>
+                            <span class="scada-level-tick" style="top:169px;">0%</span>
                         </div>
 
                         <div class="scada-widget scada-tank-assembly" style="left:30px;top:6px;width:200px;height:270px;">
-                            <svg class="scada-tank-structure" viewBox="0 0 200 270" width="200" height="270">
+                            <svg class="scada-tank-structure" viewBox="0 0 200 270" width="200" height="270" overflow="visible">
                                 <!-- water top-up inlet -->
                                 <path class="scada-pipe-path thin" d="M0,14 L26,14 L26,26" />
                                 <image class="scada-valve-img" href="assets/valve.png" x="7" y="3" width="16" height="16" />
-                                <text x="2" y="7" class="scada-tank-inlet-label">Water Top Up</text>
+                                <!-- label sits above the valve (y<0 draws over the SVG top edge, hence overflow="visible") -->
+                                <text x="2" y="1" class="scada-tank-inlet-label">Water Top Up</text>
 
                                 <!-- header frame + nozzles -->
                                 <rect x="4" y="26" width="192" height="8" class="scada-tank-frame" />
@@ -1987,8 +2023,8 @@
                             <img id="scadaTank1Valve" class="scada-valve-img vert" src="assets/valve.png" style="left:39px;top:216px;width:22px;height:22px;">
                             <img id="scadaTank2Valve" class="scada-valve-img vert" src="assets/valve.png" style="left:139px;top:216px;width:22px;height:22px;">
 
-                            <div class="scada-tank-label" style="left:8px;top:246px;width:84px;">Water Tank 1<br>(232 m&sup3;)</div>
-                            <div class="scada-tank-label" style="left:108px;top:246px;width:84px;">Water Tank 2<br>(232 m&sup3;)</div>
+                            <div class="scada-tank-label beside-pipe" style="left:58px;top:246px;width:84px;">Water Tank 1<br>(232 m&sup3;)</div>
+                            <div class="scada-tank-label beside-pipe" style="left:158px;top:246px;width:84px;">Water Tank 2<br>(232 m&sup3;)</div>
                         </div>
 
                         <!-- Pump manifold: 5-column CSS grid, piping drawn dynamically into #scadaManifoldPipes -->
@@ -2011,16 +2047,18 @@
                             </div>
                         </div>
 
-                        <!-- Gauges -->
-                        <div class="scada-widget scada-gauge" data-gauge="hydrant" style="left:20px;top:400px;width:120px;"></div>
-                        <div class="scada-widget scada-gauge" data-gauge="sprinkler" style="left:160px;top:400px;width:120px;"></div>
+                        <!-- Gauges: the 360px pair (2 x 170px + 20px gap) is centred under the left layout
+                             (tanks + pump manifold, x 0-1020, centre 510). -->
+                        <div class="scada-widget scada-gauge" data-gauge="hydrant" style="left:330px;top:400px;width:170px;"></div>
+                        <div class="scada-widget scada-gauge" data-gauge="sprinkler" style="left:520px;top:400px;width:170px;"></div>
 
                         <!-- Shopfloor Pressure: coordinate-based absolute schematic beside the pump
                              manifold (not below). One SVG layer (z-index:0) draws every pipe segment
                              at fixed coordinates; cards (.pipe-card, z-index:1) are absolutely
                              positioned on top. EV Building sits above G120 with its own vertical
                              connector; G120/RO/Fire Hydrant/MRS sit on the top branch. -->
-                        <div class="scada-widget pipe-schematic" style="left:1190px;top:15px;width:770px;height:470px;">
+                        <!-- left:1135px = 5px gap between the feedback panel (right edge x 1020) and FG Warehouse (110px left of this box). -->
+                        <div class="scada-widget pipe-schematic" style="left:1135px;top:15px;width:770px;height:470px;">
                             <svg class="pipe-svg" viewBox="0 0 770 470" xmlns="http://www.w3.org/2000/svg">
                                 <!-- Main Spine: top branch + vertical trunk, 10px maroon -->
                                 <path class="pipe-seg" stroke-width="10" d="M4,159 L544,159" />
@@ -2414,7 +2452,7 @@
                         <div class="ems-topbar-title">Vallam - Renewable Energy Source</div>
                         <div class="ems-topbar-right">
                             <button class="ems-othersource-btn" onclick="openEmsOtherSourceModal()">Other Source</button>
-                            <span class="ems-date-badge">31/03/2026</span>
+                            <input type="month" id="emsDateBadge" class="ems-date-badge" onchange="fetchEmsOtherSourceSummary()">
                             <span class="material-symbols-outlined">calendar_month</span>
                             <span class="material-symbols-outlined">notifications</span>
                         </div>
@@ -2489,7 +2527,7 @@
                             <div class="ems-card">
                                 <div class="ems-card-header">
                                     <span class="ems-card-title">In-House Roof Top Solar - 1 MWp</span>
-                                    <span class="ems-month-toggle">March - 2026</span>
+                                    <span class="ems-month-toggle" id="emsSolarMonthToggle"></span>
                                 </div>
                                 <div class="ems-solar-stats">
                                     <div class="ems-stat-block"><div class="ems-stat-label">Live (kW)</div><div class="ems-stat-value" id="emsLive"></div></div>
@@ -2693,11 +2731,11 @@
 
         <script src="lib/chart.min.js"></script>
         <!-- App scripts: shared shell first, then one file per module -->
-        <script src="js/core.js?v=8"></script>
+        <script src="js/core.js?v=11"></script>
         <script src="js/app-write-mode.js?v=1"></script> <!-- TEMPORARY: AppWriteMode -->
-        <script src="js/dashboards/fire-hydrant.js?v=1"></script>
+        <script src="js/dashboards/fire-hydrant.js?v=13"></script>
         <script src="js/dashboards/gas-leak.js?v=1"></script>
-        <script src="js/dashboards/ems-renewable.js?v=2"></script>
+        <script src="js/dashboards/ems-renewable.js?v=3"></script>
         <script src="js/dashboards/eb-rtm.js?v=1"></script>
         <script src="js/reports/biometric.js?v=1"></script>
         <script src="js/reports/main-line.js?v=1"></script>
@@ -2715,6 +2753,7 @@
         <script src="js/pokayoke/jea2-line.js?v=2"></script>
         <script src="js/pokayoke/jea1-crankshaft.js?v=1"></script>
         <script src="js/machineshop/pdi-dashboard.js?v=13"></script>
+        <script src="js/machineshop/history-card.js?v=2"></script>
         <script src="js/pokayoke/overview.js?v=4"></script>
 </body>
 

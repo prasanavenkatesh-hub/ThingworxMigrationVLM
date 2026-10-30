@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Machine Shop history card of one barcode (ThingWorx QF_MachineShop_HistoryCardMU), opened in a new
+         tab from Machine Shop > History Card: ?card=&barcode=&cell= -->
+    <title>History Card | Machine Shop</title>
+    <link rel="stylesheet" href="css/fonts.css">
+    <link rel="icon" type="image/png" href="assets/logo-small.png">
+    <link rel="stylesheet" href="css/style.v2.css?v=6">
+    <link rel="stylesheet" href="css/machineshop/machine-shop.css?v=10">
+    <link rel="stylesheet" href="css/machineshop/history-card.css?v=5">
+</head>
+
+<body class="ms-hc-page">
+    <script>
+        // Same theme as the app (index.html stores it in localStorage "theme").
+        try { if (localStorage.getItem('theme') === 'light') document.body.classList.add('light-mode'); } catch (e) { }
+    </script>
+    <div class="ms-hc ms-hc-card">
+        <div class="ms-hc-head">
+            <div>
+                <div class="ms-hc-title" id="msHcpTitle">History Card</div>
+                <div class="ms-hc-sub" id="msHcpSub"></div>
+            </div>
+            <div class="ms-hc-actions">
+                <button class="ms-hc-action" id="msHcpCsv" type="button" disabled>Export - CSV</button>
+                <button class="ms-hc-action" id="msHcpPdf" type="button" disabled>Export - PDF</button>
+            </div>
+        </div>
+        <div id="msHcpBody"><div class="ms-hc-message">Loading...</div></div>
+    </div>
+    <script src="js/machineshop/history-card-page.js?v=1"></script>
+</body>
+
+</html>

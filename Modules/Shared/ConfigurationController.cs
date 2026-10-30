@@ -32,6 +32,16 @@ namespace ControlTower.Controllers
             return Ok(shifts);
         }
 
+        // App:Menu as { "ms-hc": true, "menu-reports": false, ... } - sidebar entries (tab ids) and groups
+        // (menu-...) the sidebar shows; core.js hides the false ones. Missing / unreadable = visible.
+        [HttpGet("menu")]
+        public IActionResult GetMenu()
+        {
+            var menu = _configuration.GetSection("App:Menu").GetChildren()
+                .ToDictionary(m => m.Key, m => !bool.TryParse(m.Value, out var visible) || visible);
+            return Ok(menu);
+        }
+
         [HttpGet("dashboard-dropdown")]
         public ActionResult<IEnumerable<string>> GetDashboardDropdownValues()
         {

@@ -12,11 +12,13 @@ namespace ControlTower.Controllers;
 public class MachineShopController : ControllerBase
 {
     private readonly MachineShopPdiService _pdi;
+    private readonly MachineShopHistoryCardService _historyCard;
     private readonly ILogger<MachineShopController> _logger;
 
-    public MachineShopController(MachineShopPdiService pdi, ILogger<MachineShopController> logger)
+    public MachineShopController(MachineShopPdiService pdi, MachineShopHistoryCardService historyCard, ILogger<MachineShopController> logger)
     {
         _pdi = pdi;
+        _historyCard = historyCard;
         _logger = logger;
     }
 
@@ -122,6 +124,67 @@ public class MachineShopController : ControllerBase
             return Problem(ex.Message);
         }
     }
+
+    // History Card main screen: cards (dropdown), cells and the barcode list cap.
+    [HttpGet("historycard/options")]
+    public async Task<ActionResult<MachineShopHistoryCardOptions>> GetHistoryCardOptions()
+    {
+        try
+        {
+            return Ok(await _historyCard.GetOptionsAsync());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "History card options failed");
+            return Problem(ex.Message);
+        }
+    }
+
+    // History Card barcode list: barcode = search it at the card's PDI station; otherwise cell + from / to
+    // (local time, yyyy-MM-ddTHH:mm).
+    [HttpGet("historycard/barcodes")]
+    public async Task<ActionResult<MachineShopHistoryCardBarcodes>> GetHistoryCardBarcodes([FromQuery] string? card, [FromQuery] string? cell,
+        [FromQuery] string? from, [FromQuery] string? to, [FromQuery] string? barcode)
+    {
+        if (string.IsNullOrWhiteSpace(card) || !await _historyCard.HasCardAsync(card)) return NotFound($"Unknown history card '{card}'.");
+        if (barcode is { Length: > 100 }) return BadRequest("barcode is too long.");
+        DateTime start = default, end = default;
+        if (string.IsNullOrWhiteSpace(barcode))
+        {
+            if (string.IsNullOrWhiteSpace(cell) || !_historyCard.HasCell(cell)) return BadRequest($"Unknown cell '{cell}'.");
+            if (!TryLocal(from, out start) || !TryLocal(to, out end)) return BadRequest("from and to must be yyyy-MM-ddTHH:mm.");
+            if (end < start) return BadRequest("to is before from.");
+        }
+        try
+        {
+            return Ok(await _historyCard.GetBarcodesAsync(card, cell ?? "", start, end, barcode));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "History card barcodes failed for {Card} cell {Cell} {From}..{To} {Barcode}", card, cell, from, to, barcode);
+            return Problem(ex.Message);
+        }
+    }
+
+    // History card of one barcode (Table 1 + the SPC table of Cover LH / RH).
+    [HttpGet("historycard/card")]
+    public async Task<ActionResult<MachineShopHistoryCardData>> GetHistoryCard([FromQuery] string? card, [FromQuery] string? barcode, [FromQuery] string? cell)
+    {
+        if (string.IsNullOrWhiteSpace(card) || !await _historyCard.HasCardAsync(card)) return NotFound($"Unknown history card '{card}'.");
+        if (string.IsNullOrWhiteSpace(barcode) || barcode.Length > 100) return BadRequest("barcode is required (at most 100 characters).");
+        try
+        {
+            return Ok(await _historyCard.GetCardAsync(card, barcode.Trim(), cell?.Trim() ?? ""));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "History card failed for {Card} {Barcode}", card, barcode);
+            return Problem(ex.Message);
+        }
+    }
+
+    private static bool TryLocal(string? value, out DateTime result) =>
+        DateTime.TryParseExact(value, new[] { "yyyy-MM-ddTHH:mm", "yyyy-MM-ddTHH:mm:ss" }, CultureInfo.InvariantCulture, DateTimeStyles.None, out result);
 
     private static List<string> Split(string? list) =>
         (list ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Distinct().ToList();
