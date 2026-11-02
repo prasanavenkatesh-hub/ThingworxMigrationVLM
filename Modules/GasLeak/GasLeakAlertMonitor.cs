@@ -4,7 +4,7 @@ namespace ControlTower.Services;
 
 // Watches the live GasLeakStatus for Lot 1 / Lot 2 zone-band transitions (green/normal,
 // yellow/warning >20, red/danger >40 - same thresholds as the source ThingWorx Thing's
-// blinkShapes service) and persists open/close rows to GasLeakAlerts via
+// blinkShapes service) and persists open/close rows to GasLeak_Alerts via
 // GasLeakAlertRepository. Called after every MQTT payload update. Structurally mirrors
 // FireHydrantAlertMonitor (debounce, restart-safe DB seeding, snooze), adapted for a 3-band
 // zone instead of FireHydrant's low/normal/high.

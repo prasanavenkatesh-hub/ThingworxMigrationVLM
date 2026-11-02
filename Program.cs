@@ -15,6 +15,7 @@ builder.Services.AddGasLeakModule();
 builder.Services.AddEmsModule();
 builder.Services.AddEbRtmModule();
 builder.Services.AddPokaYokeModule();
+builder.Services.AddMachineShopModule();
 
 // Enable CORS
 builder.Services.AddCors(options =>
@@ -46,6 +47,9 @@ app.UseStaticFiles(new StaticFileOptions
 {
     OnPrepareResponse = ctx => ctx.Context.Response.Headers.CacheControl = "no-cache"
 });
+
+// TEMPORARY: view-only copies reject API writes (App:WritesEnabled - Modules/Shared/AppWriteMode.cs)
+app.UseMiddleware<AppWriteModeMiddleware>();
 
 app.UseAuthorization();
 

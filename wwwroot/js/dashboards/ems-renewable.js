@@ -162,6 +162,7 @@ async function emsSaveGreenPower() {
         });
         if (!res.ok) throw new Error('save failed');
         fetchEmsOtherSourceSummary();
+        fetchEmsContribBars();
         fetchEmsOtherSourceHistory();
         closeEmsOtherSourceModal();
     } catch (e) {
@@ -205,10 +206,18 @@ async function fetchEmsOtherSourceHistory() {
 
 // Previous/current month values for the 5 "Other Sources" (GCP Solar, 3rd party Solar,
 // 3rd party Wind, IEX Renewable, Roof Top Solar -> OtherPowerSource.Solar), with each
-// source's % share of that month's total, rendered into ems-source-table.
+// source's % share of that month's total, rendered into the Green Energy card
+// (ems-source-table, donut, footer %, totals, CO2, month toggle). Driven by the
+// ems-date-badge month picker - does NOT touch emsContribChart (see fetchEmsContribBars()).
 async function fetchEmsOtherSourceSummary() {
     try {
-        const res = await fetch('/api/ems/othersource/summary');
+        const badge = document.getElementById('emsDateBadge');
+        if (badge && !badge.value) {
+            const now = new Date();
+            badge.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        }
+        const selectedMonth = badge ? badge.value : '';
+        const res = await fetch('/api/ems/othersource/summary?month=' + encodeURIComponent(selectedMonth));
         if (!res.ok) return;
         const data = await res.json();
         EMS_GREEN.monthPrev = data.previous.month;
@@ -235,9 +244,26 @@ async function fetchEmsOtherSourceSummary() {
             s.curr = data.current[valKey];
             s.currPct = data.current[pctKey];
         });
-        EMS_CONTRIB.values[2] = EMS_SOURCES.reduce((sum, s) => sum + s.prevPct, 0);
-        EMS_CONTRIB.values[3] = EMS_SOURCES.reduce((sum, s) => sum + s.currPct, 0);
         if (document.getElementById('emsSourceTableBody')) renderEmsRenewable();
+    } catch (e) {
+        // API unreachable - keep showing the last known values.
+    }
+}
+
+// Green Power Contributions chart bars 3/4 - always real "today", independent of the
+// ems-date-badge selection. Computed directly from this call's own response fields rather
+// than reducing the shared EMS_SOURCES array, since that array is now owned/mutated by the
+// badge-driven fetchEmsOtherSourceSummary() above.
+async function fetchEmsContribBars() {
+    try {
+        const res = await fetch('/api/ems/othersource/summary'); // no month = real today, always
+        if (!res.ok) return;
+        const data = await res.json();
+        const pctSum = d => (d.pctGcpSolar || 0) + (d.pctThirdPartySolar || 0) + (d.pctThirdPartyWind || 0)
+            + (d.pctIexRenewable || 0) + (d.pctSolar || 0);
+        EMS_CONTRIB.values[2] = pctSum(data.previous);
+        EMS_CONTRIB.values[3] = pctSum(data.current);
+        if (document.getElementById('emsContribChart')) renderEmsRenewable();
     } catch (e) {
         // API unreachable - keep showing the last known values.
     }
@@ -378,6 +404,8 @@ function renderEmsRenewable() {
     document.getElementById('emsToday').textContent = EMS_SOLAR.today;
     document.getElementById('emsYesterday').textContent = EMS_SOLAR.yesterday;
     document.getElementById('emsMtd').textContent = EMS_SOLAR.mtd;
+    document.getElementById('emsSolarMonthToggle').textContent =
+        new Date().toLocaleString('en-US', { month: 'long' }) + ' - ' + new Date().getFullYear();
 
     const now = new Date();
     const prevFYDate = new Date(now.getFullYear() - 1, now.getMonth(), 1);

@@ -11,15 +11,18 @@ public class EbRtmReadingRepository
 {
     private readonly string _connectionString;
     private readonly string _database; // EbRtm:Database (appsettings.json)
+    private readonly bool _writesEnabled; // TEMPORARY: AppWriteMode (view-only copies)
 
     public EbRtmReadingRepository(IConfiguration config)
     {
         _connectionString = config.GetConnectionString("SharedDataConnection") ?? "";
         _database = config["EbRtm:Database"] ?? "ControlTowerVLM";
+        _writesEnabled = AppWriteMode.IsEnabled(config); // TEMPORARY: AppWriteMode (view-only copies)
     }
 
     public async Task InsertAsync(EbRtmReadingDto reading)
     {
+        if (!_writesEnabled) return; // TEMPORARY: AppWriteMode (view-only copies)
         var sql = $@"
             INSERT INTO [{_database}].[dbo].[EbCMonitoring]
                 ([Timestamp], [AvgVoltage], [AvgCurrent], [Frequency], [ActivePower], [PowerFactorSigned], [MaxDemand], [PresentDemand], [RealEnergyIntoLoad])

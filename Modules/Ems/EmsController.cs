@@ -43,7 +43,7 @@ public class EmsController : ControllerBase
             live = _store.LiveKw,
             today = Math.Round((_store.RealEnergySum - baseline0) / 1000.0, 2),
             yesterday = Math.Round((baseline0 - baseline1) / 1000.0, 2),
-            mtd = Math.Round((baseline0 - prevMonthLastDay) / 1000.0, 2)
+            mtd = Math.Max(0, Math.Round((baseline0 - prevMonthLastDay) / 1000.0, 2))
         });
     }
 
@@ -89,9 +89,14 @@ public class EmsController : ControllerBase
     // (the 5 "Other Sources" shown in ems-source-table), converted to lakhs kWh, plus each
     // source's % share of that month's 5-source total.
     [HttpGet("othersource/summary")]
-    public async Task<IActionResult> GetOtherPowerSourceSummary()
+    public async Task<IActionResult> GetOtherPowerSourceSummary([FromQuery] string? month)
     {
         var now = DateTime.Now;
+        if (!string.IsNullOrEmpty(month) &&
+            DateTime.TryParseExact(month + "-01", "yyyy-MM-dd", null, System.Globalization.DateTimeStyles.None, out var parsed))
+        {
+            now = parsed;
+        }
         var prevMonth = now.AddMonths(-1);
         return Ok(new
         {
