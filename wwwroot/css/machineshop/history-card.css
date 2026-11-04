@@ -1,0 +1,254 @@
+/* Machine Shop > History Card: barcode list (tab-ms-hc) and the card page (ms-history-card.html).
+   Classes prefixed ms-hc-; colours = the --ms-pdi-* tokens of machine-shop.css (.ms-hc). */
+
+.ms-hc {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-family: 'Inter', sans-serif;
+    color: var(--ms-pdi-text);
+}
+
+/* ---- Barcode list: filter bar ---- */
+.ms-hc-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 10px 14px;
+    padding: 10px 12px;
+    border: 1px solid var(--ms-pdi-border);
+    border-radius: 8px;
+    background: var(--ms-pdi-panel);
+    box-shadow: var(--ms-pdi-shadow);
+}
+
+.ms-hc-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--ms-pdi-muted);
+}
+
+.ms-hc-field input,
+.ms-hc-field select {
+    height: 32px;
+    padding: 0 10px;
+    border: 1px solid var(--ms-pdi-border);
+    border-radius: 6px;
+    background: var(--ms-pdi-surface);
+    color: var(--ms-pdi-text);
+    font: 600 13px 'Inter', sans-serif;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.ms-hc-field input:focus,
+.ms-hc-field select:focus {
+    outline: none;
+    border-color: var(--ms-pdi-accent);
+    box-shadow: 0 0 0 3px var(--ms-pdi-accent-soft);
+}
+
+.ms-hc-field select option { background: var(--ms-pdi-panel); color: var(--ms-pdi-text); }
+.ms-hc-barcode { width: 210px; }
+.ms-hc-bar .ms-pdi-submit { height: 32px; }
+
+/* Barcode search ignores cell / dates (as ThingWorx) - show that they do not apply. */
+.ms-hc-bar.searching .ms-hc-range { opacity: 0.45; }
+
+.ms-hc-note {
+    font-size: 12px;
+    color: var(--ms-pdi-muted);
+}
+
+/* ---- Barcode list grid ---- */
+.ms-hc-list {
+    overflow: auto;
+    max-height: calc(100vh - 250px);
+    border: 1px solid var(--ms-pdi-border);
+    border-radius: 8px;
+    background: var(--ms-pdi-panel);
+    box-shadow: var(--ms-pdi-shadow);
+}
+
+.ms-hc-list .ms-pdi-table td { white-space: nowrap; }
+.ms-hc-list tbody tr { cursor: pointer; user-select: none; }
+.ms-hc-list .ms-pdi-table tbody tr.selected td { background: var(--ms-pdi-accent-soft); font-weight: 700; }
+.ms-hc-list .ms-pdi-table tbody tr.selected td:first-child { box-shadow: inset 3px 0 0 var(--ms-pdi-accent); }
+.ms-hc-list .ms-pdi-table th.ms-hc-open-col, .ms-hc-list .ms-pdi-table td.ms-hc-open-col { width: 90px; }
+.ms-hc-list td.ms-hc-barcode-cell { font-family: 'Consolas', 'Courier New', monospace; letter-spacing: 0.02em; }
+
+.ms-hc-open {
+    padding: 3px 12px;
+    border: 1px solid var(--ms-pdi-accent);
+    border-radius: 5px;
+    background: transparent;
+    color: var(--ms-pdi-accent);
+    font: 600 12px 'Inter', sans-serif;
+    cursor: pointer;
+}
+
+.ms-hc-open:hover { background: var(--ms-pdi-accent); color: #ffffff; }
+
+.ms-hc-empty {
+    padding: 28px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--ms-pdi-muted);
+}
+
+/* ---- Card page ---- */
+body.ms-hc-page {
+    margin: 0;
+    padding: 16px 20px 28px;
+    height: auto;
+    min-height: 100vh;
+    box-sizing: border-box;
+    background-color: var(--background);
+    overflow: auto;
+}
+
+.ms-hc-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.ms-hc-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--ms-pdi-accent);
+}
+
+.ms-hc-sub {
+    font-size: 12px;
+    color: var(--ms-pdi-muted);
+}
+
+.ms-hc-actions { display: flex; gap: 8px; }
+
+.ms-hc-action {
+    padding: 7px 16px;
+    border: 1px solid var(--ms-pdi-accent);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--ms-pdi-accent);
+    font: 600 13px 'Inter', sans-serif;
+    cursor: pointer;
+}
+
+.ms-hc-action:hover { background: var(--ms-pdi-accent); color: #ffffff; }
+.ms-hc-action:disabled { opacity: 0.5; cursor: default; background: transparent; color: var(--ms-pdi-accent); }
+
+.ms-hc-section {
+    border: 1px solid var(--ms-pdi-border);
+    border-radius: 8px;
+    background: var(--ms-pdi-panel);
+    box-shadow: var(--ms-pdi-shadow);
+    overflow: hidden;
+}
+
+.ms-hc-section-title {
+    padding: 9px 12px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: var(--ms-pdi-text);
+    border-bottom: 1px solid var(--ms-pdi-border);
+    box-shadow: inset 3px 0 0 var(--ms-pdi-accent);
+}
+
+/* Card header: Barcode / Date & Time / Shift ... (ThingWorx ColumnType 1 rows) */
+.ms-hc-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 1px;
+    background: var(--ms-pdi-border);
+}
+
+.ms-hc-info div {
+    padding: 9px 12px;
+    background: var(--ms-pdi-panel);
+}
+
+.ms-hc-info span {
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ms-pdi-muted);
+}
+
+.ms-hc-info b { font-size: 14px; }
+
+.ms-hc-card .ms-pdi-table th { position: static; }
+.ms-hc-card .ms-pdi-table td { text-align: left; font-weight: 500; }
+.ms-hc-card .ms-pdi-table td.ms-hc-sno { width: 64px; text-align: center; color: var(--ms-pdi-muted); }
+.ms-hc-card .ms-pdi-table td.ms-hc-value { font-weight: 700; }
+
+/* Column header row (Serial No, Parameters Description ...): white on dark grey, both themes. The body prefix +
+   !important beat the shared .ms-pdi-table th rule (machine-shop.css) and style.v2.css. */
+body .ms-hc-card .ms-pdi-table th,
+body.light-mode .ms-hc-card .ms-pdi-table th {
+    background: #3a3a3a !important;
+    color: #ffffff !important;
+    border-color: #3a3a3a !important;
+}
+
+/* Station heading rows (STATION NAME ..., ThingWorx ColumnType 3): black on yellow - a muted gold on the dark
+   theme, a bright yellow on the light theme and in the PDF. */
+.ms-hc-card { --ms-hc-station-bg: #c9a227; }
+body.light-mode .ms-hc-card { --ms-hc-station-bg: #ffd84d; }
+
+body .ms-hc-card .ms-pdi-table tr.ms-hc-station td,
+body.light-mode .ms-hc-card .ms-pdi-table tr.ms-hc-station td,
+body .ms-hc-card .ms-pdi-table tr.ms-hc-station:hover td {
+    background: var(--ms-hc-station-bg) !important;
+    color: #000000 !important;
+    font-weight: 700;
+}
+
+.ms-hc-card td.ms-hc-ok { color: var(--ms-pdi-ok); }
+.ms-hc-card td.ms-hc-nok { color: var(--ms-pdi-nok); }
+.ms-hc-card td.ms-hc-missing { color: var(--ms-pdi-muted); font-weight: 500; }
+
+/* Light theme: style.v2.css forces "body.light-mode td { color: ... !important }"; keep the card cell colours. */
+body.light-mode .ms-hc-card td.ms-hc-sno { color: var(--ms-pdi-muted) !important; }
+body.light-mode .ms-hc-card td.ms-hc-ok { color: var(--ms-pdi-ok) !important; }
+body.light-mode .ms-hc-card td.ms-hc-nok { color: var(--ms-pdi-nok) !important; }
+body.light-mode .ms-hc-card td.ms-hc-missing { color: var(--ms-pdi-muted) !important; }
+
+.ms-hc-message {
+    padding: 40px;
+    text-align: center;
+    font-size: 14px;
+    color: var(--ms-pdi-muted);
+}
+
+.ms-hc-message.error { color: var(--ms-pdi-nok); }
+
+/* Export - PDF = the browser's print dialog ("Save as PDF"): black on white, no buttons. */
+@media print {
+    body.ms-hc-page { padding: 0; background: #ffffff !important; }
+    body.ms-hc-page .ms-hc {
+        --ms-pdi-panel: #ffffff; --ms-pdi-band: #eef2f7; --ms-pdi-border: #c7ced8; --ms-pdi-text: #111111;
+        --ms-pdi-muted: #555555; --ms-pdi-accent: #1d4ed8; --ms-pdi-ok: #047857; --ms-pdi-nok: #b91c1c; --ms-pdi-shadow: none;
+        --ms-hc-station-bg: #ffd84d;
+    }
+    .ms-hc-actions, .ms-hc-sub.screen-only { display: none !important; }
+    .ms-hc-section { break-inside: auto; box-shadow: none; }
+    .ms-hc-card .ms-pdi-table tr { break-inside: avoid; }
+    body.ms-hc-page td, body.ms-hc-page th { color: #111111 !important; }
+    body.ms-hc-page td.ms-hc-ok { color: #047857 !important; }
+    body.ms-hc-page td.ms-hc-nok { color: #b91c1c !important; }
+    /* Keep the header / station row colours in the PDF. */
+    body.ms-hc-page .ms-pdi-table th, body.ms-hc-page tr.ms-hc-station td { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body.ms-hc-page .ms-pdi-table th { color: #ffffff !important; }
+}

@@ -4,7 +4,8 @@ using Microsoft.Data.SqlClient;
 
 namespace ControlTower.Services;
 
-// Reads/writes [FireHydrant].[dbo].[PumpRunningCount] via SharedDataConnection (database name from appsettings). Unlike
+// Reads/writes [ControlTowerVLM].[dbo].[FH_PumpRunningCount] via SharedDataConnection (database name from
+// FireHydrant:Database; moved from the old [FireHydrant].[dbo].[PumpRunningCount] on 2026-10-26). Unlike
 // Alerts, this table's DateTime column is a real datetime (verified before writing this) -
 // "id" still has no identity/default though, so it's assigned as MAX(id)+1 on insert, same
 // as FireHydrantAlertRepository.
@@ -17,17 +18,19 @@ public class FireHydrantPumpCountRepository
 
     private readonly string _connectionString;
     private readonly string _database; // FireHydrant:Database (appsettings.json)
+    private readonly bool _writesEnabled; // TEMPORARY: AppWriteMode (view-only copies)
 
     public FireHydrantPumpCountRepository(IConfiguration config)
     {
         _connectionString = config.GetConnectionString("SharedDataConnection") ?? "";
-        _database = config["FireHydrant:Database"] ?? "FireHydrant";
+        _database = config["FireHydrant:Database"] ?? "ControlTowerVLM";
+        _writesEnabled = AppWriteMode.IsEnabled(config); // TEMPORARY: AppWriteMode (view-only copies)
     }
 
     public async Task<int?> GetLastCountAsync(string pump)
     {
         var sql = $@"
-            SELECT TOP 1 [Count] FROM [{_database}].[dbo].[PumpRunningCount]
+            SELECT TOP 1 [Count] FROM [{_database}].[dbo].[FH_PumpRunningCount]
             WHERE [Pump] = @Pump ORDER BY [DateTime] DESC";
         using var conn = new SqlConnection(_connectionString);
         return await conn.QuerySingleOrDefaultAsync<int?>(sql, new { Pump = pump });
@@ -35,10 +38,11 @@ public class FireHydrantPumpCountRepository
 
     public async Task InsertAsync(string pump, int count, DateTime dateTime)
     {
+        if (!_writesEnabled) return; // TEMPORARY: AppWriteMode (view-only copies)
         var sql = $@"
-            INSERT INTO [{_database}].[dbo].[PumpRunningCount] ([id], [DateTime], [Pump], [Count])
+            INSERT INTO [{_database}].[dbo].[FH_PumpRunningCount] ([id], [DateTime], [Pump], [Count])
             SELECT ISNULL(MAX([id]), 0) + 1, @DateTime, @Pump, @Count
-            FROM [{_database}].[dbo].[PumpRunningCount]";
+            FROM [{_database}].[dbo].[FH_PumpRunningCount]";
         using var conn = new SqlConnection(_connectionString);
         await conn.ExecuteAsync(sql, new { DateTime = dateTime, Pump = pump, Count = count });
     }
@@ -55,7 +59,7 @@ public class FireHydrantPumpCountRepository
     {
         var sql = $@"
             SELECT [Pump], [DateTime], [Count]
-            FROM [{_database}].[dbo].[PumpRunningCount]
+            FROM [{_database}].[dbo].[FH_PumpRunningCount]
             WHERE [Pump] IN @Pumps AND [DateTime] >= @RangeStart AND [DateTime] <= @RangeEnd
             ORDER BY [Pump], [DateTime]";
 

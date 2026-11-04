@@ -48,6 +48,9 @@ app.UseStaticFiles(new StaticFileOptions
     OnPrepareResponse = ctx => ctx.Context.Response.Headers.CacheControl = "no-cache"
 });
 
+// TEMPORARY: view-only copies reject API writes (App:WritesEnabled - Modules/Shared/AppWriteMode.cs)
+app.UseMiddleware<AppWriteModeMiddleware>();
+
 app.UseAuthorization();
 
 app.MapControllers();

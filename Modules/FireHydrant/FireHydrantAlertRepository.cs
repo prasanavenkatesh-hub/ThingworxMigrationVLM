@@ -4,7 +4,8 @@ using Microsoft.Data.SqlClient;
 
 namespace ControlTower.Services;
 
-// Reads/writes [FireHydrant].[dbo].[Alerts] via SharedDataConnection (database name from appsettings) (cross-database
+// Reads/writes [ControlTowerVLM].[dbo].[FH_Alerts] via SharedDataConnection (database name from FireHydrant:Database;
+// moved from the old [FireHydrant].[dbo].[Alerts] on 2026-10-26) (cross-database
 // query, same pattern used elsewhere in ReportsService). The table is an append-only audit
 // log: an "open" row is inserted when a red condition starts, a "close" row (same AlertId)
 // when it recovers. "id" has no identity/default, so it's assigned as MAX(id)+1 on insert.
@@ -12,21 +13,23 @@ public class FireHydrantAlertRepository
 {
     private readonly string _connectionString;
     private readonly string _database; // FireHydrant:Database (appsettings.json)
+    private readonly bool _writesEnabled; // TEMPORARY: AppWriteMode (view-only copies)
 
     public FireHydrantAlertRepository(IConfiguration config)
     {
         _connectionString = config.GetConnectionString("SharedDataConnection") ?? "";
-        _database = config["FireHydrant:Database"] ?? "FireHydrant";
+        _database = config["FireHydrant:Database"] ?? "ControlTowerVLM";
+        _writesEnabled = AppWriteMode.IsEnabled(config); // TEMPORARY: AppWriteMode (view-only copies)
     }
 
     public async Task<List<FireHydrantAlertDto>> GetOpenAlertsAsync()
     {
         var sql = $@"
             SELECT a.[AlertId], a.[EventTime], a.[Type], a.[Description], a.[status] AS Status, a.[SnoozeTime]
-            FROM [{_database}].[dbo].[Alerts] a
+            FROM [{_database}].[dbo].[FH_Alerts] a
             INNER JOIN (
                 SELECT [AlertId], MAX([EventTime]) AS MaxEventTime
-                FROM [{_database}].[dbo].[Alerts]
+                FROM [{_database}].[dbo].[FH_Alerts]
                 GROUP BY [AlertId]
             ) latest ON a.[AlertId] = latest.[AlertId] AND a.[EventTime] = latest.[MaxEventTime]
             WHERE a.[status] = 'open'
@@ -38,19 +41,21 @@ public class FireHydrantAlertRepository
 
     public async Task InsertAsync(long alertId, DateTime eventTime, string type, string description, string status)
     {
+        if (!_writesEnabled) return; // TEMPORARY: AppWriteMode (view-only copies)
         var sql = $@"
-            INSERT INTO [{_database}].[dbo].[Alerts] ([id], [AlertId], [EventTime], [Type], [Description], [status], [SnoozeTime])
+            INSERT INTO [{_database}].[dbo].[FH_Alerts] ([id], [AlertId], [EventTime], [Type], [Description], [status], [SnoozeTime])
             SELECT ISNULL(MAX([id]), 0) + 1, @AlertId, @EventTime, @Type, @Description, @Status, NULL
-            FROM [{_database}].[dbo].[Alerts]";
+            FROM [{_database}].[dbo].[FH_Alerts]";
         using var conn = new SqlConnection(_connectionString);
         await conn.ExecuteAsync(sql, new { AlertId = alertId, EventTime = eventTime, Type = type, Description = description, Status = status });
     }
 
     public async Task SnoozeAsync(List<long> alertIds, DateTime snoozeUntil)
     {
+        if (!_writesEnabled) return; // TEMPORARY: AppWriteMode (view-only copies)
         if (alertIds.Count == 0) return;
         var sql = $@"
-            UPDATE [{_database}].[dbo].[Alerts]
+            UPDATE [{_database}].[dbo].[FH_Alerts]
             SET [SnoozeTime] = @SnoozeUntil
             WHERE [AlertId] IN @AlertIds AND [status] = 'open'";
         using var conn = new SqlConnection(_connectionString);
@@ -65,8 +70,8 @@ public class FireHydrantAlertRepository
     {
         var sql = $@"
             SELECT o.[Type], o.[Description], o.[EventTime] AS StartEvent, c.[EventTime] AS EndEvent
-            FROM [{_database}].[dbo].[Alerts] o
-            LEFT JOIN [{_database}].[dbo].[Alerts] c
+            FROM [{_database}].[dbo].[FH_Alerts] o
+            LEFT JOIN [{_database}].[dbo].[FH_Alerts] c
                 ON c.[AlertId] = o.[AlertId] AND c.[status] = 'close'
             WHERE o.[status] = 'open' AND o.[EventTime] >= @Start AND o.[EventTime] <= @End
             ORDER BY o.[EventTime] DESC";
