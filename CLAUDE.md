@@ -45,13 +45,15 @@ Modules/
   Reports/QHold/ CylinderHeadLeak/ CategorywiseRework/ SummaryReport/ RejectionSummary/ SubAssemblyReport/   Power BI ports (1 stored proc each)
   Reports/ProcessParameter/   Power BI port without a proc (whitelisted-column parameterised SELECTs, server-side paging)
   Reports/EbRtmReports/       EB-RTM Reports (ThingWorx RE_EMSRTMReports_MU port) - reads the EB-RTM logging tables
+  Reports/EngineStation/      Leak Station / PDI Station / Engine Test Bed (+ Bed Wise) - port of the MVC app "ThingWorx Migration
+                              Quality Reports Merge"; 24 FACTREPRDETL procs (definitions in Sql/), whitelist in EngineStationReportDefinitions.cs
 wwwroot/
   index.html                  shell: header, sidebar, one <div id="tab-<name>" class="tab-pane"> per screen
   js/core.js                  switchTab(), logout, header (version, MQTT pill, line dropdown), shared helpers
   js/dashboards/*.js          fire-hydrant, gas-leak, ems-renewable, eb-rtm
   js/reports/*.js             biometric, main-line, poke-yoke, qhold, cylinder-head-leak,
                               categorywise-rework, summary-report, rejection-summary, sub-assembly-report,
-                              process-parameter, ebrtm-reports
+                              process-parameter, ebrtm-reports, engine-station (one file, 3 screens)
   js/pokayoke/*.js            pokayoke.js (shared plant-layout renderer + screen controller), overview.js (PokaYoke > Overview cards) + one layout file per screen (jea1-line.js, jea2-line.js, jea1-crankshaft.js)
   css/style.v2.css            shared shell styles (also used by login.html)
   js/machineshop/*.js         pdi-dashboard.js (PDI Dashboard), history-card.js + history-card-page.js (History Card list / card page wwwroot/ms-history-card.html), leak-test.js (Leak Test, prefix mlt; RE_MS_LT_CoverLH_MU layout x 6 components, all live)
@@ -59,7 +61,7 @@ wwwroot/
 ```
 C# namespaces are **flat and unchanged** regardless of folder: `ControlTower.Controllers`, `ControlTower.Services`, `ControlTower.Models`. Folders only group files.
 
-Frontend scripts are **classic `<script>` tags sharing one global scope** (no bundler/modules), loaded in `index.html` order: `core.js` → dashboards → reports. Prefix every top-level name with your module (`eb…`, `ems…`, `gasleak…`, `scada…`/`fireHydrant…`, `qHold…`, `cylinderHead…`, `cwr…`, `sr…`, `pky…`, `msPdi…`) — a duplicate name silently overrides another module.
+Frontend scripts are **classic `<script>` tags sharing one global scope** (no bundler/modules), loaded in `index.html` order: `core.js` → dashboards → reports. Prefix every top-level name with your module (`eb…`, `ems…`, `gasleak…`, `scada…`/`fireHydrant…`, `qHold…`, `cylinderHead…`, `cwr…`, `sr…`, `pky…`, `msPdi…`, `esr…`) — a duplicate name silently overrides another module.
 
 ## Adding a live dashboard (MQTT)
 Backend (`Modules/<Name>/`, mirror `EbRtm` or `GasLeak`):
@@ -78,6 +80,7 @@ Frontend:
 ## Adding a report
 - Backend `Modules/Reports/<Name>/`: model, `<Name>ReportService` (one stored procedure or parameterised SELECT; read-only), `<Name>ReportController` with `[Route("api/reports")]` + `[HttpGet("<name>/data")]`. Register in `ReportsModule.cs`. Connection string named `<Name>Connection`.
 - Keep the stored procedure's `CREATE` script with the project (ask the author) — today's procs exist only in their databases.
+- Data calls are `GET`. Exception: a read-only report whose multi-select filters can overflow IIS's 2048-char query string may `POST` its data call; add that exact route to `ReadOnlyPostPrefixes` in `Modules/Shared/AppWriteMode.cs` (precedent: Engine Station `/data`).
 - Frontend: pane + sidebar entry (with `data-menu="<name>"` + an `App:Menu` key) under the right Reports sub-group (Biometric / Production / Quality / Energy), `js/reports/<name>.js`, `css/reports/<name>.css`, `switchTab()` hook. Use `currentProductionDayRange()` (00:15 → 00:15) for default dates and `downloadWorkbook(workbook, filename)` for Excel export (both in `core.js`).
 
 ## Merging a teammate's copy of the project
@@ -90,7 +93,7 @@ Teammates sometimes develop in a full copy of the repo (e.g. `D:\RE\PowerBI_Repo
 5. Update README (their feature docs + Structure/Config/API sections) and this file.
 
 ## Data the app writes (everything else is read-only)
-**TEMPORARY view-only mode:** a running copy only writes (and sends MQTT commands) when `App:WritesEnabled` is `true`; it defaults to `false`, so developer copies are view-only and the header shows **View only**. Set it on the ONE machine that should keep the records, e.g. `setx App__WritesEnabled true` (new terminal) or a system environment variable, then restart the app; every other copy stays view-only by default. Every new write method must start with `if (!_writesEnabled) return;` (`AppWriteMode.IsEnabled(config)`), tagged `// TEMPORARY: AppWriteMode` - search that tag to remove it all later (details in `Modules/Shared/AppWriteMode.cs`).
+**TEMPORARY view-only mode:** a running copy only writes (and sends MQTT commands) when `App:WritesEnabled` is `true`; it defaults to `false`, so developer copies are view-only and the header shows **View only**. Set it on the ONE machine that should keep the records, e.g. `setx App__WritesEnabled true` (new terminal) or a system environment variable, then restart the app; every other copy stays view-only by default. Every new write method must start with `if (!_writesEnabled) return;` (`AppWriteMode.IsEnabled(config)`), tagged `// TEMPORARY: AppWriteMode` - search that tag to remove it all later (details in `Modules/Shared/AppWriteMode.cs`). Its middleware 403s every `/api` POST/PUT/PATCH/DELETE except the read-only report POSTs in `ReadOnlyPostPrefixes`.
 **`ControlTowerVLM` is the app's only database for its own records** (each module's `<Name>:Database`). Don't write to the old `FireHydrant` / `LPGGasLeak` databases (moved 2026-10-26); new tables get a module prefix (`FH_`, `GasLeak_`, `EbC`) and their CREATE script in `Modules/<Name>/Sql/`. Exception: the History Card layout tables `RE_MSConfiguration` / `SPCMSconfiguration` keep their ThingWorx names; the app only reads them.
 
 | Module | Writes to | When |
@@ -109,6 +112,7 @@ Questions that need an answer from the business team, report owners or IT / DBA 
 - **Stored procedures** for QHold, Cylinder Head Leak, Categorywise Rework, Summary Report and Rejection Summary are not in the repo. `summary-report.js`'s header comment names `usp_GetSummaryReportLeak/PDI/Testing`, but the API calls `dbo.usp_GetSummaryReport` with `@Stage` — confirm which exists.
 - **Rejection Summary (prefix `rjs`)**: EA02 only. EA01 has no data source yet - add `RejectionSummaryEA01Connection` and the proc in the EA01 database when it exists. The proc runs under the `Test` login (`factreread` has no EXECUTE on it). Main Line keeps each engine's latest rejection and drops engines rejected again after To, matching Power BI's whole-table Remove Duplicates.
 - **StraightPass & Rework Sub Assembly (prefix `sar`)**: EA2 only, `dbo.usp_GetSubAssemblyReport` (one proc, one branch per sub-assembly; CREATE script in `Modules/Reports/SubAssemblyReport/Sql/` - keep it in sync with the database). Runs under the `Test` login. De-duplicates over ±30 days around the range (Power BI de-duplicated the whole table). Source tables have no `Date_Time` index, so each call full-scans (3-45 s per month); a date index on the source tables would fix that. SA-22, the Machine Shop crankshaft data and OP-60 stopped logging in 2025/2026.
+- **Engine Station reports (prefix `esr`)**: Leak Station / PDI Station / Engine Test Bed (+ Bed Wise, EA02 only), EA01 + EA02, `EngineStationConnection` (`FACTREPRDETL`; `factreread` has EXECUTE + VIEW DEFINITION on the 24 procs since 2026-11-12). Proc copies in `Modules/Reports/EngineStation/Sql/` - keep in sync. Open (OPEN-QUESTIONS B7-B11, C6): `Get_EngineLeak_Report_EA0x_FilterData` is `TOP 500` without ORDER BY, so Leak filter lists are incomplete (as in the source); bed `M_8` is not in `EngineStationReports:BedWise:Beds`; engine-number list capped at `TopEngineNumbers` 500 (~1000 engines/day; typing/paste works); `MaxRangeDays` 31 is provisional (31-day OverAll EA02 = 14-19 MB JSON, consider compression or a row cap); the `LeakNotice` (ML-47 -> ML-53) has no end date. Data quirks: EA01 PDI `MODEL` empty, EA01 PDI Distinct/Duplicates have no `ROOT_CAUSE`, Test Bed OverAll has no `REWORK_COUNT`, Test Bed `DATE` is NVARCHAR (procs compare it to DATETIME -> scan).
 - **Process/Product Parameter (prefix `ppr`)**: EA2 only. Column lists are a port of the Power BI field parameters (`ProcessParameterColumns.cs`) and double as the SQL column whitelist - never build column names from request text. STN_data has 82M+ rows: keep the date filter mandatory and paging on the server. The Duplicate rule (repeat loads at ML-01) was inferred from the Power BI example because that page never loaded - confirm with the report owner.
 - **EXECUTE denied (seen 20 Oct 2026)**: `factreread` gets "EXECUTE permission was denied" on `usp_GetCylinderHeadLeakRejectionReport`, `usp_GetSummaryReport` and `usp_GetQHoldReport`, so Cylinder Head Leak, Summary and Engine QHold return HTTP 500. Grant EXECUTE to `factreread` or switch those connection strings to a login that has it.
 - **Dashboards > Overview** (`dashboard-1`) has no page yet.

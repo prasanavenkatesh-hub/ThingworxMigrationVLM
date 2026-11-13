@@ -14,6 +14,9 @@ namespace ControlTower.Services;
 //                        STN_data / QHold_PDI_DB (SharedDataConnection + ProcessParameterReport:*Database)
 //   EbRtmReports       - EB-RTM Reports (port of ThingWorx RE_EMSRTMReports_MU); reads the EB-RTM
 //                        logging tables (SharedDataConnection + EbRtm:Database, meters from EbRtm:Meters)
+//   EngineStation      - Leak Station / PDI Station / Engine Test Bed (+ Bed Wise) reports, port of the
+//                        "ThingWorx Migration Quality Reports Merge" app; FACTREPRDETL procs per line x mode
+//                        (connection string EngineStationConnection, settings EngineStationReports:*)
 public static class ReportsModule
 {
     public static IServiceCollection AddReportsModule(this IServiceCollection services)
@@ -29,6 +32,7 @@ public static class ReportsModule
         services.AddScoped<SubAssemblyReportService>();
         services.AddScoped<ProcessParameterReportService>();
         services.AddScoped<EbRtmReportService>();
+        services.AddScoped<EngineStationReportService>();
         return services;
     }
 }

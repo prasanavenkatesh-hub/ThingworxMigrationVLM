@@ -43,7 +43,7 @@ namespace ControlTower.Services
         {
             var method = context.Request.Method;
             var writes = HttpMethods.IsPost(method) || HttpMethods.IsPut(method) || HttpMethods.IsPatch(method) || HttpMethods.IsDelete(method);
-            if (!_enabled && writes && context.Request.Path.StartsWithSegments("/api"))
+            if (!_enabled && writes && context.Request.Path.StartsWithSegments("/api") && !IsReadOnlyPost(context.Request.Path))
             {
                 context.Response.StatusCode = StatusCodes.Status403Forbidden;
                 await context.Response.WriteAsJsonAsync(new
@@ -54,6 +54,20 @@ namespace ControlTower.Services
             }
             await _next(context);
         }
+
+        // read-only report POST (body too large for a query string): the Engine Station reports send up
+        // to 500 engine numbers, so their data call is a POST that only EXECUTEs read-only procs.
+        private static readonly string[] ReadOnlyPostPrefixes =
+        {
+            "/api/reports/leak-station",
+            "/api/reports/pdi-station",
+            "/api/reports/engine-testbed"
+        };
+
+        private static bool IsReadOnlyPost(PathString path) =>
+            path.Value != null
+            && path.Value.EndsWith("/data", StringComparison.OrdinalIgnoreCase)
+            && ReadOnlyPostPrefixes.Any(p => path.StartsWithSegments(p, StringComparison.OrdinalIgnoreCase));
     }
 }
 

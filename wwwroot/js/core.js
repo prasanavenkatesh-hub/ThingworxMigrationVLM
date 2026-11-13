@@ -89,6 +89,8 @@ function switchTab(tabId) {
         loadSarDefaultView();
     } else if (tabId === 'process-parameter') {
         loadPprDefaultView();
+    } else if (tabId === 'leak-station' || tabId === 'pdi-station' || tabId === 'engine-test-bed') {
+        loadEsrDefaultView(tabId);   // Engine Station Reports (engine-station.js)
     } else if (tabId === 'ms-leak-test') {
         loadMltDefaultView();
     } else if (tabId.startsWith('pky-')) {

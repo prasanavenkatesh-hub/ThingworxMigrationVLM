@@ -157,6 +157,36 @@ Status: `OPEN` = waiting for an answer, `ANSWERED` = answer given, not yet appli
 - SA-22, the Machine Shop crankshaft data and OP-60 stopped logging in 2025 / 2026. Is this expected (the line changed), or is logging broken?
 - Answer:
 
+### Engine Station reports (Leak Station / PDI Station / Engine Test Bed)
+
+**B7. Bed Wise: bed `M_8`** - `OPEN`
+- Today: the Bed Wise view shows beds `M_1`..`M_7` as TB-01..TB-07 (config `EngineStationReports:BedWise:Beds`), as the old app did. Bed `M_8` exists in the EA02 Test Bed data, but its rows are left out of the Bed Wise table.
+- Is `M_8` a real test bed that should get a column (TB-08?), or test / wrong data?
+- Answer:
+
+**B8. Engine Number dropdown limited to 500** - `OPEN`
+- Today: the dropdown lists the latest 500 engine numbers of the range (`TopEngineNumbers`), as the old app did. One production day has about 1000 engines, so older engines of the day are not in the list. Typing or pasting any engine number still works.
+- Is that enough, or should the list hold every engine of the range?
+- Answer:
+
+**B9. Maximum date range (31 days)** - `OPEN`
+- Today (**provisional**): one request covers at most 31 days. The old app had no limit. A 31-day Overall on EA02 returns about 28-37 thousand rows (14-19 MB, 4-6 s).
+- Is 31 days enough? A longer range would need response compression or a row limit.
+- Answer:
+
+**B10. Leak EA02 notice "ML-47 leak station changed to ML-53 from 13 April 2026"** - `OPEN`
+- Today: shown on every Leak Station EA02 search, as in the old app (config `EngineStationReports:LeakNotice:EA02`).
+- When can it be removed?
+- Answer:
+
+**B11. Data gaps in the source procedures / tables** - `OPEN`
+- Today, as in the old app:
+  - EA01 PDI: the `MODEL` column is empty in `PDI_Report_Master_EA01`, so Model Code is blank.
+  - EA01 PDI Distinct / Duplicates: the procedures don't return `ROOT_CAUSE` (commented out), so Root Cause is blank there.
+  - Test Bed Overall: the procedures don't return `REWORK_COUNT`, so Rework Count is blank in Overall (filled in Distinct / Duplicates).
+- Should any of these be fixed (in the procedures or the data)?
+- Answer:
+
 ---
 
 ## C. IT / DBA
@@ -181,4 +211,9 @@ Status: `OPEN` = waiting for an answer, `ANSWERED` = answer given, not yet appli
 
 **C5. Database access for JEA1 Crankshaft** - `OPEN`
 - If A10's answer is `RE_VL_J1_CrankShaft`, `factreread` needs read access to it (it has none today).
+- Answer:
+
+**C6. Engine Station procedures in `FACTREPRDETL`** - `OPEN`
+- a) **Leak filter lists are incomplete:** `Get_EngineLeak_Report_EA01_FilterData` / `_EA02_FilterData` return `SELECT TOP 500` rows without `ORDER BY`, so the Leak Station filter dropdowns only see an arbitrary 500 rows of the range (e.g. shift C was missing for EA02 on 11 Nov 2026 although such rows exist). The old app had the same problem. Please drop the `TOP 500` (or return `SELECT DISTINCT` values per column instead). The copies in `Modules/Reports/EngineStation/Sql/` must then be updated too.
+- b) **Test Bed date column:** `Engine_TestBed_Master_EA01` / `_EA02` store `DATE` as NVARCHAR text; the Test Bed procedures compare it with DATETIME parameters, so SQL Server converts every row (no index seek). Could the column become DATETIME, or the procedures compare text?
 - Answer:

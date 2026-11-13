@@ -20,6 +20,7 @@
     <link rel="stylesheet" href="css/reports/rejection-summary.css?v=1">
     <link rel="stylesheet" href="css/reports/sub-assembly-report.css?v=2">
     <link rel="stylesheet" href="css/reports/process-parameter.css?v=1">
+    <link rel="stylesheet" href="css/reports/engine-station.css?v=1">
     <link rel="stylesheet" href="css/reports/ebrtm-reports.css?v=4">
     <link rel="stylesheet" href="css/pokayoke/pokayoke.css?v=19">
     <link rel="stylesheet" href="css/machineshop/machine-shop.css?v=10">
@@ -73,6 +74,9 @@
             }
             if (typeof mltApplyTheme === 'function') {
                 mltApplyTheme();   // Machine Shop > Leak Test charts
+            }
+            if (typeof esrApplyTheme === 'function') {
+                esrApplyTheme();   // Leak / PDI Station + Engine Test Bed pies: slice border = panel colour
             }
         }
 
@@ -272,6 +276,21 @@
                                 data-tooltip="Process/Product Parameter Report" style="font-size: 0.9em; padding: 5px 10px;">
                                 <span class="material-symbols-outlined icon" style="font-size: 18px;">tune</span>
                                 <span class="text">Process/Product Parameter Report</span>
+                            </button>
+                            <button class="nav-item sub-item" id="nav-leak-station" onclick="switchTab('leak-station')" data-menu="leak-station"
+                                data-tooltip="Leak Station Report" style="font-size: 0.9em; padding: 5px 10px;">
+                                <span class="material-symbols-outlined icon" style="font-size: 18px;">opacity</span>
+                                <span class="text">Leak Station Report</span>
+                            </button>
+                            <button class="nav-item sub-item" id="nav-pdi-station" onclick="switchTab('pdi-station')" data-menu="pdi-station"
+                                data-tooltip="PDI Station Report" style="font-size: 0.9em; padding: 5px 10px;">
+                                <span class="material-symbols-outlined icon" style="font-size: 18px;">task_alt</span>
+                                <span class="text">PDI Station Report</span>
+                            </button>
+                            <button class="nav-item sub-item" id="nav-engine-test-bed" onclick="switchTab('engine-test-bed')" data-menu="engine-test-bed"
+                                data-tooltip="Engine Test Bed Report" style="font-size: 0.9em; padding: 5px 10px;">
+                                <span class="material-symbols-outlined icon" style="font-size: 18px;">speed</span>
+                                <span class="text">Engine Test Bed Report</span>
                             </button>
                             <button class="nav-item sub-item" id="nav-poke-yoke" onclick="switchTab('poke-yoke')" data-menu="poke-yoke"
                                 data-tooltip="Poke Yoke- Manual Inspection overall" style="font-size: 0.9em; padding: 5px 10px;">
@@ -1330,6 +1349,12 @@
                     </section>
                 </div>
             </div>
+
+            <!-- Engine Station Reports: Leak Station / PDI Station / Engine Test Bed (+ Bed Wise);
+                 the panes are built by js/reports/engine-station.js -->
+            <div id="tab-leak-station" class="tab-pane"><div class="esr" data-esr="leak"></div></div>
+            <div id="tab-pdi-station" class="tab-pane"><div class="esr" data-esr="pdi"></div></div>
+            <div id="tab-engine-test-bed" class="tab-pane"><div class="esr" data-esr="testbed"></div></div>
 
             <!-- Process/Product Parameter Report EA2 (MainLine / QHold / Duplicate) -->
             <div id="tab-process-parameter" class="tab-pane">
@@ -2748,7 +2773,7 @@
 
         <script src="lib/chart.min.js"></script>
         <!-- App scripts: shared shell first, then one file per module -->
-        <script src="js/core.js?v=12"></script>
+        <script src="js/core.js?v=13"></script>
         <script src="js/app-write-mode.js?v=1"></script> <!-- TEMPORARY: AppWriteMode -->
         <script src="js/dashboards/fire-hydrant.js?v=13"></script>
         <script src="js/dashboards/gas-leak.js?v=1"></script>
@@ -2764,6 +2789,7 @@
         <script src="js/reports/rejection-summary.js?v=1"></script>
         <script src="js/reports/sub-assembly-report.js?v=2"></script>
         <script src="js/reports/process-parameter.js?v=1"></script>
+        <script src="js/reports/engine-station.js?v=1"></script>
         <script src="js/reports/ebrtm-reports.js?v=4"></script>
         <script src="js/pokayoke/pokayoke.js?v=20"></script>
         <script src="js/pokayoke/jea1-line.js?v=11"></script>
