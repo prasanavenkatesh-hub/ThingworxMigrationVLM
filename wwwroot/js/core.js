@@ -95,6 +95,12 @@ function switchTab(tabId) {
         msPdiShow();            // Machine Shop > PDI Dashboard
     } else if (tabId === 'ms-hc') {
         msHcShow();             // Machine Shop > History Card
+    } else if (tabId === 'ms-ppc') {
+        msPpcShow();            // Machine Shop > Part Parameter Config
+    } else if (tabId === 'ms-occ') {
+        msOccShow();            // Machine Shop > Online Control Charts
+    } else if (tabId === 'ms-gid') {
+        msGidShow();            // Machine Shop > Gauge Inspection Data
     }
 }
 

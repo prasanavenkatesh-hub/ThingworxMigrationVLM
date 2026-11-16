@@ -1,0 +1,270 @@
+/* Machine Shop > Part Parameter Config (tab-ms-ppc). Classes prefixed ms-ppc-; colours = the --ms-pdi-* tokens of
+   machine-shop.css (.ms-ppc); tabs, buttons, grid and table reuse the ms-pdi- classes. */
+
+.ms-ppc {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    height: 100%;
+    min-height: 560px;
+    font-family: 'Inter', sans-serif;
+    color: var(--ms-pdi-text);
+}
+
+.ms-ppc-title {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--ms-pdi-accent);
+}
+
+/* Settings + Auto Refresh row */
+.ms-ppc-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    padding: 8px 12px;
+    background: var(--ms-pdi-panel);
+    border: 1px solid var(--ms-pdi-border);
+    border-radius: 8px;
+    box-shadow: var(--ms-pdi-shadow);
+}
+
+.ms-ppc-settings {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px 22px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.ms-ppc-setting {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Non Critical switch (ThingWorx toggle button "Yes" / "No") */
+.ms-ppc-switch {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.ms-ppc-switch input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.ms-ppc-switch-track {
+    position: relative;
+    width: 36px;
+    height: 20px;
+    border-radius: 10px;
+    background: var(--ms-pdi-border);
+    transition: background 0.15s;
+}
+
+.ms-ppc-switch-track::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    transition: transform 0.15s;
+}
+
+.ms-ppc-switch input:checked + .ms-ppc-switch-track { background: var(--ms-pdi-accent); }
+.ms-ppc-switch input:checked + .ms-ppc-switch-track::after { transform: translateX(16px); }
+.ms-ppc-switch input:focus-visible + .ms-ppc-switch-track { outline: 2px solid var(--ms-pdi-accent); outline-offset: 2px; }
+.ms-ppc-switch input:disabled ~ * { opacity: 0.55; }
+.ms-ppc-switch:has(input:disabled) { cursor: not-allowed; }
+
+.ms-ppc-setting select {
+    height: 30px;
+    min-width: 80px;
+    padding: 0 8px;
+    border: 1px solid var(--ms-pdi-border);
+    border-radius: 6px;
+    background: var(--ms-pdi-surface);
+    color: var(--ms-pdi-text);
+    font: 600 13px 'Inter', sans-serif;
+}
+
+.ms-ppc-setting select:disabled { opacity: 0.55; cursor: not-allowed; }
+.ms-ppc-setting select option { background: var(--ms-pdi-panel); color: var(--ms-pdi-text); }
+
+.ms-ppc-settings-note {
+    font-size: 11px;
+    color: var(--ms-pdi-muted);
+}
+
+.ms-ppc-note {
+    font-size: 11px;
+    color: var(--ms-pdi-muted);
+}
+
+.ms-ppc-note:empty { display: none; }
+
+/* Machine without a parameter table (ThingWorx showed an empty grid) */
+.ms-ppc-tab-empty { font-style: italic; }
+
+/* Grid */
+.ms-ppc .ms-pdi-grid { flex: 1; }
+.ms-ppc-table td.ms-ppc-code { white-space: nowrap; }
+.ms-ppc-table td.ms-ppc-desc { text-align: left; font-weight: 500; min-width: 280px; }
+.ms-ppc-table td.ms-ppc-date { white-space: nowrap; font-weight: 500; }
+
+.ms-ppc-check {
+    font-size: 18px;
+    vertical-align: middle;
+    color: var(--ms-pdi-muted);
+    opacity: 0.6;
+}
+
+.ms-ppc-check.on {
+    color: var(--ms-pdi-accent);
+    opacity: 1;
+}
+
+/* Create / Edit / Delete / Auto Refresh (ThingWorx button row) */
+.ms-ppc-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.ms-ppc-actions .ms-pdi-submit:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.ms-ppc-actions .ms-pdi-submit:disabled:hover {
+    background: var(--ms-pdi-accent);
+    border-color: var(--ms-pdi-accent);
+}
+
+/* Row selection (Edit / Delete act on it) */
+.ms-ppc-table tbody tr { cursor: pointer; user-select: none; }
+.ms-ppc-table tbody tr.selected td { background: var(--ms-pdi-accent-soft); }
+.ms-ppc-table tbody tr.selected td:first-child { box-shadow: inset 3px 0 0 var(--ms-pdi-accent); }
+
+/* Create / Edit / Delete pop-up */
+.ms-pdi-modal-box.ms-ppc-modal-box { width: min(520px, 100%); }
+
+.ms-ppc-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    overflow: auto;
+}
+
+.ms-ppc-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--ms-pdi-muted);
+}
+
+.ms-ppc-field input,
+.ms-ppc-field textarea {
+    padding: 7px 10px;
+    border: 1px solid var(--ms-pdi-border);
+    border-radius: 6px;
+    background: var(--ms-pdi-surface);
+    color: var(--ms-pdi-text);
+    font: 500 13px 'Inter', sans-serif;
+    text-transform: none;
+    letter-spacing: 0;
+    resize: vertical;
+}
+
+.ms-ppc-field input:focus,
+.ms-ppc-field textarea:focus {
+    outline: none;
+    border-color: var(--ms-pdi-accent);
+    box-shadow: 0 0 0 3px var(--ms-pdi-accent-soft);
+}
+
+.ms-ppc-field input[readonly] { opacity: 0.7; cursor: default; }
+.ms-ppc-field-date input { width: 170px; }
+
+.ms-ppc-checks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+}
+
+.ms-ppc-check-field {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.ms-ppc-check-field input { width: 16px; height: 16px; accent-color: var(--ms-pdi-accent); }
+
+.ms-ppc-confirm { font-size: 13px; line-height: 1.6; }
+
+/* Report Configuration pop-up */
+.ms-pdi-modal-box.ms-ppc-modal-box.ms-ppc-modal-wide { width: min(1100px, 100%); max-height: 90vh; }
+.ms-ppc-modal-wide .ms-ppc-form { min-height: 0; }
+
+.ms-ppc-report-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.ms-ppc-report-count { font-size: 12px; color: var(--ms-pdi-muted); }
+
+.ms-ppc-report-grid {
+    max-height: 60vh;
+    overflow: auto;
+    border: 1px solid var(--ms-pdi-border);
+    border-radius: 6px;
+}
+
+.ms-ppc-report-table thead th { position: sticky; top: 0; z-index: 1; }
+.ms-ppc-report-table tbody tr { cursor: default; }
+.ms-ppc-rc-show { width: 16px; height: 16px; accent-color: var(--ms-pdi-accent); cursor: pointer; }
+.ms-ppc-rc-show:disabled { cursor: not-allowed; }
+
+.ms-ppc-modal-msg {
+    padding: 0 16px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ms-pdi-nok);
+}
+
+.ms-ppc-modal-msg:empty { display: none; }
+
+.ms-ppc-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 12px 16px 14px;
+}
+
+.ms-ppc-modal-actions .ms-pdi-submit:disabled { opacity: 0.6; cursor: wait; }
+
+.ms-pdi-submit.ms-ppc-danger { background: var(--ms-pdi-nok); border-color: var(--ms-pdi-nok); }
+.ms-pdi-submit.ms-ppc-danger:hover { background: var(--ms-pdi-nok); border-color: var(--ms-pdi-nok); filter: brightness(0.92); }

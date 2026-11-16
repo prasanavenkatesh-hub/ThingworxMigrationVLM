@@ -1,0 +1,523 @@
+/* Machine Shop > Online Control Charts (tab-ms-occ). Classes prefixed ms-occ-; colours = the --ms-pdi-* tokens of
+   machine-shop.css (.ms-occ); machine tabs and the date input reuse the ms-pdi- classes. */
+
+.ms-occ {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 560px;
+    font-family: 'Inter', sans-serif;
+    color: var(--ms-pdi-text);
+}
+
+.ms-occ-title {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--ms-pdi-accent);
+}
+
+.ms-occ-tab-empty { font-style: italic; }
+
+/* View buttons (CELL / OPERATION / SPC ...) left, range buttons (THIS SHIFT / TODAY / CUSTOM) right */
+.ms-occ-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+}
+
+.ms-occ-range {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ms-occ-range[hidden],
+.ms-occ-date-wrap[hidden] { display: none; }
+
+.ms-occ-seg {
+    display: inline-flex;
+    padding: 3px;
+    gap: 2px;
+    background: var(--ms-pdi-panel);
+    border: 1px solid var(--ms-pdi-border);
+    border-radius: 8px;
+    box-shadow: var(--ms-pdi-shadow);
+}
+
+.ms-occ-seg button {
+    padding: 5px 12px;
+    border: none;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--ms-pdi-muted);
+    font: 600 11px 'Inter', sans-serif;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.ms-occ-seg button:hover { color: var(--ms-pdi-text); background: var(--ms-pdi-accent-soft); }
+.ms-occ-seg button.active { background: var(--ms-pdi-accent); color: #ffffff; }
+
+/* Machine name + time window strip (ThingWorx label "Machine Name") */
+.ms-occ-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    padding: 8px 12px;
+    background: var(--ms-pdi-panel);
+    border: 1px solid var(--ms-pdi-border);
+    border-radius: 8px;
+    font-size: 12px;
+}
+
+.ms-occ-head #msOccMachineName { font-weight: 700; letter-spacing: 0.03em; }
+.ms-occ-window { color: var(--ms-pdi-muted); }
+
+.ms-occ-note { font-size: 12px; color: var(--ms-pdi-muted); }
+.ms-occ-note:empty { display: none; }
+
+.ms-occ-placeholder {
+    padding: 40px 16px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--ms-pdi-muted);
+    background: var(--ms-pdi-panel);
+    border: 1px dashed var(--ms-pdi-border);
+    border-radius: 8px;
+}
+
+/* Operator / Inspector cards (ThingWorx RE_Crank_case_Loader_MU) */
+.ms-occ-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+    gap: 12px;
+    transition: opacity 0.15s;
+}
+
+.ms-occ-cards.ms-occ-loading { opacity: 0.5; }
+
+.ms-occ-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px 14px 14px;
+    background: var(--ms-pdi-panel);
+    border: 1px solid var(--ms-pdi-border);
+    border-radius: 10px;
+    box-shadow: var(--ms-pdi-shadow);
+    min-width: 0;
+}
+
+.ms-occ-card-tabs {
+    display: flex;
+    gap: 18px;
+    border-bottom: 1px solid var(--ms-pdi-border);
+}
+
+.ms-occ-card-tabs button {
+    padding: 6px 2px;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    background: transparent;
+    color: var(--ms-pdi-muted);
+    font: 600 11px 'Inter', sans-serif;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+}
+
+.ms-occ-card-tabs button.active { color: var(--ms-pdi-text); border-bottom-color: var(--ms-pdi-accent); }
+
+.ms-occ-card-top {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+/* Circle filled from the bottom up to the % (ThingWorx shape with vertical dynamic fill, green up to 100) */
+.ms-occ-gauge {
+    position: relative;
+    flex: 0 0 104px;
+    height: 104px;
+    border-radius: 50%;
+    border: 2px solid var(--ms-pdi-border);
+    background: var(--ms-pdi-surface);
+    overflow: hidden;
+}
+
+.ms-occ-gauge-fill {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: var(--ms-occ-pct, 0%);
+    background: var(--ms-pdi-ok-soft);
+    border-top: 2px solid var(--ms-pdi-ok);
+    transition: height 0.3s;
+}
+
+.ms-occ-gauge-text {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+}
+
+.ms-occ-gauge-value { font-size: 20px; font-weight: 700; }
+.ms-occ-gauge-value small { font-size: 12px; font-weight: 600; margin-left: 1px; }
+.ms-occ-gauge-name { font-size: 11px; color: var(--ms-pdi-muted); }
+
+.ms-occ-summary {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+}
+
+.ms-occ-row {
+    display: grid;
+    grid-template-columns: 62px 1fr 64px;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+}
+
+.ms-occ-row-label { font-weight: 600; }
+.ms-occ-row-value { text-align: right; font-weight: 600; }
+
+.ms-occ-track {
+    height: 12px;
+    border-radius: 6px;
+    background: var(--ms-pdi-surface);
+    border: 1px solid var(--ms-pdi-border);
+    overflow: hidden;
+}
+
+.ms-occ-track-fill {
+    height: 100%;
+    background: var(--ms-pdi-ok);
+    border-radius: 6px;
+    transition: width 0.3s;
+}
+
+.ms-occ-facts { font-size: 11px; color: var(--ms-pdi-muted); }
+
+.ms-occ-chart-box {
+    position: relative;
+    height: 260px;
+}
+
+.ms-occ-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    font-size: 12px;
+    color: var(--ms-pdi-muted);
+    border: 1px dashed var(--ms-pdi-border);
+    border-radius: 6px;
+}
+
+@media (max-width: 520px) {
+    .ms-occ-cards { grid-template-columns: 1fr; }
+    .ms-occ-card-top { flex-direction: column; align-items: stretch; }
+    .ms-occ-gauge { align-self: center; }
+}
+
+/* ---- Chart line colours of the SPC views (control limits amber, centre line grey; USL / LSL use --ms-pdi-nok) ---- */
+.ms-occ { --ms-occ-limit: #f59e0b; --ms-occ-center: #94a3b8; }
+body.light-mode .ms-occ { --ms-occ-limit: #d97706; --ms-occ-center: #64748b; }
+
+.ms-occ-cards[hidden],
+.ms-occ-op[hidden],
+.ms-occ-spc[hidden],
+.ms-occ-field[hidden],
+.ms-occ-spc-actions[hidden],
+.ms-occ-spc-chart[hidden] { display: none; }
+
+.ms-occ-op.ms-occ-loading,
+.ms-occ-spc.ms-occ-loading { opacity: 0.5; transition: opacity 0.15s; }
+
+/* ---- OPERATION ("NOK Percentage", ThingWorx RE_cell_Loader_MU): one column per cell, Operator + Inspector cards ---- */
+.ms-occ-op {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 12px;
+}
+
+.ms-occ-op-col {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+}
+
+.ms-occ-op-cell {
+    padding: 6px 10px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-align: center;
+    background: var(--ms-pdi-band);
+    border: 1px solid var(--ms-pdi-border);
+    border-radius: 8px;
+}
+
+.ms-occ-op-card { gap: 8px; }
+
+.ms-occ-op-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.ms-occ-op-top .ms-occ-gauge { flex-basis: 92px; height: 92px; }
+.ms-occ-op-top .ms-occ-gauge-value { font-size: 17px; }
+
+/* NOK % circle: red fill (ThingWorx shape fill rgba(246, 85, 85)) */
+.ms-occ-gauge-nok .ms-occ-gauge-fill {
+    background: var(--ms-pdi-nok-soft);
+    border-top-color: var(--ms-pdi-nok);
+}
+
+.ms-occ-op-chips {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    min-width: 0;
+}
+
+.ms-occ-op-chip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 4px 6px;
+    background: var(--ms-pdi-nok-soft);
+    border: 1px solid var(--ms-pdi-border);
+    border-radius: 6px;
+    min-width: 0;
+}
+
+.ms-occ-op-chip-value { font-size: 13px; font-weight: 700; color: var(--ms-pdi-nok); }
+.ms-occ-op-chip-code {
+    max-width: 100%;
+    font-size: 10px;
+    color: var(--ms-pdi-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ms-occ-op-none {
+    grid-column: 1 / -1;
+    align-self: center;
+    font-size: 12px;
+    color: var(--ms-pdi-muted);
+}
+
+/* ---- SPC LIVE / SPC MONTHLY ---- */
+.ms-occ-spc {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.ms-occ-spc-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 10px 12px;
+    padding: 10px 12px;
+    background: var(--ms-pdi-panel);
+    border: 1px solid var(--ms-pdi-border);
+    border-radius: 8px;
+}
+
+.ms-occ-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ms-pdi-muted);
+    letter-spacing: 0.03em;
+}
+
+.ms-occ-select {
+    min-width: 130px;
+    max-width: 260px;
+    padding: 6px 8px;
+    border: 1px solid var(--ms-pdi-border);
+    border-radius: 6px;
+    background: var(--ms-pdi-surface);
+    color: var(--ms-pdi-text);
+    font: 600 13px 'Inter', sans-serif;
+    color-scheme: light dark;
+}
+
+.ms-occ-field-wide .ms-occ-select { min-width: 220px; max-width: 360px; }
+.ms-occ-select:hover { border-color: var(--ms-pdi-accent); }
+.ms-occ-select option { background: var(--white); color: var(--dark); }
+
+.ms-occ-spc-actions {
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.ms-occ-btn {
+    padding: 7px 14px;
+    border: 1px solid var(--ms-pdi-accent);
+    border-radius: 6px;
+    background: var(--ms-pdi-accent-soft);
+    color: var(--ms-pdi-text);
+    font: 600 12px 'Inter', sans-serif;
+    cursor: pointer;
+}
+
+.ms-occ-btn:not(:disabled):hover { background: var(--ms-pdi-accent); color: #ffffff; }
+.ms-occ-btn:disabled { opacity: 0.45; cursor: default; }
+
+.ms-occ-spc-title {
+    font-size: 14px;
+    font-weight: 700;
+    text-align: center;
+}
+
+.ms-occ-spc-title:empty { display: none; }
+
+.ms-occ-spc-body {
+    display: grid;
+    grid-template-columns: 190px minmax(0, 1fr);
+    gap: 12px;
+}
+
+/* Figures panel (ThingWorx property display) */
+.ms-occ-spc-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px;
+    background: var(--ms-pdi-panel);
+    border: 1px solid var(--ms-pdi-border);
+    border-radius: 8px;
+}
+
+.ms-occ-spc-stats:empty { display: none; }
+
+.ms-occ-spc-stat {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 5px 8px;
+    font-size: 12px;
+    border-radius: 5px;
+    background: var(--ms-pdi-surface);
+}
+
+.ms-occ-spc-stat span { color: var(--ms-pdi-muted); }
+.ms-occ-spc-stat b { font-variant-numeric: tabular-nums; }
+.ms-occ-spc-cap { background: var(--ms-pdi-accent-soft); }
+
+.ms-occ-spc-charts {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+}
+
+.ms-occ-spc-chart {
+    position: relative;
+    height: 330px;
+    padding: 8px;
+    background: var(--ms-pdi-panel);
+    border: 1px solid var(--ms-pdi-border);
+    border-radius: 8px;
+}
+
+#msOccSpcChart2Box { height: 260px; }
+
+/* Readings strip under SPC LIVE + pop-up tables */
+.ms-occ-spc-strip {
+    overflow-x: auto;
+    background: var(--ms-pdi-panel);
+    border: 1px solid var(--ms-pdi-border);
+    border-radius: 8px;
+}
+
+.ms-occ-spc-strip:empty { display: none; }
+
+.ms-occ-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+}
+
+.ms-occ-table th,
+.ms-occ-table td {
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--ms-pdi-border);
+    text-align: right;
+    white-space: nowrap;
+}
+
+.ms-occ-table th {
+    position: sticky;
+    top: 0;
+    background: var(--ms-pdi-band);
+    font-weight: 600;
+    color: var(--ms-pdi-text);
+}
+
+.ms-occ-table td.ms-occ-left { text-align: left; }
+.ms-occ-table td.ms-occ-out { color: var(--ms-pdi-nok); font-weight: 600; }
+.ms-occ-strip-table th.ms-occ-strip-head { position: sticky; left: 0; z-index: 1; text-align: left; }
+.ms-occ-strip-table th { position: static; }
+
+/* Pop-ups (box from machine-shop.css .ms-pdi-modal) */
+.ms-occ-modal .ms-occ-modal-box { width: min(1100px, 100%); }
+
+.ms-occ-modal-tools {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--ms-pdi-border);
+}
+
+.ms-occ-modal-tools:empty { display: none; }
+
+.ms-occ-checks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    font-size: 12px;
+}
+
+.ms-occ-checks label { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
+
+.ms-occ-modal-buttons { display: flex; gap: 8px; }
+
+@media (max-width: 760px) {
+    .ms-occ-spc-body { grid-template-columns: 1fr; }
+    .ms-occ-spc-stats { flex-direction: row; flex-wrap: wrap; }
+    .ms-occ-spc-stat { flex: 1 1 140px; }
+    .ms-occ-spc-actions { margin-left: 0; }
+}
+
+.ms-occ-spc-body[hidden] { display: none; }
+.ms-occ-table th.ms-occ-left { text-align: left; }

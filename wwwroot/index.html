@@ -9,6 +9,7 @@
     <link rel="icon" type="image/png" href="assets/logo-small.png">
     <!-- Shared shell styles, then one stylesheet per module (css/dashboards, css/reports) -->
     <link rel="stylesheet" href="css/style.v2.css?v=6">
+    <link rel="stylesheet" href="css/app-write-mode.css?v=1"> <!-- TEMPORARY: AppWriteMode -->
     <link rel="stylesheet" href="css/extra_styles.css?v=1.1">
     <link rel="stylesheet" href="css/dashboards/fire-hydrant.css?v=16">
     <link rel="stylesheet" href="css/dashboards/gas-leak.css?v=1">
@@ -21,8 +22,11 @@
     <link rel="stylesheet" href="css/reports/process-parameter.css?v=1">
     <link rel="stylesheet" href="css/reports/ebrtm-reports.css?v=4">
     <link rel="stylesheet" href="css/pokayoke/pokayoke.css?v=19">
-    <link rel="stylesheet" href="css/machineshop/machine-shop.css?v=10">
+    <link rel="stylesheet" href="css/machineshop/machine-shop.css?v=13">
     <link rel="stylesheet" href="css/machineshop/history-card.css?v=5">
+    <link rel="stylesheet" href="css/machineshop/part-param-config.css?v=3">
+    <link rel="stylesheet" href="css/machineshop/control-charts.css?v=3">
+    <link rel="stylesheet" href="css/machineshop/gauge-inspection.css?v=2">
     <script src="lib/exceljs.min.js"></script>
     <script>
         function applyTheme(theme) {
@@ -68,6 +72,9 @@
             }
             if (typeof msPdiRethemePies === 'function') {
                 msPdiRethemePies();   // PDI part / summary pies: slice border = panel colour
+            }
+            if (typeof msOccRetheme === 'function') {
+                msOccRetheme();   // Online Control Charts: line chart colours
             }
         }
 
@@ -177,6 +184,21 @@
                             data-tooltip="History Card" style="font-size: 0.9em; padding: 5px 10px;">
                             <span class="material-symbols-outlined icon" style="font-size: 18px;">history_edu</span>
                             <span class="text">History Card</span>
+                        </button>
+                        <button class="nav-item sub-item" id="nav-ms-ppc" onclick="switchTab('ms-ppc')" data-menu="ms-ppc"
+                            data-tooltip="Part Parameter Config" style="font-size: 0.9em; padding: 5px 10px;">
+                            <span class="material-symbols-outlined icon" style="font-size: 18px;">tune</span>
+                            <span class="text">Part Parameter Config</span>
+                        </button>
+                        <button class="nav-item sub-item" id="nav-ms-occ" onclick="switchTab('ms-occ')" data-menu="ms-occ"
+                            data-tooltip="Online Control Charts" style="font-size: 0.9em; padding: 5px 10px;">
+                            <span class="material-symbols-outlined icon" style="font-size: 18px;">monitoring</span>
+                            <span class="text">Online Control Charts</span>
+                        </button>
+                        <button class="nav-item sub-item" id="nav-ms-gid" onclick="switchTab('ms-gid')" data-menu="ms-gid"
+                            data-tooltip="Gauge Inspection Data" style="font-size: 0.9em; padding: 5px 10px;">
+                            <span class="material-symbols-outlined icon" style="font-size: 18px;">fact_check</span>
+                            <span class="text">Gauge Inspection Data</span>
                         </button>
                     </div>
                 </div>
@@ -1931,6 +1953,127 @@
                 </div>
             </div>
 
+            <!-- Machine Shop - Part Parameter Config (js/machineshop/part-param-config.js; ThingWorx
+                 RE_PartParameter_Configuration_MU). Create / Edit / Delete change the plant CriticalPartParameter tables;
+                 Non Critical / Sample Size and the Report Configuration Show flags are saved in ControlTowerVLM. -->
+            <div id="tab-ms-ppc" class="tab-pane">
+                <div class="ms-ppc">
+                    <div class="ms-ppc-title">PART PARAMETER-CONFIGURATION PAGE</div>
+                    <div class="ms-pdi-bar">
+                        <div class="ms-pdi-tabs" id="msPpcTabs"></div>
+                    </div>
+                    <div class="ms-ppc-bar">
+                        <div class="ms-ppc-settings" id="msPpcSettings">
+                            <label class="ms-ppc-setting ms-ppc-switch">Non Critical
+                                <input type="checkbox" id="msPpcNonCritical">
+                                <span class="ms-ppc-switch-track"></span>
+                                <span id="msPpcNonCriticalText">No</span>
+                            </label>
+                            <label class="ms-ppc-setting">Sample Size
+                                <select id="msPpcSampleSize"></select>
+                            </label>
+                            <span class="ms-ppc-settings-note" id="msPpcSettingsNote"></span>
+                        </div>
+                        <div class="ms-ppc-actions">
+                            <button class="ms-pdi-submit" type="button" id="msPpcCreateBtn" onclick="msPpcCreate()" disabled>Create</button>
+                            <button class="ms-pdi-submit" type="button" id="msPpcEditBtn" onclick="msPpcEdit()" disabled>Edit</button>
+                            <button class="ms-pdi-submit" type="button" id="msPpcDeleteBtn" onclick="msPpcDelete()" disabled>Delete</button>
+                            <button class="ms-pdi-submit" type="button" id="msPpcReportBtn" onclick="msPpcReportConfig()" disabled>Report Configuration</button>
+                            <button class="ms-pdi-submit" type="button" onclick="msPpcLoad()">Auto Refresh</button>
+                        </div>
+                    </div>
+                    <div class="ms-ppc-note" id="msPpcNote"></div>
+                    <div class="ms-pdi-grid" id="msPpcGrid"></div>
+                </div>
+            </div>
+
+            <!-- Machine Shop - Online Control Charts (js/machineshop/control-charts.js; ThingWorx RE_Crank_case_Dashboard_MU
+                 "CELL LEVEL DASHBOARD" + RE_Crank_case_Loader_MU cards). Read-only. Views CELL, OPERATION (RE_cell_Loader_MU),
+                 SPC LIVE (QualityFunction_MU) and SPC MONTHLY (QualityFunctionMonthly_MU). -->
+            <div id="tab-ms-occ" class="tab-pane">
+                <div class="ms-occ">
+                    <div class="ms-occ-title" id="msOccTitle">CELL LEVEL DASHBOARD</div>
+                    <div class="ms-pdi-bar">
+                        <div class="ms-pdi-tabs" id="msOccTabs"></div>
+                    </div>
+                    <div class="ms-occ-bar">
+                        <div class="ms-occ-seg" id="msOccViews"></div>
+                        <div class="ms-occ-range" id="msOccRangeBox">
+                            <span class="ms-occ-date-wrap" id="msOccDateWrap" hidden>
+                                <input type="text" id="msOccDate" class="ms-pdi-date" placeholder="Date" readonly>
+                            </span>
+                            <div class="ms-occ-seg" id="msOccRanges"></div>
+                        </div>
+                    </div>
+                    <div class="ms-occ-head">
+                        <span id="msOccMachineName"></span>
+                        <span class="ms-occ-window" id="msOccWindow"></span>
+                    </div>
+                    <div class="ms-occ-note" id="msOccNote"></div>
+                    <div class="ms-occ-cards" id="msOccCards"></div>
+                    <div class="ms-occ-op" id="msOccOperation" hidden></div>
+                    <div class="ms-occ-spc" id="msOccSpc" hidden>
+                        <div class="ms-occ-spc-filters" id="msOccSpcFilters"></div>
+                        <div class="ms-occ-spc-title" id="msOccSpcTitle"></div>
+                        <div class="ms-occ-spc-body">
+                            <div class="ms-occ-spc-stats" id="msOccSpcStats"></div>
+                            <div class="ms-occ-spc-charts">
+                                <div class="ms-occ-spc-chart"><canvas id="msOccSpcChart1"></canvas></div>
+                                <div class="ms-occ-spc-chart" id="msOccSpcChart2Box"><canvas id="msOccSpcChart2"></canvas></div>
+                            </div>
+                        </div>
+                        <div class="ms-occ-spc-strip" id="msOccSpcStrip"></div>
+                    </div>
+                    <div class="ms-occ-placeholder" id="msOccPlaceholder" hidden></div>
+                </div>
+                <!-- SPC MONTHLY pop-ups: Readings (RE_SPCMonthlyReadingPopup_MU) and Report (RE_SPCReportTable_MU) -->
+                <div class="ms-pdi-modal ms-occ-modal" id="msOccModal" role="dialog" aria-modal="true" aria-labelledby="msOccModalTitle">
+                    <div class="ms-pdi-modal-box ms-occ-modal-box">
+                        <div class="ms-pdi-modal-head">
+                            <div>
+                                <div class="ms-pdi-modal-title" id="msOccModalTitle"></div>
+                                <div class="ms-pdi-modal-sub" id="msOccModalSub"></div>
+                            </div>
+                            <button type="button" class="ms-pdi-modal-close" id="msOccModalClose" aria-label="Close">&times;</button>
+                        </div>
+                        <div class="ms-occ-modal-tools" id="msOccModalTools"></div>
+                        <div class="ms-pdi-modal-body" id="msOccModalBody"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Machine Shop - Gauge Inspection Data (js/machineshop/gauge-inspection.js; ThingWorx QF_OnlineInspection_MU,
+                 Thing "QF_Online _Inspection _DB_TH"). Read-only: parts checked per shift and process code vs plan. -->
+            <div id="tab-ms-gid" class="tab-pane">
+                <div class="ms-gid">
+                    <div class="ms-gid-title">GAUGE INSPECTION DATA</div>
+                    <div class="ms-pdi-bar">
+                        <div class="ms-pdi-tabs" id="msGidTabs"></div>
+                    </div>
+                    <div class="ms-gid-filters">
+                        <select id="msGidCell" class="ms-gid-select" aria-label="Cell"></select>
+                        <div class="ms-gid-multi" id="msGidShifts"></div>
+                        <div class="ms-gid-multi" id="msGidCodes"></div>
+                        <div class="ms-gid-seg" id="msGidRanges">
+                            <button type="button" data-range="today">TODAY</button>
+                            <button type="button" data-range="custom">CUSTOM</button>
+                        </div>
+                        <span class="ms-gid-dates" id="msGidDates" hidden>
+                            <input type="text" id="msGidFrom" class="ms-pdi-date" placeholder="From" readonly>
+                            <span class="ms-gid-dash">-</span>
+                            <input type="text" id="msGidTo" class="ms-pdi-date" placeholder="To" readonly>
+                        </span>
+                        <button type="button" class="ms-pdi-submit" id="msGidSubmit">SUBMIT</button>
+                    </div>
+                    <div class="ms-gid-head">
+                        <span id="msGidMachineName"></span>
+                        <span class="ms-gid-window" id="msGidWindow"></span>
+                    </div>
+                    <div class="ms-gid-note" id="msGidNote"></div>
+                    <div class="ms-gid-grid" id="msGidGrid"></div>
+                </div>
+            </div>
+
             <!-- Fire Hydrant Monitoring Dashboard -->
             <div id="tab-fire-hydrant" class="tab-pane">
                 <div class="scada-scroll">
@@ -2730,7 +2873,8 @@
 
         <script src="lib/chart.min.js"></script>
         <!-- App scripts: shared shell first, then one file per module -->
-        <script src="js/core.js?v=11"></script>
+        <script src="js/core.js?v=14"></script>
+        <script src="js/app-write-mode.js?v=1"></script> <!-- TEMPORARY: AppWriteMode -->
         <script src="js/dashboards/fire-hydrant.js?v=13"></script>
         <script src="js/dashboards/gas-leak.js?v=1"></script>
         <script src="js/dashboards/ems-renewable.js?v=3"></script>
@@ -2752,6 +2896,9 @@
         <script src="js/pokayoke/jea1-crankshaft.js?v=1"></script>
         <script src="js/machineshop/pdi-dashboard.js?v=13"></script>
         <script src="js/machineshop/history-card.js?v=2"></script>
+        <script src="js/machineshop/part-param-config.js?v=4"></script>
+        <script src="js/machineshop/control-charts.js?v=3"></script>
+        <script src="js/machineshop/gauge-inspection.js?v=2"></script>
         <script src="js/pokayoke/overview.js?v=4"></script>
 </body>
 

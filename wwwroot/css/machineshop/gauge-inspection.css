@@ -1,0 +1,192 @@
+/* Machine Shop > Gauge Inspection Data (tab-ms-gid). Classes prefixed ms-gid-; colours = the --ms-pdi-* tokens of
+   machine-shop.css (.ms-gid); machine tabs, date inputs and the SUBMIT button reuse the ms-pdi- classes. */
+
+.ms-gid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 560px;
+    font-family: 'Inter', sans-serif;
+    color: var(--ms-pdi-text);
+}
+
+.ms-gid-title {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--ms-pdi-accent);
+}
+
+.ms-gid-tab-empty { font-style: italic; }
+
+/* Filter bar: Cell, Shift, Process Code, TODAY / CUSTOM, From - To, SUBMIT */
+.ms-gid-filters {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 10px;
+    padding: 10px 12px;
+    background: var(--ms-pdi-panel);
+    border: 1px solid var(--ms-pdi-border);
+    border-radius: 8px;
+}
+
+.ms-gid-select,
+.ms-gid-multi-btn {
+    min-width: 120px;
+    height: 34px;
+    padding: 0 8px;
+    border: 1px solid var(--ms-pdi-border);
+    border-radius: 6px;
+    background: var(--ms-pdi-surface);
+    color: var(--ms-pdi-text);
+    font: 600 13px 'Inter', sans-serif;
+    color-scheme: light dark;
+}
+
+.ms-gid-select:hover:not(:disabled),
+.ms-gid-multi-btn:hover:not(:disabled) { border-color: var(--ms-pdi-accent); }
+.ms-gid-select:disabled { opacity: 0.55; }
+.ms-gid-select option { background: var(--white); color: var(--dark); }
+
+.ms-gid-multi { position: relative; }
+.ms-gid-multi-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-width: 150px;
+    cursor: pointer;
+}
+#msGidCodes .ms-gid-multi-btn { min-width: 220px; }
+.ms-gid-multi-btn .material-symbols-outlined { font-size: 18px; color: var(--ms-pdi-muted); }
+.ms-gid-multi-btn:disabled { opacity: 0.55; cursor: default; }
+
+.ms-gid-multi-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    z-index: 30;
+    min-width: 100%;
+    max-height: 320px;
+    overflow-y: auto;
+    padding: 6px 0;
+    background: var(--ms-pdi-panel);
+    border: 1px solid var(--ms-pdi-border);
+    border-radius: 6px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+}
+.ms-gid-multi-menu[hidden] { display: none; }
+.ms-gid-multi-menu label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 12px;
+    font-size: 13px;
+    white-space: nowrap;
+    cursor: pointer;
+}
+.ms-gid-multi-menu label:hover { background: var(--ms-pdi-accent-soft); }
+.ms-gid-multi-all { border-bottom: 1px solid var(--ms-pdi-border); font-weight: 600; }
+
+.ms-gid-seg {
+    display: inline-flex;
+    padding: 3px;
+    gap: 2px;
+    background: var(--ms-pdi-panel);
+    border: 1px solid var(--ms-pdi-border);
+    border-radius: 8px;
+}
+.ms-gid-seg button {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--ms-pdi-muted);
+    font: 600 11px 'Inter', sans-serif;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+}
+.ms-gid-seg button:hover { color: var(--ms-pdi-text); background: var(--ms-pdi-accent-soft); }
+.ms-gid-seg button.active { background: var(--ms-pdi-accent); color: #ffffff; }
+
+.ms-gid-dates { display: inline-flex; align-items: center; gap: 6px; }
+.ms-gid-dates[hidden] { display: none; }
+.ms-gid-dates .ms-pdi-date { width: 130px; }
+.ms-gid-dash { color: var(--ms-pdi-muted); }
+
+/* Machine name + window strip */
+.ms-gid-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    padding: 8px 12px;
+    background: var(--ms-pdi-panel);
+    border: 1px solid var(--ms-pdi-border);
+    border-radius: 8px;
+    font-size: 12px;
+}
+.ms-gid-head #msGidMachineName { font-weight: 700; letter-spacing: 0.03em; }
+.ms-gid-window { color: var(--ms-pdi-muted); }
+
+.ms-gid-note { font-size: 12px; color: var(--ms-pdi-muted); }
+.ms-gid-note:empty { display: none; }
+
+/* Grid (ThingWorx ptcs-grid ptcsgrid-20) */
+.ms-gid-grid {
+    overflow: auto;
+    max-height: calc(100vh - 290px);
+    background: var(--ms-pdi-panel);
+    border: 1px solid var(--ms-pdi-border);
+    border-radius: 8px;
+}
+.ms-gid-grid:empty { display: none; }
+
+.ms-gid-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+}
+.ms-gid-table th,
+.ms-gid-table td {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--ms-pdi-border);
+    text-align: left;
+    white-space: nowrap;
+}
+.ms-gid-table th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--ms-pdi-band);
+    font-weight: 700;
+}
+.ms-gid-table .ms-gid-num { text-align: right; }
+.ms-gid-table tbody tr:hover td { background: var(--ms-pdi-accent-soft); }
+.ms-gid-table tfoot td {
+    position: sticky;
+    bottom: 0;
+    background: var(--ms-pdi-band);
+    font-weight: 700;
+    border-top: 2px solid var(--ms-pdi-border);
+}
+.ms-gid-table td.ms-gid-ok { color: var(--ms-pdi-ok); font-weight: 600; }
+.ms-gid-table td.ms-gid-short { color: var(--ms-pdi-nok); font-weight: 600; }
+.ms-gid-blank { color: var(--ms-pdi-muted); }
+.ms-gid-empty { text-align: center !important; color: var(--ms-pdi-muted); padding: 24px !important; }
+
+/* Light theme: style.v2.css forces "body.light-mode th / td { ... !important }"; keep this grid's own colours. */
+body .ms-gid-table th,
+body.light-mode .ms-gid-table th {
+    background: var(--ms-pdi-band) !important;
+    color: var(--ms-pdi-text) !important;
+    border-color: var(--ms-pdi-border) !important;
+}
+body.light-mode .ms-gid-table td { border-color: var(--ms-pdi-border) !important; color: var(--ms-pdi-text) !important; }
+body.light-mode .ms-gid-table tfoot td { background: var(--ms-pdi-band) !important; }
+body.light-mode .ms-gid-table td.ms-gid-ok { color: var(--ms-pdi-ok) !important; }
+body.light-mode .ms-gid-table td.ms-gid-short { color: var(--ms-pdi-nok) !important; }
+body.light-mode .ms-gid-table td .ms-gid-blank { color: var(--ms-pdi-muted); }
