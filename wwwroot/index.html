@@ -27,6 +27,7 @@
     <link rel="stylesheet" href="css/machineshop/part-param-config.css?v=3">
     <link rel="stylesheet" href="css/machineshop/control-charts.css?v=3">
     <link rel="stylesheet" href="css/machineshop/gauge-inspection.css?v=2">
+    <link rel="stylesheet" href="css/machineshop/leak-test.css?v=5">
     <script src="lib/exceljs.min.js"></script>
     <script>
         function applyTheme(theme) {
@@ -75,6 +76,9 @@
             }
             if (typeof msOccRetheme === 'function') {
                 msOccRetheme();   // Online Control Charts: line chart colours
+            }
+            if (typeof mltApplyTheme === 'function') {
+                mltApplyTheme();   // Machine Shop > Leak Test charts
             }
         }
 
@@ -194,6 +198,11 @@
                             data-tooltip="Online Control Charts" style="font-size: 0.9em; padding: 5px 10px;">
                             <span class="material-symbols-outlined icon" style="font-size: 18px;">monitoring</span>
                             <span class="text">Online Control Charts</span>
+                        </button>
+                        <button class="nav-item sub-item" id="nav-ms-leak-test" onclick="switchTab('ms-leak-test')" data-menu="ms-leak-test"
+                            data-tooltip="Leak Test" style="font-size: 0.9em; padding: 5px 10px;">
+                            <span class="material-symbols-outlined icon" style="font-size: 18px;">water_drop</span>
+                            <span class="text">Leak Test</span>
                         </button>
                         <button class="nav-item sub-item" id="nav-ms-gid" onclick="switchTab('ms-gid')" data-menu="ms-gid"
                             data-tooltip="Gauge Inspection Data" style="font-size: 0.9em; padding: 5px 10px;">
@@ -2042,6 +2051,14 @@
                 </div>
             </div>
 
+            <!-- Machine Shop - Leak Test (component sub-tabs; js/machineshop/leak-test.js; merged from Prasanna's copy 2026-11-16) -->
+            <div id="tab-ms-leak-test" class="tab-pane">
+                <div class="mlt">
+                    <div class="mlt-tabs" id="mltTabs"></div>
+                    <div class="mlt-body" id="mltBody"></div>
+                </div>
+            </div>
+
             <!-- Machine Shop - Gauge Inspection Data (js/machineshop/gauge-inspection.js; ThingWorx QF_OnlineInspection_MU,
                  Thing "QF_Online _Inspection _DB_TH"). Read-only: parts checked per shift and process code vs plan. -->
             <div id="tab-ms-gid" class="tab-pane">
@@ -2873,7 +2890,7 @@
 
         <script src="lib/chart.min.js"></script>
         <!-- App scripts: shared shell first, then one file per module -->
-        <script src="js/core.js?v=14"></script>
+        <script src="js/core.js?v=15"></script>
         <script src="js/app-write-mode.js?v=1"></script> <!-- TEMPORARY: AppWriteMode -->
         <script src="js/dashboards/fire-hydrant.js?v=13"></script>
         <script src="js/dashboards/gas-leak.js?v=1"></script>
@@ -2899,6 +2916,7 @@
         <script src="js/machineshop/part-param-config.js?v=4"></script>
         <script src="js/machineshop/control-charts.js?v=3"></script>
         <script src="js/machineshop/gauge-inspection.js?v=2"></script>
+        <script src="js/machineshop/leak-test.js?v=6"></script>
         <script src="js/pokayoke/overview.js?v=4"></script>
 </body>
 
