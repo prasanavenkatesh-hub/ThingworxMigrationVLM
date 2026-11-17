@@ -1,0 +1,161 @@
+/* Machine Shop > Gauge Inspection Report (tab-ms-gir). Classes prefixed ms-gir-; colours = the --ms-pdi-* tokens of
+   machine-shop.css (.ms-gir). The filter bar reuses the Gauge Inspection Data classes (ms-gid-filters / -select /
+   -seg / -multi / -title / -note, gauge-inspection.css) and the ms-pdi- tabs, date input and SUBMIT button. */
+
+.ms-gir {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 560px;
+    font-family: 'Inter', sans-serif;
+    color: var(--ms-pdi-text);
+}
+
+.ms-gir .ms-gid-dates .ms-pdi-date { width: 130px; }
+#msGirCodes .ms-gid-multi-btn { min-width: 220px; }
+
+.ms-gir-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+}
+.ms-gir-check input { accent-color: var(--ms-pdi-accent); width: 15px; height: 15px; }
+
+.ms-gir-excel {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 34px;
+    padding: 0 12px;
+    border: 1px solid var(--ms-pdi-border);
+    border-radius: 6px;
+    background: var(--ms-pdi-surface);
+    color: var(--ms-pdi-text);
+    font: 600 13px 'Inter', sans-serif;
+    cursor: pointer;
+}
+.ms-gir-excel .material-symbols-outlined { font-size: 18px; }
+.ms-gir-excel:hover:not(:disabled) { border-color: var(--ms-pdi-accent); color: var(--ms-pdi-accent); }
+.ms-gir-excel:disabled { opacity: 0.5; cursor: default; }
+
+/* Start Time / End Time / Current Shift / n Component strip (ThingWorx header labels) */
+.ms-gir-head {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 6px 22px;
+    padding: 8px 12px;
+    background: var(--ms-pdi-panel);
+    border: 1px solid var(--ms-pdi-border);
+    border-radius: 8px;
+    font-size: 12px;
+}
+.ms-gir-head b { color: var(--ms-pdi-muted); font-weight: 600; margin-right: 4px; }
+.ms-gir-machine { font-weight: 700; letter-spacing: 0.03em; }
+.ms-gir-count { margin-left: auto; font-weight: 700; color: var(--ms-pdi-accent); }
+
+/* Report grid: fixed parameter columns on the left, one column per part */
+.ms-gir-grid {
+    overflow: auto;
+    max-height: calc(100vh - 340px);
+    background: var(--ms-pdi-panel);
+    border: 1px solid var(--ms-pdi-border);
+    border-radius: 8px;
+}
+.ms-gir-grid:empty { display: none; }
+
+.ms-gir-table {
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+}
+.ms-gir-table th,
+.ms-gir-table td {
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--ms-pdi-border);
+    border-right: 1px solid var(--ms-pdi-border);
+    background: var(--ms-pdi-panel);
+    text-align: left;
+    vertical-align: middle;
+}
+.ms-gir-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--ms-pdi-band);
+    font-weight: 700;
+    white-space: nowrap;
+}
+/* Left columns stay in place while the part columns scroll */
+.ms-gir-table .ms-gir-fix { position: sticky; z-index: 1; }
+.ms-gir-table thead th.ms-gir-fix { z-index: 3; }
+.ms-gir-table .ms-gir-c0 { left: 0; width: 44px; min-width: 44px; text-align: center; }
+.ms-gir-table .ms-gir-c1 { left: 44px; width: 110px; min-width: 110px; }
+.ms-gir-table .ms-gir-c2 { left: 154px; width: 240px; min-width: 240px; max-width: 240px; }
+.ms-gir-table .ms-gir-c3 { left: 394px; width: 150px; min-width: 150px; max-width: 150px; }
+.ms-gir-table .ms-gir-c4 { left: 544px; width: 120px; min-width: 120px; box-shadow: 2px 0 0 var(--ms-pdi-border); white-space: nowrap; }
+.ms-gir-table td.ms-gir-c2,
+.ms-gir-table td.ms-gir-c3 { white-space: normal; overflow-wrap: anywhere; }
+
+.ms-gir-part { min-width: 150px; text-align: center !important; font-weight: 600 !important; line-height: 1.45; }
+.ms-gir-part .ms-gir-qr { display: block; color: var(--ms-pdi-accent); }
+.ms-gir-part .ms-gir-op,
+.ms-gir-part .ms-gir-time { display: block; font-weight: 500; color: var(--ms-pdi-muted); }
+
+.ms-gir-table td.ms-gir-val { text-align: center; white-space: nowrap; }
+.ms-gir-table td.ms-gir-nok { color: var(--ms-pdi-nok); background: var(--ms-pdi-nok-soft); font-weight: 700; }
+.ms-gir-crit { color: var(--ms-pdi-nok); font-weight: 700; margin-left: 4px; }
+.ms-gir-blank { color: var(--ms-pdi-muted); }
+.ms-gir-empty { text-align: center !important; color: var(--ms-pdi-muted); padding: 24px !important; }
+.ms-gir-table tbody tr:hover td { background-image: linear-gradient(var(--ms-pdi-accent-soft), var(--ms-pdi-accent-soft)); }
+
+/* Pagination (ThingWorx ptcs-grid paging: "Total Row Count" + page buttons) */
+.ms-gir-pager {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 4px;
+    font-size: 12px;
+}
+.ms-gir-pager:empty { display: none; }
+.ms-gir-pager .ms-gir-total { margin-right: auto; color: var(--ms-pdi-muted); }
+.ms-gir-pager button {
+    min-width: 30px;
+    height: 28px;
+    padding: 0 8px;
+    border: 1px solid var(--ms-pdi-border);
+    border-radius: 5px;
+    background: var(--ms-pdi-surface);
+    color: var(--ms-pdi-text);
+    font: 600 12px 'Inter', sans-serif;
+    cursor: pointer;
+}
+.ms-gir-pager button:hover:not(:disabled) { border-color: var(--ms-pdi-accent); }
+.ms-gir-pager button.active { background: var(--ms-pdi-accent); border-color: var(--ms-pdi-accent); color: #ffffff; }
+.ms-gir-pager button:disabled { opacity: 0.45; cursor: default; }
+.ms-gir-pager .ms-gir-gap { padding: 0 4px; color: var(--ms-pdi-muted); }
+
+/* Light theme: style.v2.css forces "body.light-mode th / td { ... !important }"; keep this grid's own colours. */
+body .ms-gir-table thead th,
+body.light-mode .ms-gir-table thead th {
+    background: var(--ms-pdi-band) !important;
+    color: var(--ms-pdi-text) !important;
+    border-color: var(--ms-pdi-border) !important;
+}
+body.light-mode .ms-gir-table td {
+    background-color: var(--ms-pdi-panel) !important;
+    border-color: var(--ms-pdi-border) !important;
+    color: var(--ms-pdi-text) !important;
+}
+body.light-mode .ms-gir-table td.ms-gir-nok {
+    background-color: var(--ms-pdi-nok-soft) !important;
+    color: var(--ms-pdi-nok) !important;
+}
+body.light-mode .ms-gir-table .ms-gir-part .ms-gir-qr { color: var(--ms-pdi-accent); }
+body.light-mode .ms-gir-table td .ms-gir-crit { color: var(--ms-pdi-nok); }

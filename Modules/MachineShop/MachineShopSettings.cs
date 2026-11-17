@@ -12,6 +12,36 @@ public class MachineShopSettings
     public MachineShopPartParamSettings PartParamConfig { get; set; } = new();
     public MachineShopControlChartsSettings ControlCharts { get; set; } = new();
     public MachineShopGaugeInspectionSettings GaugeInspection { get; set; } = new();
+    public MachineShopGaugeReportSettings GaugeReport { get; set; } = new();
+}
+
+// Machine Shop > Gauge Inspection Report (port of the ThingWorx RE_Gauging_Report_MU and its Thing
+// RE_GaugingReport_DB_TH): every reading of the parts checked in a window, one column per part.
+public class MachineShopGaugeReportSettings
+{
+    // Tabs in this order (ThingWorx RE_Machine_name_DT, by sequence). Database = the machine's ProQMS database with
+    // JobReading / Job / JobParameter / PartParameter / Users; empty = no data source (ThingWorx only read Cover LH).
+    public List<MachineShopGirMachine> Machines { get; set; } = new();
+    // Report layout (ThingWorx RE_GaugeReport_TemplateDT / RE_GaugeReportTemplate_CoverLH_DT): [TemplateDatabase].[dbo].[TemplateTable],
+    // the same table Part Parameter Config > Report Configuration edits (Show flag).
+    public string TemplateDatabase { get; set; } = "ControlTowerVLM";
+    public string TemplateTable { get; set; } = "MS_GaugeReportTemplate";
+    // Process codes LIKE this pattern are inspector operations (ThingWorx LIKE 'QF*'); all others operator operations.
+    public string InspectorProcessPattern { get; set; } = "QF%";
+    public int CellCount { get; set; } = 6;
+    public string CellLinePattern { get; set; } = "%Cell-{0}";
+    // OK / Not OK parameters (go / no-go gauges): JobParameter LSL / USL equal these values; reading 1 = OK, else Not OK.
+    public double AttributeLsl { get; set; } = -1.5;
+    public double AttributeUsl { get; set; } = 1.5;
+    // Parameter rows per page (ThingWorx pagination PageSize 10) and the most part columns returned.
+    public int PageSize { get; set; } = 10;
+    public int MaxComponents { get; set; } = 200;
+}
+
+public class MachineShopGirMachine
+{
+    public string Name { get; set; } = "";
+    public string Database { get; set; } = "";
 }
 
 // Machine Shop > Gauge Inspection Data (port of the ThingWorx QF_OnlineInspection_MU and its Thing

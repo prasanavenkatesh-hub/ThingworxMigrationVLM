@@ -101,6 +101,8 @@ function switchTab(tabId) {
         msOccShow();            // Machine Shop > Online Control Charts
     } else if (tabId === 'ms-gid') {
         msGidShow();            // Machine Shop > Gauge Inspection Data
+    } else if (tabId === 'ms-gir') {
+        msGirShow();            // Machine Shop > Gauge Inspection Report
     } else if (tabId === 'ms-leak-test') {
         loadMltDefaultView();   // Machine Shop > Leak Test (leak-test.js)
     }

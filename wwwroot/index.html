@@ -22,11 +22,12 @@
     <link rel="stylesheet" href="css/reports/process-parameter.css?v=1">
     <link rel="stylesheet" href="css/reports/ebrtm-reports.css?v=4">
     <link rel="stylesheet" href="css/pokayoke/pokayoke.css?v=19">
-    <link rel="stylesheet" href="css/machineshop/machine-shop.css?v=13">
+    <link rel="stylesheet" href="css/machineshop/machine-shop.css?v=14">
     <link rel="stylesheet" href="css/machineshop/history-card.css?v=5">
     <link rel="stylesheet" href="css/machineshop/part-param-config.css?v=3">
     <link rel="stylesheet" href="css/machineshop/control-charts.css?v=3">
     <link rel="stylesheet" href="css/machineshop/gauge-inspection.css?v=2">
+    <link rel="stylesheet" href="css/machineshop/gauge-report.css?v=1">
     <link rel="stylesheet" href="css/machineshop/leak-test.css?v=5">
     <script src="lib/exceljs.min.js"></script>
     <script>
@@ -208,6 +209,11 @@
                             data-tooltip="Gauge Inspection Data" style="font-size: 0.9em; padding: 5px 10px;">
                             <span class="material-symbols-outlined icon" style="font-size: 18px;">fact_check</span>
                             <span class="text">Gauge Inspection Data</span>
+                        </button>
+                        <button class="nav-item sub-item" id="nav-ms-gir" onclick="switchTab('ms-gir')" data-menu="ms-gir"
+                            data-tooltip="Gauge Inspection Report" style="font-size: 0.9em; padding: 5px 10px;">
+                            <span class="material-symbols-outlined icon" style="font-size: 18px;">table_view</span>
+                            <span class="text">Gauge Inspection Report</span>
                         </button>
                     </div>
                 </div>
@@ -2091,6 +2097,51 @@
                 </div>
             </div>
 
+            <!-- Machine Shop - Gauge Inspection Report (js/machineshop/gauge-report.js; ThingWorx RE_Gauging_Report_MU,
+                 Thing RE_GaugingReport_DB_TH). Read-only: every reading per parameter row x part column. -->
+            <div id="tab-ms-gir" class="tab-pane">
+                <div class="ms-gir">
+                    <div class="ms-gid-title">GAUGE INSPECTION REPORT</div>
+                    <div class="ms-pdi-bar">
+                        <div class="ms-pdi-tabs" id="msGirTabs"></div>
+                    </div>
+                    <div class="ms-gid-filters">
+                        <select id="msGirCell" class="ms-gid-select" aria-label="Cell"></select>
+                        <div class="ms-gid-seg" id="msGirRoles">
+                            <button type="button" data-role="OPERATOR">OPERATOR</button>
+                            <button type="button" data-role="INSPECTOR">INSPECTOR</button>
+                        </div>
+                        <label class="ms-gir-check"><input type="checkbox" id="msGirCritical" checked> Critical</label>
+                        <label class="ms-gir-check"><input type="checkbox" id="msGirNonCritical" checked> Non Critical</label>
+                        <label class="ms-gir-check"><input type="checkbox" id="msGirConforming" checked> Conformance</label>
+                        <label class="ms-gir-check"><input type="checkbox" id="msGirNonConforming" checked> Non Conformance</label>
+                        <div class="ms-gid-multi ms-gir-multi" id="msGirCodes"></div>
+                        <div class="ms-gid-seg" id="msGirRanges">
+                            <button type="button" data-range="shift">THIS SHIFT</button>
+                            <button type="button" data-range="today">TODAY</button>
+                            <button type="button" data-range="custom">CUSTOM</button>
+                        </div>
+                        <span class="ms-gid-dates" id="msGirDates" hidden>
+                            <input type="text" id="msGirDate" class="ms-pdi-date" placeholder="Date" readonly>
+                        </span>
+                        <button type="button" class="ms-pdi-submit" id="msGirSubmit">SUBMIT</button>
+                        <button type="button" class="ms-gir-excel" id="msGirExcel" title="Download the whole report as Excel" disabled>
+                            <span class="material-symbols-outlined">download</span> Excel
+                        </button>
+                    </div>
+                    <div class="ms-gir-head" id="msGirHead">
+                        <span class="ms-gir-machine" id="msGirMachineName"></span>
+                        <span><b>Start Time</b> <span id="msGirStart">-</span></span>
+                        <span><b>End Time</b> <span id="msGirEnd">-</span></span>
+                        <span><b>Current Shift</b> <span id="msGirShift">-</span></span>
+                        <span class="ms-gir-count" id="msGirCount">0 Component</span>
+                    </div>
+                    <div class="ms-gid-note" id="msGirNote"></div>
+                    <div class="ms-gir-grid" id="msGirGrid"></div>
+                    <div class="ms-gir-pager" id="msGirPager"></div>
+                </div>
+            </div>
+
             <!-- Fire Hydrant Monitoring Dashboard -->
             <div id="tab-fire-hydrant" class="tab-pane">
                 <div class="scada-scroll">
@@ -2890,7 +2941,7 @@
 
         <script src="lib/chart.min.js"></script>
         <!-- App scripts: shared shell first, then one file per module -->
-        <script src="js/core.js?v=15"></script>
+        <script src="js/core.js?v=16"></script>
         <script src="js/app-write-mode.js?v=1"></script> <!-- TEMPORARY: AppWriteMode -->
         <script src="js/dashboards/fire-hydrant.js?v=13"></script>
         <script src="js/dashboards/gas-leak.js?v=1"></script>
@@ -2916,6 +2967,7 @@
         <script src="js/machineshop/part-param-config.js?v=4"></script>
         <script src="js/machineshop/control-charts.js?v=3"></script>
         <script src="js/machineshop/gauge-inspection.js?v=2"></script>
+        <script src="js/machineshop/gauge-report.js?v=1"></script>
         <script src="js/machineshop/leak-test.js?v=6"></script>
         <script src="js/pokayoke/overview.js?v=4"></script>
 </body>

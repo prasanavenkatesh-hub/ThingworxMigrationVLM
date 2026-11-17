@@ -10,6 +10,8 @@ namespace ControlTower.Services;
 // Online Control Charts: MachineShopControlChartsService (CELL + OPERATION views) and MachineShopControlChartsSpcService
 // (SPC LIVE + SPC MONTHLY), api/machineshop/controlcharts/..., read-only.
 // Gauge Inspection Data: MachineShopGaugeInspectionService, api/machineshop/gaugeinspection/..., read-only.
+// Gauge Inspection Report: MachineShopGaugeReportService (+ MachineShopGaugeReportController, api/machineshop/gaugereport/...),
+// port of ThingWorx RE_Gauging_Report_MU / RE_GaugingReport_DB_TH, read-only; layout = ControlTowerVLM MS_GaugeReportTemplate.
 // Leak Test: LeakTestService (+ LeakTestController, api/machineshop/leaktest/...), port of the ThingWorx Thing
 // RE_MS_LeakTest_TH, read-only counts from [MachineShop:Database].[dbo].[MachineShopData] (merged from Prasanna's copy
 // 2026-11-16; its IMemoryCache is registered by ReportsModule).
@@ -24,6 +26,7 @@ public static class MachineShopModule
         services.AddSingleton<MachineShopControlChartsSpcService>();
         services.AddSingleton<MachineShopGaugeInspectionService>();
         services.AddSingleton<LeakTestService>();
+        services.AddSingleton<MachineShopGaugeReportService>();
         return services;
     }
 }
