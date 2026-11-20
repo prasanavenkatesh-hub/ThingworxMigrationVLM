@@ -34,6 +34,36 @@ function cylinderHeadSetLoading(isLoading) {
     if (loadingEl) loadingEl.style.display = isLoading ? 'flex' : 'none';
 }
 
+// Load time: a running seconds counter while the report loads, then "Loaded in X s" (fetch + render).
+let cylinderHeadLoadTimerId = null;
+
+function cylinderHeadFormatSeconds(ms) {
+    return `${(ms / 1000).toFixed(1)} s`;
+}
+
+function cylinderHeadStartLoadTimer() {
+    const startedAt = performance.now();
+    const timerEl = document.getElementById('cylinderHeadLoadTimer');
+    const doneEl = document.getElementById('cylinderHeadLoadTime');
+    if (doneEl) doneEl.textContent = '';
+    if (timerEl) timerEl.textContent = '(0.0 s)';
+    clearInterval(cylinderHeadLoadTimerId);
+    cylinderHeadLoadTimerId = setInterval(() => {
+        if (timerEl) timerEl.textContent = `(${cylinderHeadFormatSeconds(performance.now() - startedAt)})`;
+    }, 100);
+    return startedAt;
+}
+
+function cylinderHeadStopLoadTimer(startedAt, ok) {
+    clearInterval(cylinderHeadLoadTimerId);
+    cylinderHeadLoadTimerId = null;
+    const doneEl = document.getElementById('cylinderHeadLoadTime');
+    if (!doneEl) return;
+    const time = new Date().toLocaleTimeString('en-GB');
+    const took = cylinderHeadFormatSeconds(performance.now() - startedAt);
+    doneEl.textContent = ok ? `Loaded in ${took} · ${time}` : `Failed after ${took} · ${time}`;
+}
+
 function loadCylinderHeadDefaultView() {
     if (cylinderHeadInitialLoadDone) return;
     cylinderHeadInitialLoadDone = true;
@@ -56,11 +86,14 @@ async function fetchCylinderHeadReport() {
     const trendBtn = document.getElementById('cylinderHeadTrendBtn');
     [summaryBtn, trendBtn].forEach(b => { if (b) b.disabled = true; });
     cylinderHeadSetLoading(true);
+    const startedAt = cylinderHeadStartLoadTimer();
+    let loadOk = false;
 
     try {
         const res = await fetch(`/api/reports/cylinder-head-leak/data?${params.toString()}`);
         if (res.ok) {
             cylinderHeadData = await res.json();
+            loadOk = true;
         } else {
             alert('Failed to load Cylinder Head Leak Rejection report data.');
             cylinderHeadData = [];
@@ -75,6 +108,7 @@ async function fetchCylinderHeadReport() {
         renderCylinderHeadCards();
         renderCylinderHeadPivotTable();
         renderCylinderHeadTrendChart();
+        cylinderHeadStopLoadTimer(startedAt, loadOk);
     }
 }
 

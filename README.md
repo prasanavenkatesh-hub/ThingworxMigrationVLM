@@ -238,6 +238,7 @@ Four reports were ported from Power BI by a separate team member and merged in a
    * `dbo.usp_GetCylinderHeadLeakRejectionReport` in `RE_Vallam_J1EA2_SA_PTL_IPV_NR_DB` (`CylinderHeadLeakConnection`), 120 s timeout.
    * Filters: Plant (All / ORAGADAM / VALLAM), Assembly Line (EA1/EA2/EA3), Shift, From/To.
    * Rows are per location/line/date/shift/station/cell with OK, NOT OK and Actual quantities. Two views: **Summary** (per-cell cards with rejection % = NOK / Actual, plus a pivot table) and **Cellwise rej trend** (Chart.js trend per cell, cells ordered ORG-cell1..2, VLM-cell1..6).
+   * Load time: while loading, the indicator counts the seconds; afterwards "Loaded in X s · hh:mm:ss" (request + drawing) is shown next to the view buttons, or "Failed after X s" on an error.
 * **Categorywise Rework Report** (`#tab-categorywise-rework`, `categorywise-rework.js`, `Modules/Reports/CategorywiseRework/`):
    * `dbo.usp_GetCategorywiseReworkReport`, one identical copy per line: `RE_Vallam_J1EA1_Rework_DB` (`ReworkEA01Connection`) and `RE_Vallam_J1EA2_Rework_DB` (`ReworkEA02Connection`). The API rejects any line other than EA01/EA02.
    * The proc returns row-level defects for the Leak / PDI / Testing stations in a date-time range. Every quantity is a **distinct count of engine numbers** (matching the Power BI measure), so totals are set sizes, never sums of cells.

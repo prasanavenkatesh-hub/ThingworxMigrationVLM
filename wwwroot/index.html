@@ -1086,13 +1086,14 @@
                     <div style="display:flex; gap:8px;">
                         <button id="cylinderHeadSummaryBtn" class="btn-primary" style="padding:5px 12px; height:auto; font-size:12px;" onclick="switchCylinderHeadView('summary')">Summary</button>
                         <button id="cylinderHeadTrendBtn" class="btn-primary" style="padding:5px 12px; height:auto; font-size:12px; background:#555;" onclick="switchCylinderHeadView('trend')">Cellwise rej trend</button>
+                        <span id="cylinderHeadLoadTime" style="align-self:center; color:#aaa; font-size:12px;"></span>
                     </div>
                 </div>
 
                 <!-- Loading Indicator -->
                 <div id="cylinderHeadLoading" style="display:none; align-items:center; gap:8px; color:#ccc; font-size:13px; padding: 10px 4px;">
                     <span class="material-symbols-outlined" style="font-size:18px; animation: spin 1s linear infinite;">progress_activity</span>
-                    Loading Cylinder Head Leak Rejection report...
+                    Loading Cylinder Head Leak Rejection report... <span id="cylinderHeadLoadTimer"></span>
                 </div>
 
                 <!-- KPI Cards Row -->
@@ -2741,7 +2742,7 @@
         <script src="js/reports/main-line.js?v=1"></script>
         <script src="js/reports/poke-yoke.js?v=1"></script>
         <script src="js/reports/qhold.js?v=1"></script>
-        <script src="js/reports/cylinder-head-leak.js?v=1"></script>
+        <script src="js/reports/cylinder-head-leak.js?v=2"></script>
         <script src="js/reports/categorywise-rework.js?v=1"></script>
         <script src="js/reports/summary-report.js?v=2"></script>
         <script src="js/reports/rejection-summary.js?v=1"></script>
