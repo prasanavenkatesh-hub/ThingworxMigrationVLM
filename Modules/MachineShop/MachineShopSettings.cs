@@ -9,6 +9,106 @@ public class MachineShopSettings
     public int QueryTimeoutSeconds { get; set; } = 60;
     public MachineShopPdiSettings Pdi { get; set; } = new();
     public MachineShopHistoryCardSettings HistoryCard { get; set; } = new();
+    public MachineShopPartParamSettings PartParamConfig { get; set; } = new();
+    public MachineShopControlChartsSettings ControlCharts { get; set; } = new();
+    public MachineShopGaugeInspectionSettings GaugeInspection { get; set; } = new();
+}
+
+// Machine Shop > Gauge Inspection Data (port of the ThingWorx QF_OnlineInspection_MU and its Thing
+// "QF_Online _Inspection _DB_TH"): parts checked per shift and process code against a fixed plan.
+public class MachineShopGaugeInspectionSettings
+{
+    // Tabs in this order (ThingWorx RE_Machine_name_DT). Source: "JobReading" = [Database].[dbo].[JobReading] + [Job]
+    // (ThingWorx getReportDataView{OPE,INSP}CoverLH), "CheckSheet" = the views OperatorCheckSheet / InspectorCheckSheet
+    // in Database (ThingWorx getReportDataView{OPE,INSP}, Crank Case LH); empty = no data (as ThingWorx).
+    public List<MachineShopGidMachine> Machines { get; set; } = new();
+    public string OperatorCheckSheet { get; set; } = "OPERATOR_CheckSheet";
+    public string InspectorCheckSheet { get; set; } = "INSPECTOR_CheckSheet";
+    // Process codes LIKE this pattern are inspector operations (ThingWorx startsWith('QF')): Inspector columns,
+    // counted by distinct BatchNo; all other codes are operator operations counted by distinct QRCode.
+    public string InspectorProcessPattern { get; set; } = "QF%";
+    // Machines whose JobReading / Job carry the cell in LineName (JobReading sources only).
+    public List<string> CellMachines { get; set; } = new();
+    public int CellCount { get; set; } = 6;
+    public string CellLinePattern { get; set; } = "%Cell-{0}";
+    // Parts to check per shift (ThingWorx getOnlineInspData OP/INShift{A,B,C}ShOutOf: 7 / 8 / 8 and 2 / 2 / 2).
+    public Dictionary<string, int> OperatorPlan { get; set; } = new();
+    public Dictionary<string, int> InspectorPlan { get; set; } = new();
+    // Process Code dropdown = codes read in the last ProcessCodeDays days (fallback: every Job.ProcessCode), without
+    // ExcludeProcessCodes; cached ProcessCodeCacheMinutes. ThingWorx used fixed 2022 / 2024 windows.
+    public int ProcessCodeDays { get; set; } = 30;
+    public int ProcessCodeCacheMinutes { get; set; } = 10;
+    public List<string> ExcludeProcessCodes { get; set; } = new();
+    // CUSTOM: longest range in days and the default From = today - CustomDefaultDaysBack.
+    public int MaxRangeDays { get; set; } = 31;
+    public int CustomDefaultDaysBack { get; set; } = 1;
+}
+
+public class MachineShopGidMachine
+{
+    public string Name { get; set; } = "";
+    public string Database { get; set; } = "";
+    public string Source { get; set; } = "";
+}
+
+// Machine Shop > Online Control Charts (port of the ThingWorx RE_Crank_case_Dashboard_MU "CELL LEVEL DASHBOARD" and
+// RE_Crank_case_TH / RE_CrankCase_Helper_DB_TH). Each machine with a Database reads [Database].[dbo].[JobReading],
+// [Job], [PartParameter], [JobParameter] and [CriticalPartParameter] there.
+public class MachineShopControlChartsSettings
+{
+    // Tabs in this order (ThingWorx RE_Machine_name_DT as shown on the CELL screen); Database empty = no data
+    // (ThingWorx only computed Crank Case LH and Cover LH).
+    public List<MachineShopPartParamMachine> Machines { get; set; } = new();
+    // The Inspector component list only keeps readings whose OPERATOR is a UserCode of this table
+    // (ThingWorx joined [VVL-ProQMS-J1-CrankCase RH].[dbo].[Users] for every machine).
+    public string UsersDatabase { get; set; } = "VVL-ProQMS-J1-CrankCase RH";
+    public string UsersTable { get; set; } = "Users";
+    // Inspector readings = Job.MachineNo LIKE this pattern (ThingWorx '%QF%': the final-inspection machines).
+    public string InspectorMachinePattern { get; set; } = "%QF%";
+    // Default date of the CUSTOM picker = today - this many days (ThingWorx: -2).
+    public int CustomDefaultDaysBack { get; set; } = 2;
+    // Machines whose JobReading / Job / JobParameter carry the machining cell in LineName (ThingWorx: Cover LH only).
+    // OPERATION and SPC MONTHLY need it; other machines show "no cell data" there.
+    public List<string> CellMachines { get; set; } = new();
+    // LineName LIKE this pattern ({0} = cell number) selects a cell (ThingWorx '%1' / '%Cell-1').
+    public string CellLinePattern { get; set; } = "%Cell-{0}";
+    public MachineShopOccOperationSettings Operation { get; set; } = new();
+    public MachineShopOccSpcSettings Spc { get; set; } = new();
+}
+
+// OPERATION view (ThingWorx RE_CellLevel_Dashboard_MU / RE_cell_Loader_MU, RE_Crank_case_TH.getCellCoverLHPercentageByDate).
+public class MachineShopOccOperationSettings
+{
+    // CELL 1 .. CELL n columns.
+    public int CellCount { get; set; } = 4;
+    // Job.ProcessCode LIKE these patterns = Operator / Inspector readings (ThingWorx 'OPN%' / 'QF%').
+    public string OperatorProcessPattern { get; set; } = "OPN%";
+    public string InspectorProcessPattern { get; set; } = "QF%";
+    // Process-code chips per card (ThingWorx OPN1..OPN8).
+    public int MaxProcessCodes { get; set; } = 8;
+}
+
+// SPC LIVE / SPC MONTHLY views (ThingWorx QualityFunction_MU / QualityFunctionMonthly_MU, RE_CrankCase_Helper_DB_TH,
+// RE_MS_SPCMonthlyHelper_TH). Read-only: the SPC MONTHLY sub-groups are picked from the readings on every request
+// instead of being logged to a stream (ThingWorx RE_MS_RandomXValues_Stream).
+public class MachineShopOccSpcSettings
+{
+    // Cell dropdown CELL1 .. CELLn (ThingWorx RE_GaugingReport_DB_TH.cell: CELL1 .. CELL6).
+    public int CellCount { get; set; } = 6;
+    // Process-code dropdown per role (ThingWorx LIKE 'OPN*' / 'QF_*'; '[_]' = a literal underscore in SQL LIKE).
+    public string OperatorProcessPattern { get; set; } = "OPN%";
+    public string InspectorProcessPattern { get; set; } = "QF[_]%";
+    // SPC MONTHLY: readings per shift sub-group (ThingWorx store7RandomValuesCoverLH: 7; fewer readings = no sub-group).
+    public int SubgroupSize { get; set; } = 7;
+    // SPC MONTHLY / Report: longest range in days (ThingWorx QualityDateRangeLimit: 31).
+    public int MaxRangeDays { get; set; } = 31;
+    // SPC MONTHLY default From = today - this many days (ThingWorx getMonthBefore: 30).
+    public int MonthlyDefaultDays { get; set; } = 30;
+    // Nelson rules (Remarks) look at the sub-groups before each one; the readings of this many days before From are
+    // read for that (ThingWorx used up to 14 earlier stream entries).
+    public int RuleLookbackDays { get; set; } = 14;
+    // SPC LIVE sample size when the Part Parameter Config Sample Size is not set (ThingWorx SampleSizefromConfiguration).
+    public int DefaultSampleSize { get; set; } = 7;
 }
 
 // Machine Shop > PDI Dashboard (port of the ThingWorx MS_PDI_HourlyData_TH / MS_PDI_SummaryPage_TH services).
@@ -158,4 +258,39 @@ public class MachineShopHistoryCardSpcOperation
     public string Station { get; set; } = "";
     public string BarcodePrefix { get; set; } = "";
     public List<string> ProcessCodes { get; set; } = new();
+}
+
+// Machine Shop > Part Parameter Config (port of the ThingWorx RE_PartParameter_Configuration_MU mashup and its
+// Things RE_CrankCase_Helper_DB_TH / RE_Crank_case_TH). Each machine's critical part parameters
+// ([Machine.Database].[dbo].[Table]: list, Create / Edit / Delete) + the two page settings (SettingsTable) and the
+// Sample Size list (SampleSizeTable) in SettingsDatabase (Modules/MachineShop/Sql/PartParamConfig_Tables.sql).
+public class MachineShopPartParamSettings
+{
+    public string Table { get; set; } = "CriticalPartParameter";
+    public string SettingsDatabase { get; set; } = "ControlTowerVLM";
+    public string SettingsTable { get; set; } = "MS_PartParamSettings";
+    public string SampleSizeTable { get; set; } = "MS_SPCSampleSize";
+    // Report Configuration: Gauging Report layout + Show flag per machine (copy of the ThingWorx data tables
+    // RE_GaugeReport_TemplateDT / RE_GaugeReportTemplate_CoverLH_DT), in SettingsDatabase
+    // (Modules/MachineShop/Sql/PartParamConfig_ReportTemplate.sql).
+    public string ReportTemplateTable { get; set; } = "MS_GaugeReportTemplate";
+    // Tabs in this order (ThingWorx data table RE_Machine_name_DT); Database empty = no parameter table.
+    public List<MachineShopPartParamMachine> Machines { get; set; } = new();
+    // Flags a new parameter gets (the Create pop-up only asks for code, description, critical, date). ThingWorx
+    // set Operator = Inspector = 1 for Cover LH only and left them NULL elsewhere. PROVISIONAL: confirm.
+    public MachineShopPartParamCreateDefaults CreateDefaults { get; set; } = new();
+}
+
+public class MachineShopPartParamCreateDefaults
+{
+    public bool Operator { get; set; } = true;
+    public bool Inspector { get; set; } = true;
+    public bool Spc { get; set; }
+    public bool ProductParameter { get; set; }
+}
+
+public class MachineShopPartParamMachine
+{
+    public string Name { get; set; } = "";
+    public string Database { get; set; } = "";
 }
