@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="css/dashboards/gas-leak.css?v=1">
     <link rel="stylesheet" href="css/dashboards/ems-renewable.css?v=3">
     <link rel="stylesheet" href="css/dashboards/eb-rtm.css?v=1">
+    <link rel="stylesheet" href="css/reports/cylinder-head-leak.css?v=2">
     <link rel="stylesheet" href="css/reports/categorywise-rework.css?v=1">
     <link rel="stylesheet" href="css/reports/summary-report.css?v=2">
     <link rel="stylesheet" href="css/reports/rejection-summary.css?v=1">
@@ -1072,6 +1073,7 @@
 
             <!-- Cylinder Head Leak Rejection Report Tab -->
             <div id="tab-cylinder-head-leak" class="tab-pane" style="zoom: 0.85;">
+                <h2 class="cylinder-head-title">Cylinder Head Leak Rejection Report</h2>
                 <!-- Filters Card -->
                 <div style="padding: 8px 12px; background:#1e1e1e; border-radius: 8px; border: 1px solid #333; margin-bottom: 10px;">
                     <div style="display:flex; flex-wrap: wrap; gap:8px 14px; align-items:center; margin-bottom: 8px;">
@@ -1102,6 +1104,12 @@
                             </select>
                         </span>
                         <span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+                            <label style="color:#888; font-size:12px;">Cell</label>
+                            <select id="cylinderHeadCell" class="select-royal" style="padding:5px 24px 5px 8px; font-size:12px;" onchange="applyCylinderHeadCellFilter()">
+                                <option value="ALL">All</option>
+                            </select>
+                        </span>
+                        <span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
                             <label style="color:#888; font-size:12px;">From</label>
                             <input type="text" id="cylinderHeadStart" class="filter-input" placeholder="Start"
                                 style="background:#333; border:none; color:#fff; padding:5px; border-radius:4px; width: 150px;">
@@ -1116,13 +1124,22 @@
                     <div style="display:flex; gap:8px;">
                         <button id="cylinderHeadSummaryBtn" class="btn-primary" style="padding:5px 12px; height:auto; font-size:12px;" onclick="switchCylinderHeadView('summary')">Summary</button>
                         <button id="cylinderHeadTrendBtn" class="btn-primary" style="padding:5px 12px; height:auto; font-size:12px; background:#555;" onclick="switchCylinderHeadView('trend')">Cellwise rej trend</button>
+                        <span id="cylinderHeadLoadTime" style="align-self:center; color:#aaa; font-size:12px;"></span>
+                        <span style="margin-left:auto; display:flex; gap:8px;">
+                            <button id="cylinderHeadExcelBtn" class="btn-primary" style="padding:5px 12px; height:auto; font-size:12px; display:inline-flex; align-items:center; gap:4px;" onclick="exportCylinderHeadExcel()" title="Download an .xlsx file (opens in Excel and Google Sheets)">
+                                <span class="material-symbols-outlined" style="font-size:16px;">table_view</span>Excel
+                            </button>
+                            <button id="cylinderHeadPdfBtn" class="btn-primary" style="padding:5px 12px; height:auto; font-size:12px; display:inline-flex; align-items:center; gap:4px;" onclick="exportCylinderHeadPdf()" title="Print the current view; choose 'Save as PDF' in the print dialog">
+                                <span class="material-symbols-outlined" style="font-size:16px;">picture_as_pdf</span>PDF
+                            </button>
+                        </span>
                     </div>
                 </div>
 
                 <!-- Loading Indicator -->
                 <div id="cylinderHeadLoading" style="display:none; align-items:center; gap:8px; color:#ccc; font-size:13px; padding: 10px 4px;">
                     <span class="material-symbols-outlined" style="font-size:18px; animation: spin 1s linear infinite;">progress_activity</span>
-                    Loading Cylinder Head Leak Rejection report...
+                    Loading Cylinder Head Leak Rejection report... <span id="cylinderHeadLoadTimer"></span>
                 </div>
 
                 <!-- KPI Cards Row -->
@@ -2900,7 +2917,7 @@
         <script src="js/reports/main-line.js?v=1"></script>
         <script src="js/reports/poke-yoke.js?v=1"></script>
         <script src="js/reports/qhold.js?v=1"></script>
-        <script src="js/reports/cylinder-head-leak.js?v=1"></script>
+        <script src="js/reports/cylinder-head-leak.js?v=6"></script>
         <script src="js/reports/categorywise-rework.js?v=1"></script>
         <script src="js/reports/summary-report.js?v=2"></script>
         <script src="js/reports/rejection-summary.js?v=1"></script>
