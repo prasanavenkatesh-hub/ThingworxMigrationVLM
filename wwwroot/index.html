@@ -1104,6 +1104,12 @@
                             </select>
                         </span>
                         <span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+                            <label style="color:#888; font-size:12px;">Cell</label>
+                            <select id="cylinderHeadCell" class="select-royal" style="padding:5px 24px 5px 8px; font-size:12px;" onchange="applyCylinderHeadCellFilter()">
+                                <option value="ALL">All</option>
+                            </select>
+                        </span>
+                        <span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
                             <label style="color:#888; font-size:12px;">From</label>
                             <input type="text" id="cylinderHeadStart" class="filter-input" placeholder="Start"
                                 style="background:#333; border:none; color:#fff; padding:5px; border-radius:4px; width: 150px;">
@@ -2911,7 +2917,7 @@
         <script src="js/reports/main-line.js?v=1"></script>
         <script src="js/reports/poke-yoke.js?v=1"></script>
         <script src="js/reports/qhold.js?v=1"></script>
-        <script src="js/reports/cylinder-head-leak.js?v=5"></script>
+        <script src="js/reports/cylinder-head-leak.js?v=6"></script>
         <script src="js/reports/categorywise-rework.js?v=1"></script>
         <script src="js/reports/summary-report.js?v=2"></script>
         <script src="js/reports/rejection-summary.js?v=1"></script>

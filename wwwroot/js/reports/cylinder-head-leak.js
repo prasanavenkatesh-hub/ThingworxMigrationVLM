@@ -1,6 +1,7 @@
 // --- CYLINDER HEAD LEAK REJECTION REPORT ---
 
-let cylinderHeadData = [];
+let cylinderHeadAllData = [];   // rows returned by the API for the Plant / Line / Shift / date filters
+let cylinderHeadData = [];      // the same rows after the Cell filter (applied in the browser) - what every view draws
 let cylinderHeadView = 'summary';
 let cylinderHeadChart = null;
 let cylinderHeadInitialLoadDone = false;
@@ -151,22 +152,21 @@ async function fetchCylinderHeadReport() {
     try {
         const res = await fetch(`/api/reports/cylinder-head-leak/data?${params.toString()}`);
         if (res.ok) {
-            cylinderHeadData = await res.json();
+            cylinderHeadAllData = await res.json();
             loadOk = true;
         } else {
             alert('Failed to load Cylinder Head Leak Rejection report data.');
-            cylinderHeadData = [];
+            cylinderHeadAllData = [];
         }
     } catch (err) {
         console.error('Error fetching Cylinder Head Leak report', err);
         alert('Error connecting to server');
-        cylinderHeadData = [];
+        cylinderHeadAllData = [];
     } finally {
         cylinderHeadSetLoading(false);
         buttons.forEach(b => { if (b) b.disabled = false; });
-        renderCylinderHeadCards();
-        renderCylinderHeadPivotTable();
-        renderCylinderHeadTrendChart();
+        cylinderHeadFillCellOptions();
+        applyCylinderHeadCellFilter();
         cylinderHeadStopLoadTimer(startedAt, loadOk);
     }
 }
@@ -379,7 +379,7 @@ function cylinderHeadFilterText() {
         return input?._flatpickr?.altInput?.value || input?.value || '';
     };
     const all = v => (v === 'ALL' ? 'All' : v);
-    return `Plant: ${all(sel('cylinderHeadPlant'))}   |   Assembly Line: ${all(sel('cylinderHeadLine'))}   |   Shift: ${all(sel('cylinderHeadShift'))}   |   From: ${dateText('cylinderHeadStart')}   |   To: ${dateText('cylinderHeadEnd')}`;
+    return `Plant: ${all(sel('cylinderHeadPlant'))}   |   Assembly Line: ${all(sel('cylinderHeadLine'))}   |   Shift: ${all(sel('cylinderHeadShift'))}   |   Cell: ${all(sel('cylinderHeadCell'))}   |   From: ${dateText('cylinderHeadStart')}   |   To: ${dateText('cylinderHeadEnd')}`;
 }
 
 function cylinderHeadFileStamp() {
@@ -717,13 +717,38 @@ function switchCylinderHeadView(view) {
     fetchCylinderHeadReport();
 }
 
+// Cell dropdown: the known cells in display order plus any other cell found in the loaded data; keeps the selection.
+function cylinderHeadFillCellOptions() {
+    const select = document.getElementById('cylinderHeadCell');
+    if (!select) return;
+    const current = select.value || 'ALL';
+    const found = new Set((cylinderHeadAllData || []).map(r => r.cell || 'Unknown'));
+    const cells = [...CYLINDER_HEAD_CELL_ORDER, ...Array.from(found).filter(c => !CYLINDER_HEAD_CELL_ORDER.includes(c)).sort()];
+    select.innerHTML = '<option value="ALL">All</option>' + cells.map(c => `<option value="${cylinderHeadEsc(c)}">${cylinderHeadEsc(c)}</option>`).join('');
+    select.value = cells.includes(current) ? current : 'ALL';
+}
+
+// Filters the loaded rows by the Cell dropdown and redraws the cards, the Summary table and the Cellwise rej trend chart
+// (no reload: the API rows already carry the cell). Excel / PDF export the filtered rows too.
+function applyCylinderHeadCellFilter() {
+    const cell = document.getElementById('cylinderHeadCell')?.value || 'ALL';
+    cylinderHeadData = cell === 'ALL'
+        ? (cylinderHeadAllData || [])
+        : (cylinderHeadAllData || []).filter(r => (r.cell || 'Unknown') === cell);
+    renderCylinderHeadCards();
+    renderCylinderHeadPivotTable();
+    renderCylinderHeadTrendChart();
+}
+
 function clearCylinderHeadFilters() {
     const plantSelect = document.getElementById('cylinderHeadPlant');
     const lineSelect = document.getElementById('cylinderHeadLine');
     const shiftSelect = document.getElementById('cylinderHeadShift');
+    const cellSelect = document.getElementById('cylinderHeadCell');
     if (plantSelect) plantSelect.value = 'ALL';
     if (lineSelect) lineSelect.value = 'ALL';
     if (shiftSelect) shiftSelect.value = 'ALL';
+    if (cellSelect) cellSelect.value = 'ALL';
 
     const { start, end } = currentProductionDayRange();
     const startInput = document.getElementById('cylinderHeadStart');
@@ -748,6 +773,7 @@ document.addEventListener('DOMContentLoaded', () => {
         flatpickr("#cylinderHeadStart", { ...config, defaultDate: start });
         flatpickr("#cylinderHeadEnd", { ...config, defaultDate: end });
     }
+    cylinderHeadFillCellOptions();
     renderCylinderHeadPivotTable();
 });
 
